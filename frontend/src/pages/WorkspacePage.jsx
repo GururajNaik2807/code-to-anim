@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Read production URL from environment variable, fallback to localhost for dev
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
 export default function WorkspacePage() {
   const location = useLocation();
   
@@ -39,13 +42,13 @@ print("Indices found:", found_indices)`;
     }
   }, [location.state]);
 
-  // Execute trace API
+  // Execute trace API against dynamic backend URL
   const handleExecuteTrace = async () => {
     setIsLoading(true);
     setErrorMessage(null);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/trace", {
+      const response = await fetch(`${API_BASE_URL}/api/trace`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
@@ -61,8 +64,8 @@ print("Indices found:", found_indices)`;
         setErrorMessage(data.detail || data.error || "Execution trace failed.");
       }
     } catch (err) {
-      setErrorMessage("Could not connect to backend server at http://127.0.0.1:8000");
-    } finally {
+      setErrorMessage(`Could not connect to backend server at ${API_BASE_URL}`);
+    } fontally {
       setIsLoading(false);
     }
   };
