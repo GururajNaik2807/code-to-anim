@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 
+
+
 // Read production URL from environment variable, fallback to localhost for dev
 // Change line 6 in src/pages/WorkspacePage.jsx to this:
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://codetoanim-api.onrender.com";

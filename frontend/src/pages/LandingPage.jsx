@@ -12,12 +12,16 @@ const LandingPage = () => {
           CodeTo<span className="text-purple-500">Anim</span> 🎬
         </div>
         <div className="flex items-center gap-6">
-          {/* Non-functional Sign In Option */}
-          <button className="text-sm font-semibold text-gray-400 hover:text-white transition-colors">
-            Sign In
-          </button>
+          {/* Linked Sign In Option */}
           <Link 
-            to="/app" 
+            to="/auth" 
+            className="text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+          >
+            Sign In
+          </Link>
+          {/* Corrected path from /app to /workspace */}
+          <Link 
+            to="/workspace" 
             className="text-sm font-bold bg-white text-black px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
           >
             Open Workspace
@@ -59,9 +63,11 @@ const LandingPage = () => {
                   Start Visualizing
                 </motion.button>
               </Link>
-              <button className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg border border-gray-700 transition-all w-full sm:w-auto">
-                View Documentation
-              </button>
+              <Link to="/learn">
+                <button className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg border border-gray-700 transition-all w-full sm:w-auto">
+                  Explore Presets 📚
+                </button>
+              </Link>
             </div>
           </motion.div>
         </section>
@@ -95,7 +101,7 @@ const LandingPage = () => {
             </div>
 
             <div className="bg-gray-900 p-8 rounded-2xl border border-gray-800 hover:border-gray-700 transition-colors">
-              <div className="text-pink-400 mb-4 text-2xl">🎨</div>
+              <div className="text-pink-400 mb-4 text-2xl">🎬</div>
               <h3 className="text-xl font-bold text-white mb-3">3. Play The Animation</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
                 Data structures physically slide, swap, and highlight on our Framer Motion canvas. Use the playback controls to step backward and forward through your execution timeline.
@@ -117,9 +123,11 @@ const LandingPage = () => {
               <p className="text-gray-300 mb-8 text-lg">
                 Sign in to unlock your personal developer dashboard. Creating a free account allows you to <strong>save your custom logic</strong>, track your execution history, and bookmark your most complex visualizations to review later.
               </p>
-              <button className="bg-white text-black hover:bg-gray-200 font-bold py-3 px-8 rounded-lg transition-all">
-                Create an Account (Coming Soon)
-              </button>
+              <Link to="/auth">
+                <button className="bg-white text-black hover:bg-gray-200 font-bold py-3 px-8 rounded-lg transition-all">
+                  Create an Account
+                </button>
+              </Link>
             </motion.div>
           </div>
         </section>
@@ -142,8 +150,8 @@ const LandingPage = () => {
             <h4 className="text-white font-semibold mb-4">Product</h4>
             <ul className="space-y-2 text-sm text-gray-500">
               <li><Link to="/workspace" className="hover:text-purple-400 transition-colors">Workspace</Link></li>
-              <li><a href="#" className="hover:text-purple-400 transition-colors">Supported Algorithms</a></li>
-              <li><a href="#" className="hover:text-purple-400 transition-colors">Roadmap</a></li>
+              <li><Link to="/learn" className="hover:text-purple-400 transition-colors">Presets & Learn</Link></li>
+              <li><Link to="/auth" className="hover:text-purple-400 transition-colors">Account</Link></li>
             </ul>
           </div>
 
@@ -152,17 +160,12 @@ const LandingPage = () => {
             <ul className="space-y-2 text-sm text-gray-500">
               <li><a href="#" className="hover:text-purple-400 transition-colors">Documentation</a></li>
               <li><a href="#" className="hover:text-purple-400 transition-colors">GitHub Repository</a></li>
-              <li><a href="#" className="hover:text-purple-400 transition-colors">Report an Issue</a></li>
             </ul>
           </div>
         </div>
         
         <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-gray-800/50 text-sm text-gray-600 flex flex-col md:flex-row justify-between items-center">
           <p>© {new Date().getFullYear()} CodeToAnim. All rights reserved.</p>
-          <div className="flex space-x-4 mt-4 md:mt-0">
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-          </div>
         </div>
       </footer>
     </div>
