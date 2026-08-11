@@ -65,7 +65,7 @@ print("Indices found:", found_indices)`;
       }
     } catch (err) {
       setErrorMessage(`Could not connect to backend server at ${API_BASE_URL}`);
-    } fontally {
+    } finally {
       setIsLoading(false);
     }
   };
