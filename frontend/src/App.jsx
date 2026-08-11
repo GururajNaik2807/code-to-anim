@@ -8,7 +8,6 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Landing page must be set to path="/" */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/workspace" element={<WorkspacePage />} />
         <Route path="/learn" element={<LearnPage />} />
