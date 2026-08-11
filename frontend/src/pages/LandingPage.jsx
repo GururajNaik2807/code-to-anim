@@ -141,7 +141,7 @@ const LandingPage = () => {
           <div>
             <h4 className="text-white font-semibold mb-4">Product</h4>
             <ul className="space-y-2 text-sm text-gray-500">
-              <li><Link to="/app" className="hover:text-purple-400 transition-colors">Workspace</Link></li>
+              <li><Link to="/workspace" className="hover:text-purple-400 transition-colors">Workspace</Link></li>
               <li><a href="#" className="hover:text-purple-400 transition-colors">Supported Algorithms</a></li>
               <li><a href="#" className="hover:text-purple-400 transition-colors">Roadmap</a></li>
             </ul>
