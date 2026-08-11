@@ -286,7 +286,792 @@ const ALGORITHMS_DATABASE = [
     spaceComplexity: 'O(V)',
     description: 'Finds the shortest paths between nodes in a graph with non-negative edge weights.',
     code: `# Dijkstra's Algorithm\nimport heapq\ngraph = {'A': {'B': 1, 'C': 4}, 'B': {'A': 1, 'C': 2, 'D': 5}, 'C': {'A': 4, 'B': 2, 'D': 1}, 'D': {'B': 5, 'C': 1}}\nstart = 'A'\ndistances = {node: float('infinity') for node in graph}\ndistances[start] = 0\npq = [(0, start)]\nwhile pq:\n    current_dist, current_node = heapq.heappop(pq)\n    if current_dist > distances[current_node]:\n        continue\n    for neighbor, weight in graph[current_node].items():\n        distance = current_dist + weight\n        if distance < distances[neighbor]:\n            distances[neighbor] = distance\n            heapq.heappush(pq, (distance, neighbor))\nprint("Shortest Distances:", distances)`
-  }
+  },
+  // --- LINKED LISTS ---
+  {
+    id: 'reverse-linked-list',
+    title: 'Reverse Linked List',
+    category: 'Linked Lists',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Reverses a singly linked list in-place by manipulating the next pointers of each node.',
+    code: `# Reverse Linked List
+# class ListNode:
+#     def __init__(self, val=0, next=None):
+#         self.val = val
+#         self.next = next
+
+def reverse_list(head):
+    prev = None
+    curr = head
+    while curr:
+        next_temp = curr.next
+        curr.next = prev
+        prev = curr
+        curr = next_temp
+    return prev`
+  },
+  {
+    id: 'merge-two-sorted-lists',
+    title: 'Merge Two Sorted Lists',
+    category: 'Linked Lists',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n + m)',
+    spaceComplexity: 'O(1)',
+    description: 'Merges two sorted linked lists into one sorted list by splicing together the nodes.',
+    code: `# Merge Two Sorted Lists
+def merge_two_lists(l1, l2):
+    dummy = ListNode()
+    tail = dummy
+    while l1 and l2:
+        if l1.val < l2.val:
+            tail.next = l1
+            l1 = l1.next
+        else:
+            tail.next = l2
+            l2 = l2.next
+        tail = tail.next
+    tail.next = l1 if l1 else l2
+    return dummy.next`
+  },
+  {
+    id: 'linked-list-cycle',
+    title: 'Linked List Cycle',
+    category: 'Linked Lists',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Detects if a linked list has a cycle using Floyd\'s Tortoise and Hare algorithm.',
+    code: `# Linked List Cycle
+def has_cycle(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        if slow == fast:
+            return True
+    return False`
+  },
+  {
+    id: 'middle-linked-list',
+    title: 'Middle of Linked List',
+    category: 'Linked Lists',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the middle node of a linked list using a slow and fast pointer.',
+    code: `# Middle of the Linked List
+def middle_node(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+    return slow`
+  },
+  {
+    id: 'remove-nth-node',
+    title: 'Remove Nth Node from End',
+    category: 'Linked Lists',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Removes the nth node from the end of a linked list in a single pass using two pointers.',
+    code: `# Remove Nth Node From End
+def remove_nth_from_end(head, n):
+    dummy = ListNode(0, head)
+    left = dummy
+    right = head
+    for _ in range(n):
+        right = right.next
+    while right:
+        left = left.next
+        right = right.next
+    left.next = left.next.next
+    return dummy.next`
+  },
+
+  // --- STRINGS ---
+  {
+    id: 'valid-anagram',
+    title: 'Valid Anagram',
+    category: 'Strings',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Determines if two strings contain the exact same characters in any order using a frequency map.',
+    code: `# Valid Anagram
+def is_anagram(s, t):
+    if len(s) != len(t): return False
+    count = {}
+    for char in s:
+        count[char] = count.get(char, 0) + 1
+    for char in t:
+        if char not in count or count[char] == 0:
+            return False
+        count[char] -= 1
+    return True`
+  },
+  {
+    id: 'longest-common-prefix',
+    title: 'Longest Common Prefix',
+    category: 'Strings',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n * m)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the longest common prefix string amongst an array of strings.',
+    code: `# Longest Common Prefix
+def longest_common_prefix(strs):
+    if not strs: return ""
+    prefix = strs[0]
+    for s in strs[1:]:
+        while not s.startswith(prefix):
+            prefix = prefix[:-1]
+            if not prefix: return ""
+    return prefix`
+  },
+  {
+    id: 'valid-palindrome-2',
+    title: 'Valid Palindrome II',
+    category: 'Strings',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Checks if a string can be a palindrome after deleting at most one character.',
+    code: `# Valid Palindrome II
+def valid_palindrome(s):
+    left, right = 0, len(s) - 1
+    while left < right:
+        if s[left] != s[right]:
+            skip_left = s[left+1:right+1]
+            skip_right = s[left:right]
+            return skip_left == skip_left[::-1] or skip_right == skip_right[::-1]
+        left += 1
+        right -= 1
+    return True`
+  },
+  {
+    id: 'longest-substring-norepeat',
+    title: 'Longest Substring No Repeats',
+    category: 'Strings',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(min(m, n))',
+    description: 'Finds the length of the longest substring without repeating characters using a sliding window.',
+    code: `# Longest Substring Without Repeating Characters
+def length_of_longest_substring(s):
+    char_set = set()
+    left = max_len = 0
+    for right in range(len(s)):
+        while s[right] in char_set:
+            char_set.remove(s[left])
+            left += 1
+        char_set.add(s[right])
+        max_len = max(max_len, right - left + 1)
+    return max_len`
+  },
+  {
+    id: 'group-anagrams',
+    title: 'Group Anagrams',
+    category: 'Strings',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n * k log k)',
+    spaceComplexity: 'O(n * k)',
+    description: 'Groups an array of strings into sub-lists of anagrams by sorting character keys.',
+    code: `# Group Anagrams
+from collections import defaultdict
+def group_anagrams(strs):
+    anagram_map = defaultdict(list)
+    for s in strs:
+        sorted_s = "".join(sorted(s))
+        anagram_map[sorted_s].append(s)
+    return list(anagram_map.values())`
+  },
+
+  // --- TREES ---
+  {
+    id: 'max-depth-binary-tree',
+    title: 'Max Depth of Binary Tree',
+    category: 'Trees',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(h)',
+    description: 'Calculates the maximum depth (height) of a binary tree using recursion.',
+    code: `# Maximum Depth of Binary Tree
+def max_depth(root):
+    if not root:
+        return 0
+    left_depth = max_depth(root.left)
+    right_depth = max_depth(root.right)
+    return 1 + max(left_depth, right_depth)`
+  },
+  {
+    id: 'invert-binary-tree',
+    title: 'Invert Binary Tree',
+    category: 'Trees',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(h)',
+    description: 'Flips a binary tree so that all left and right children are swapped.',
+    code: `# Invert Binary Tree
+def invert_tree(root):
+    if not root:
+        return None
+    root.left, root.right = root.right, root.left
+    invert_tree(root.left)
+    invert_tree(root.right)
+    return root`
+  },
+  {
+    id: 'same-tree',
+    title: 'Same Tree',
+    category: 'Trees',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(h)',
+    description: 'Recursively checks if two binary trees are structurally identical and have the same node values.',
+    code: `# Same Tree
+def is_same_tree(p, q):
+    if not p and not q:
+        return True
+    if not p or not q or p.val != q.val:
+        return False
+    return is_same_tree(p.left, q.left) and is_same_tree(p.right, q.right)`
+  },
+  {
+    id: 'subtree-of-another-tree',
+    title: 'Subtree of Another Tree',
+    category: 'Trees',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n * m)',
+    spaceComplexity: 'O(h)',
+    description: 'Checks if one binary tree is a valid subtree of another binary tree.',
+    code: `# Subtree of Another Tree
+def is_subtree(root, subRoot):
+    if not subRoot: return True
+    if not root: return False
+    
+    def same_tree(p, q):
+        if not p and not q: return True
+        if p and q and p.val == q.val:
+            return same_tree(p.left, q.left) and same_tree(p.right, q.right)
+        return False
+
+    if same_tree(root, subRoot): return True
+    return is_subtree(root.left, subRoot) or is_subtree(root.right, subRoot)`
+  },
+  {
+    id: 'lca-bst',
+    title: 'Lowest Common Ancestor (BST)',
+    category: 'Trees',
+    difficulty: 'Medium',
+    timeComplexity: 'O(h)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the lowest common ancestor of two nodes in a Binary Search Tree.',
+    code: `# Lowest Common Ancestor of a BST
+def lowest_common_ancestor(root, p, q):
+    curr = root
+    while curr:
+        if p.val > curr.val and q.val > curr.val:
+            curr = curr.right
+        elif p.val < curr.val and q.val < curr.val:
+            curr = curr.left
+        else:
+            return curr`
+  },
+
+  // --- BIT MANIPULATION ---
+  {
+    id: 'single-number',
+    title: 'Single Number',
+    category: 'Bit Manipulation',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the only number in an array that does not appear twice by using XOR.',
+    code: `# Single Number
+def single_number(nums):
+    res = 0
+    for n in nums:
+        res = res ^ n
+    return res`
+  },
+  {
+    id: 'number-of-1-bits',
+    title: 'Number of 1 Bits',
+    category: 'Bit Manipulation',
+    difficulty: 'Easy',
+    timeComplexity: 'O(1)',
+    spaceComplexity: 'O(1)',
+    description: 'Counts the number of set bits (1s) in the binary representation of an integer.',
+    code: `# Number of 1 Bits (Hamming Weight)
+def hamming_weight(n):
+    res = 0
+    while n:
+        n &= (n - 1)  # Clears the lowest set bit
+        res += 1
+    return res`
+  },
+  {
+    id: 'counting-bits',
+    title: 'Counting Bits',
+    category: 'Bit Manipulation',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(n)',
+    description: 'Returns an array of the number of 1s in the binary representation of all numbers up to n.',
+    code: `# Counting Bits
+def count_bits(n):
+    dp = [0] * (n + 1)
+    offset = 1
+    for i in range(1, n + 1):
+        if offset * 2 == i:
+            offset = i
+        dp[i] = 1 + dp[i - offset]
+    return dp`
+  },
+
+  // --- GREEDY ---
+  {
+    id: 'assign-cookies',
+    title: 'Assign Cookies',
+    category: 'Greedy',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n log n)',
+    spaceComplexity: 'O(1)',
+    description: 'Maximizes the number of content children given arrays of children\'s greed factors and cookie sizes.',
+    code: `# Assign Cookies
+def find_content_children(g, s):
+    g.sort()
+    s.sort()
+    i = j = 0
+    while i < len(g) and j < len(s):
+        if s[j] >= g[i]:
+            i += 1
+        j += 1
+    return i`
+  },
+  {
+    id: 'jump-game',
+    title: 'Jump Game',
+    category: 'Greedy',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Determines if you can reach the last index of an array based on maximum jump lengths.',
+    code: `# Jump Game
+def can_jump(nums):
+    goal = len(nums) - 1
+    for i in range(len(nums) - 1, -1, -1):
+        if i + nums[i] >= goal:
+            goal = i
+    return goal == 0`
+  },
+  // --- HASH MAPS & SETS ---
+  {
+    id: 'majority-element',
+    title: 'Majority Element',
+    category: 'Hash Map',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the element that appears more than ⌊n / 2⌋ times using Boyer-Moore Voting Algorithm.',
+    code: `# Majority Element
+def majority_element(nums):
+    count = 0
+    candidate = None
+    for num in nums:
+        if count == 0:
+            candidate = num
+        count += (1 if num == candidate else -1)
+    return candidate`
+  },
+  {
+    id: 'intersection-of-two-arrays',
+    title: 'Intersection of Arrays',
+    category: 'Hash Map',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n + m)',
+    spaceComplexity: 'O(min(n, m))',
+    description: 'Returns an array of unique elements that are present in both input arrays.',
+    code: `# Intersection of Two Arrays
+def intersection(nums1, nums2):
+    set1 = set(nums1)
+    set2 = set(nums2)
+    return list(set1 & set2)`
+  },
+  {
+    id: 'first-unique-character',
+    title: 'First Unique Character',
+    category: 'Hash Map',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the first non-repeating character in a string and returns its index.',
+    code: `# First Unique Character in a String
+from collections import Counter
+def first_uniq_char(s):
+    count = Counter(s)
+    for i, char in enumerate(s):
+        if count[char] == 1:
+            return i
+    return -1`
+  },
+  {
+    id: 'isomorphic-strings',
+    title: 'Isomorphic Strings',
+    category: 'Hash Map',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Checks if the characters in one string can be replaced to get the second string.',
+    code: `# Isomorphic Strings
+def is_isomorphic(s, t):
+    map_s_to_t = {}
+    map_t_to_s = {}
+    for c1, c2 in zip(s, t):
+        if (c1 in map_s_to_t and map_s_to_t[c1] != c2) or \\
+           (c2 in map_t_to_s and map_t_to_s[c2] != c1):
+            return False
+        map_s_to_t[c1] = c2
+        map_t_to_s[c2] = c1
+    return True`
+  },
+  {
+    id: 'word-pattern',
+    title: 'Word Pattern',
+    category: 'Hash Map',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(n)',
+    description: 'Determines if a string follows a specific pattern of characters mapped to words.',
+    code: `# Word Pattern
+def word_pattern(pattern, s):
+    words = s.split()
+    if len(pattern) != len(words):
+        return False
+    char_to_word = {}
+    word_to_char = {}
+    for c, w in zip(pattern, words):
+        if c in char_to_word and char_to_word[c] != w:
+            return False
+        if w in word_to_char and word_to_char[w] != c:
+            return False
+        char_to_word[c] = w
+        word_to_char[w] = c
+    return True`
+  },
+
+  // --- ARRAYS & TWO POINTERS ---
+  {
+    id: 'move-zeroes',
+    title: 'Move Zeroes',
+    category: 'Two Pointers',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Moves all 0s to the end of an array while maintaining the relative order of non-zero elements.',
+    code: `# Move Zeroes
+def move_zeroes(nums):
+    left = 0
+    for right in range(len(nums)):
+        if nums[right] != 0:
+            nums[left], nums[right] = nums[right], nums[left]
+            left += 1
+    return nums`
+  },
+  {
+    id: 'squares-of-sorted-array',
+    title: 'Squares of Sorted Array',
+    category: 'Two Pointers',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(n)',
+    description: 'Returns an array of the squares of each number sorted in non-decreasing order.',
+    code: `# Squares of a Sorted Array
+def sorted_squares(nums):
+    n = len(nums)
+    res = [0] * n
+    left, right = 0, n - 1
+    for i in range(n - 1, -1, -1):
+        if abs(nums[left]) > abs(nums[right]):
+            res[i] = nums[left] ** 2
+            left += 1
+        else:
+            res[i] = nums[right] ** 2
+            right -= 1
+    return res`
+  },
+  {
+    id: 'find-disappeared-numbers',
+    title: 'Find Disappeared Numbers',
+    category: 'Arrays',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds all numbers in the range [1, n] that do not appear in the array using cyclic sorting logic.',
+    code: `# Find All Numbers Disappeared in an Array
+def find_disappeared_numbers(nums):
+    for n in nums:
+        idx = abs(n) - 1
+        nums[idx] = -abs(nums[idx])
+    return [i + 1 for i, n in enumerate(nums) if n > 0]`
+  },
+  {
+    id: 'product-except-self',
+    title: 'Product of Array Except Self',
+    category: 'Arrays',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Returns an array such that each element is the product of all other elements without using division.',
+    code: `# Product of Array Except Self
+def product_except_self(nums):
+    res = [1] * len(nums)
+    prefix = 1
+    for i in range(len(nums)):
+        res[i] = prefix
+        prefix *= nums[i]
+    postfix = 1
+    for i in range(len(nums) - 1, -1, -1):
+        res[i] *= postfix
+        postfix *= nums[i]
+    return res`
+  },
+  {
+    id: 'best-time-buy-sell-stock',
+    title: 'Best Time to Buy/Sell Stock',
+    category: 'Arrays',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the maximum profit you can achieve from a single day purchase and a future day sale.',
+    code: `# Best Time to Buy and Sell Stock
+def max_profit(prices):
+    min_price = float('inf')
+    max_profit = 0
+    for price in prices:
+        if price < min_price:
+            min_price = price
+        elif price - min_price > max_profit:
+            max_profit = price - min_price
+    return max_profit`
+  },
+  {
+    id: 'pascals-triangle',
+    title: 'Pascal\'s Triangle',
+    category: 'Arrays',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n²)',
+    spaceComplexity: 'O(n²)',
+    description: 'Generates the first numRows of Pascal\'s triangle.',
+    code: `# Pascal's Triangle
+def generate_pascals(numRows):
+    res = [[1]]
+    for i in range(numRows - 1):
+        temp = [0] + res[-1] + [0]
+        row = []
+        for j in range(len(res[-1]) + 1):
+            row.append(temp[j] + temp[j+1])
+        res.append(row)
+    return res`
+  },
+
+  // --- INTERVALS ---
+  {
+    id: 'merge-intervals',
+    title: 'Merge Intervals',
+    category: 'Intervals',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n log n)',
+    spaceComplexity: 'O(n)',
+    description: 'Merges all overlapping intervals into an array of non-overlapping intervals.',
+    code: `# Merge Intervals
+def merge(intervals):
+    intervals.sort(key=lambda i: i[0])
+    res = [intervals[0]]
+    for start, end in intervals[1:]:
+        last_end = res[-1][1]
+        if start <= last_end:
+            res[-1][1] = max(last_end, end)
+        else:
+            res.append([start, end])
+    return res`
+  },
+  {
+    id: 'insert-interval',
+    title: 'Insert Interval',
+    category: 'Intervals',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(n)',
+    description: 'Inserts a new interval into a sorted array of non-overlapping intervals and merges overlaps.',
+    code: `# Insert Interval
+def insert(intervals, newInterval):
+    res = []
+    for i in range(len(intervals)):
+        if newInterval[1] < intervals[i][0]:
+            res.append(newInterval)
+            return res + intervals[i:]
+        elif newInterval[0] > intervals[i][1]:
+            res.append(intervals[i])
+        else:
+            newInterval = [min(newInterval[0], intervals[i][0]), 
+                           max(newInterval[1], intervals[i][1])]
+    res.append(newInterval)
+    return res`
+  },
+  {
+    id: 'non-overlapping-intervals',
+    title: 'Non-overlapping Intervals',
+    category: 'Intervals',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n log n)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the minimum number of intervals you need to remove to make the rest non-overlapping.',
+    code: `# Non-overlapping Intervals
+def erase_overlap_intervals(intervals):
+    intervals.sort(key=lambda i: i[1])
+    res = 0
+    prev_end = intervals[0][1]
+    for start, end in intervals[1:]:
+        if start >= prev_end:
+            prev_end = end
+        else:
+            res += 1
+    return res`
+  },
+
+  // --- HEAPS / PRIORITY QUEUES ---
+  {
+    id: 'last-stone-weight',
+    title: 'Last Stone Weight',
+    category: 'Heaps',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n log n)',
+    spaceComplexity: 'O(n)',
+    description: 'Repeatedly smashes the two heaviest stones together until at most one stone is left.',
+    code: `# Last Stone Weight
+import heapq
+def last_stone_weight(stones):
+    stones = [-s for s in stones]
+    heapq.heapify(stones)
+    while len(stones) > 1:
+        first = heapq.heappop(stones)
+        second = heapq.heappop(stones)
+        if second > first:
+            heapq.heappush(stones, first - second)
+    return abs(stones[0]) if stones else 0`
+  },
+  {
+    id: 'kth-largest-element-stream',
+    title: 'Kth Largest in a Stream',
+    category: 'Heaps',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n log k)',
+    spaceComplexity: 'O(k)',
+    description: 'Designs a class to efficiently find the kth largest element in a continuous data stream.',
+    code: `# Kth Largest Element in a Stream
+import heapq
+class KthLargest:
+    def __init__(self, k, nums):
+        self.minHeap, self.k = nums, k
+        heapq.heapify(self.minHeap)
+        while len(self.minHeap) > k:
+            heapq.heappop(self.minHeap)
+
+    def add(self, val):
+        heapq.heappush(self.minHeap, val)
+        if len(self.minHeap) > self.k:
+            heapq.heappop(self.minHeap)
+        return self.minHeap[0]`
+  },
+  {
+    id: 'top-k-frequent-elements',
+    title: 'Top K Frequent Elements',
+    category: 'Heaps',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n log k)',
+    spaceComplexity: 'O(n)',
+    description: 'Returns the k most frequent elements in an integer array using a Hash Map and Heap.',
+    code: `# Top K Frequent Elements
+from collections import Counter
+import heapq
+def top_k_frequent(nums, k):
+    count = Counter(nums)
+    return heapq.nlargest(k, count.keys(), key=count.get)`
+  },
+
+  // --- TREES (ADVANCED) ---
+  {
+    id: 'symmetric-tree',
+    title: 'Symmetric Tree',
+    category: 'Trees',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(h)',
+    description: 'Checks whether a binary tree is a mirror image of itself around its center.',
+    code: `# Symmetric Tree
+def is_symmetric(root):
+    def is_mirror(left, right):
+        if not left and not right: return True
+        if not left or not right: return False
+        return (left.val == right.val and 
+                is_mirror(left.left, right.right) and 
+                is_mirror(left.right, right.left))
+    
+    return is_mirror(root, root) if root else True`
+  },
+  {
+    id: 'diameter-binary-tree',
+    title: 'Diameter of Binary Tree',
+    category: 'Trees',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(h)',
+    description: 'Computes the length of the longest path between any two nodes in a tree.',
+    code: `# Diameter of Binary Tree
+def diameter_of_binary_tree(root):
+    res = [0]
+    def dfs(curr):
+        if not curr: return -1
+        left = dfs(curr.left)
+        right = dfs(curr.right)
+        res[0] = max(res[0], 2 + left + right)
+        return 1 + max(left, right)
+    
+    dfs(root)
+    return res[0]`
+  },
+
+  // --- BACKTRACKING ---
+  {
+    id: 'subsets',
+    title: 'Subsets',
+    category: 'Backtracking',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n * 2^n)',
+    spaceComplexity: 'O(n)',
+    description: 'Generates all possible subsets (the power set) of an array of unique elements.',
+    code: `# Subsets
+def subsets(nums):
+    res = []
+    subset = []
+    
+    def dfs(i):
+        if i >= len(nums):
+            res.append(subset.copy())
+            return
+        # decision to include nums[i]
+        subset.append(nums[i])
+        dfs(i + 1)
+        # decision NOT to include nums[i]
+        subset.pop()
+        dfs(i + 1)
+        
+    dfs(0)
+    return res`
+  },
 ];
 
 export default function LearnPage() {
