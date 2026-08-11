@@ -12,10 +12,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS
+# Enable CORS for local React/Vite development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "*"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,21 +40,43 @@ class TraceResponse(BaseModel):
     error: Optional[str] = None
 
 
+# --- Helper Function for Safe JSON Serialization ---
+def make_json_safe(val):
+    """Recursively converts variables to JSON-friendly primitives."""
+    if isinstance(val, (int, float, str, bool, type(None))):
+        return val
+    elif isinstance(val, list):
+        return [make_json_safe(item) for item in val]
+    elif isinstance(val, dict):
+        return {str(k): make_json_safe(v) for k, v in val.items()}
+    elif isinstance(val, (set, tuple)):
+        return [make_json_safe(item) for item in val]
+    else:
+        return str(val)
+
+
 # --- Standalone Worker Function for ProcessPoolExecutor ---
 def run_trace_worker(code_string: str) -> dict:
     steps = []
     step_counter = 0
+    MAX_STEPS = 500  # Cap step count to prevent bloated payloads
 
     def trace_func(frame, event, arg):
         nonlocal step_counter
         if event == 'line':
             step_counter += 1
+            
+            # Stop tracing if execution steps exceed limit
+            if step_counter > MAX_STEPS:
+                sys.settrace(None)
+                return None
+
             raw_locals = frame.f_locals
             clean_locals = {}
             for key, val in raw_locals.items():
                 if not key.startswith('__'):
                     try:
-                        clean_locals[key] = copy.deepcopy(val)
+                        clean_locals[key] = make_json_safe(copy.deepcopy(val))
                     except Exception:
                         clean_locals[key] = str(val)
 
@@ -87,7 +113,6 @@ def execute_code_trace(request: CodeExecutionRequest):
     if not request.code.strip():
         raise HTTPException(status_code=400, detail="Code string cannot be empty.")
 
-    # Use ProcessPoolExecutor to safely spawn process on Windows/Mac/Linux
     with ProcessPoolExecutor(max_workers=1) as executor:
         future = executor.submit(run_trace_worker, request.code)
         try:

@@ -1,10 +1,21 @@
-// frontend/src/App.jsx
-import { useState } from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+import WorkspacePage from './pages/WorkspacePage';
 
-export default function App() {
+function App() {
   return (
-    <div className="p-10 bg-indigo-600 text-white font-bold text-3xl">
-      CodeToAnim Frontend is Live! 🚀
-    </div>
-  )
+    <Router>
+      <div className="min-h-screen bg-gray-900 text-gray-100">
+        <Routes>
+          {/* Your Interactive Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+          
+          {/* Your Main Visualizer Workspace */}
+          <Route path="/app" element={<WorkspacePage />} />
+        </Routes>
+      </div>
+    </Router>
+  );
 }
+
+export default App;
