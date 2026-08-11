@@ -1,5 +1,6 @@
 import sys
 import copy
+import io
 from concurrent.futures import ProcessPoolExecutor, TimeoutError
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,6 +34,7 @@ class TraceStep(BaseModel):
     step: int
     line: int
     variables: Dict[str, Any]
+    output: Optional[str] = ""  # Captures stdout (print) history per step
 
 class TraceResponse(BaseModel):
     success: bool
@@ -61,6 +63,11 @@ def run_trace_worker(code_string: str) -> dict:
     step_counter = 0
     MAX_STEPS = 500  # Cap step count to prevent bloated payloads
 
+    # Redirect stdout to capture prints
+    stdout_buffer = io.StringIO()
+    old_stdout = sys.stdout
+    sys.stdout = stdout_buffer
+
     def trace_func(frame, event, arg):
         nonlocal step_counter
         if event == 'line':
@@ -80,10 +87,14 @@ def run_trace_worker(code_string: str) -> dict:
                     except Exception:
                         clean_locals[key] = str(val)
 
+            # Capture all output printed up to the current line
+            current_output = stdout_buffer.getvalue()
+
             steps.append({
                 "step": step_counter,
                 "line": frame.f_lineno,
-                "variables": clean_locals
+                "variables": clean_locals,
+                "output": current_output
             })
         return trace_func
 
@@ -91,11 +102,18 @@ def run_trace_worker(code_string: str) -> dict:
     sys.settrace(trace_func)
     try:
         exec(code_string, execution_scope)
+        
+        # Ensure the last step holds any prints produced right before exit
+        final_output = stdout_buffer.getvalue()
+        if steps and steps[-1]["output"] != final_output:
+            steps[-1]["output"] = final_output
+
         return {"success": True, "steps": steps}
     except Exception as e:
         return {"success": False, "error": f"{type(e).__name__}: {str(e)}"}
     finally:
         sys.settrace(None)
+        sys.stdout = old_stdout  # Restore standard output buffer
 
 
 # --- API Endpoints ---
@@ -134,7 +152,7 @@ def execute_code_trace(request: CodeExecutionRequest):
 @app.get("/api/presets")
 def get_preset_algorithms():
     return {
-        "bubble_sort": "arr = [4, 2, 8, 1]\nn = len(arr)\nfor i in range(n):\n    for j in range(0, n - i - 1):\n        if arr[j] > arr[j + 1]:\n            arr[j], arr[j + 1] = arr[j + 1], arr[j]",
-        "selection_sort": "arr = [64, 25, 12, 22, 11]\nfor i in range(len(arr)):\n    min_idx = i\n    for j in range(i+1, len(arr)):\n        if arr[min_idx] > arr[j]:\n            min_idx = j\n    arr[i], arr[min_idx] = arr[min_idx], arr[i]",
-        "reverse_array": "arr = [1, 2, 3, 4, 5]\nleft = 0\nright = len(arr) - 1\nwhile left < right:\n    arr[left], arr[right] = arr[right], arr[left]\n    left += 1\n    right -= 1"
+        "bubble_sort": "arr = [4, 2, 8, 1]\nn = len(arr)\nfor i in range(n):\n    for j in range(0, n - i - 1):\n        if arr[j] > arr[j + 1]:\n            arr[j], arr[j + 1] = arr[j + 1], arr[j]\n    print(f'Pass {i+1}:', arr)",
+        "selection_sort": "arr = [64, 25, 12, 22, 11]\nfor i in range(len(arr)):\n    min_idx = i\n    for j in range(i+1, len(arr)):\n        if arr[min_idx] > arr[j]:\n            min_idx = j\n    arr[i], arr[min_idx] = arr[min_idx], arr[i]\n    print(f'Sorted up to index {i}:', arr)",
+        "reverse_array": "arr = [1, 2, 3, 4, 5]\nleft = 0\nright = len(arr) - 1\nwhile left < right:\n    arr[left], arr[right] = arr[right], arr[left]\n    left += 1\n    right -= 1\nprint('Reversed:', arr)"
     }

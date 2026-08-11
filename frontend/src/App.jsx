@@ -1,21 +1,15 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import LandingPage from './pages/LandingPage';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import WorkspacePage from './pages/WorkspacePage';
+import LearnPage from './pages/LearnPage';
 
-function App() {
+export default function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-900 text-gray-100">
-        <Routes>
-          {/* Your Interactive Landing Page */}
-          <Route path="/" element={<LandingPage />} />
-          
-          {/* Your Main Visualizer Workspace */}
-          <Route path="/app" element={<WorkspacePage />} />
-        </Routes>
-      </div>
-    </Router>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<WorkspacePage />} />
+        <Route path="/workspace" element={<WorkspacePage />} />
+        <Route path="/learn" element={<LearnPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
