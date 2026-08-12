@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
-export default function AuthPage() {
-  const [isSignUp, setIsSignUp] = useState(false);
+const AuthPage = () => {
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
-  const navigate = useNavigate();
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -19,15 +20,18 @@ export default function AuthPage() {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
+
         alert('Account created successfully! You can now log in.');
         setIsSignUp(false);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate('/workspace');
+
+        await supabase.rpc('increment_streak', { user_id: data.user.id });
+        navigate('/profile');
       }
     } catch (err) {
-      setErrorMsg(err.message);
+      setErrorMsg(err?.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }
@@ -46,6 +50,7 @@ export default function AuthPage() {
         <h2 className="text-xl font-bold mb-2 text-center text-white">
           {isSignUp ? 'Create your Account' : 'Welcome Back'}
         </h2>
+
         <p className="text-xs text-gray-400 text-center mb-6">
           {isSignUp
             ? 'Save custom algorithms & track your learning journey'
@@ -60,7 +65,9 @@ export default function AuthPage() {
 
         <form onSubmit={handleAuth} className="flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-mono text-gray-400 mb-1">Email Address</label>
+            <label className="block text-xs font-mono text-gray-400 mb-1">
+              Email Address
+            </label>
             <input
               type="email"
               required
@@ -72,7 +79,9 @@ export default function AuthPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-mono text-gray-400 mb-1">Password</label>
+            <label className="block text-xs font-mono text-gray-400 mb-1">
+              Password
+            </label>
             <input
               type="password"
               required
@@ -107,4 +116,6 @@ export default function AuthPage() {
       </div>
     </div>
   );
-}
+};
+
+export default AuthPage;
