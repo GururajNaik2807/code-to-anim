@@ -6,7 +6,8 @@ import { supabase } from '../supabaseClient';
 import LoginModal from '../components/LoginModal';
 
 // Read production URL from environment variable, fallback to localhost for dev
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://codetoanim-api.onrender.com";
 
 export default function WorkspacePage() {
   const location = useLocation();
