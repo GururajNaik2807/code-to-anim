@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext'; 
 import { supabase } from '../supabaseClient';
+import LoginModal from '../components/LoginModal';
 
 // Read production URL from environment variable, fallback to localhost for dev
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://codetoanim-api.onrender.com";
@@ -174,7 +175,8 @@ print("Indices found:", found_indices)`;
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-gray-950 text-gray-100 font-sans selection:bg-purple-500 selection:text-white">
-      
+      {/* ADD THE MODAL HERE */}
+      <LoginModal />
       {/* Header Bar */}
       <header className="h-16 border-b bg-gray-900 border-gray-800 flex items-center justify-between px-6 shadow-sm z-10">
         <div className="flex items-center gap-3">
