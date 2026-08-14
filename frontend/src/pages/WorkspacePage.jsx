@@ -88,34 +88,41 @@ print("Indices found:", found_indices)`;
 
   // Execute trace API against dynamic backend URL with Guest Limits
   const handleExecuteTrace = async () => {
-    // --- GUEST LIMIT LOGIC ---
+    // --- GUEST LIMIT LOGIC (Daily Reset) ---
     if (!user) {
-      let execCount = 0;
+      const today = new Date().toDateString(); // e.g., "Fri Aug 14 2026"
+      let execData = { count: 0, date: today };
+
       try {
-        const raw = localStorage.getItem('guest_exec_count');
-        execCount = parseInt(raw || '0', 10);
-        if (Number.isNaN(execCount)) execCount = 0;
+        const raw = localStorage.getItem('guest_exec_data');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.date === today) {
+            execData.count = typeof parsed.count === 'number' ? parsed.count : 0;
+          }
+        }
       } catch (err) {
-        console.warn('localStorage access failed for guest_exec_count, allowing execution by default.', err);
-        execCount = 0;
+        console.warn('localStorage access failed, allowing execution by default.', err);
       }
 
-      if (execCount >= 3) {
+      if (execData.count >= 3) {
         try {
-          openAuthModal('Guest execution limit reached (3/3 runs used). Sign up for unlimited executions!');
+          openAuthModal('Daily execution limit reached (3/3 runs used). Sign up for unlimited executions!');
         } catch (err) {
           console.warn('openAuthModal failed to open', err);
         }
         return; 
       }
 
+      execData.count += 1;
+      execData.date = today;
       try {
-        localStorage.setItem('guest_exec_count', (execCount + 1).toString());
+        localStorage.setItem('guest_exec_data', JSON.stringify(execData));
       } catch (err) {
-        console.warn('localStorage set failed for guest_exec_count', err);
+        console.warn('localStorage set failed for guest_exec_data', err);
       }
     }
-    // -------------------------
+    // ---------------------------------------
 
     setIsLoading(true);
     setErrorMessage(null);
@@ -175,8 +182,10 @@ print("Indices found:", found_indices)`;
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-gray-950 text-gray-100 font-sans selection:bg-purple-500 selection:text-white">
+      
       {/* ADD THE MODAL HERE */}
       <LoginModal />
+
       {/* Header Bar */}
       <header className="h-16 border-b bg-gray-900 border-gray-800 flex items-center justify-between px-6 shadow-sm z-10">
         <div className="flex items-center gap-3">
