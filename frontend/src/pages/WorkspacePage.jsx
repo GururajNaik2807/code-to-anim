@@ -6,8 +6,7 @@ import { supabase } from '../supabaseClient';
 import LoginModal from '../components/LoginModal';
 
 // Read production URL from environment variable, fallback to localhost for dev
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://codetoanim-api.onrender.com";
-const API_BASE_URL = "http://127.0.0.1:8000"; // Hardcoded to local for testing
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 export default function WorkspacePage() {
   const location = useLocation();
@@ -151,7 +150,7 @@ print("Indices found:", found_indices)`;
   const consoleOutput = currentStep?.output ?? "";
 
   // --- ARRAY PARSING ---
- const primaryArrayKey = Object.keys(variables).find((key) =>
+  const primaryArrayKey = Object.keys(variables).find((key) =>
     Array.isArray(variables[key]) && key !== 'found_indices'
   ) || Object.keys(variables).find((key) => Array.isArray(variables[key]));
 
@@ -166,7 +165,6 @@ print("Indices found:", found_indices)`;
   );
 
   // --- UNIVERSAL LINKED LIST PARSING ---
-  // Helper to extract the value regardless of naming convention (val, data, or value)
   const getNodeValue = (node) => {
     if (node.val !== undefined) return node.val;
     if (node.data !== undefined) return node.data;
@@ -174,17 +172,14 @@ print("Indices found:", found_indices)`;
     return '?';
   };
 
-  // Helper to dynamically find a linked list in the variables
   const findLinkedList = (vars) => {
     for (const [key, obj] of Object.entries(vars)) {
       if (!obj || typeof obj !== 'object') continue;
       
-      // Case 1: The variable is directly a Node
       if (('val' in obj || 'data' in obj || 'value' in obj) && 'next' in obj) {
         return { key, head: obj };
       }
       
-      // Case 2: The variable is a Wrapper Class (like LinkedList) with a 'head' pointer
       if ('head' in obj && obj.head && typeof obj.head === 'object') {
         if (('val' in obj.head || 'data' in obj.head || 'value' in obj.head) && 'next' in obj.head) {
            return { key: `${key}.head`, head: obj.head };
@@ -196,7 +191,6 @@ print("Indices found:", found_indices)`;
 
   const { key: primaryLinkedListKey, head: primaryLinkedListHead } = findLinkedList(variables);
 
-  // Flatten the linked list for rendering
   const flattenLinkedList = (head) => {
     const nodes = [];
     let current = head;
@@ -210,6 +204,62 @@ print("Indices found:", found_indices)`;
   };
 
   const flatLinkedList = primaryLinkedListHead ? flattenLinkedList(primaryLinkedListHead) : [];
+
+  // --- BINARY TREE PARSING ---
+  const findBinaryTree = (vars) => {
+    for (const [key, obj] of Object.entries(vars)) {
+      if (!obj || typeof obj !== 'object') continue;
+      
+      if (('val' in obj || 'data' in obj || 'value' in obj) && ('left' in obj || 'right' in obj)) {
+        return { key, root: obj };
+      }
+      
+      if ('root' in obj && obj.root && typeof obj.root === 'object') {
+        if (('val' in obj.root || 'data' in obj.root || 'value' in obj.root) && ('left' in obj.root || 'right' in obj.root)) {
+           return { key: `${key}.root`, root: obj.root };
+        }
+      }
+    }
+    return { key: null, root: null };
+  };
+
+  const { key: primaryTreeKey, root: primaryTreeRoot } = findBinaryTree(variables);
+
+  const getTreeLayout = (rootNode) => {
+    const nodes = [];
+    const edges = [];
+    if (!rootNode) return { nodes, edges };
+
+    const traverse = (node, x, y, horizontalSpacing, pathId) => {
+      if (!node || typeof node !== 'object') return;
+
+      nodes.push({ 
+        val: getNodeValue(node), 
+        x, 
+        y, 
+        id: pathId 
+      });
+
+      if (node.left && typeof node.left === 'object') {
+        const childX = x - horizontalSpacing;
+        const childY = y + 60;
+        edges.push({ x1: x, y1: y, x2: childX, y2: childY });
+        traverse(node.left, childX, childY, horizontalSpacing / 1.8, pathId + 'L');
+      }
+      
+      if (node.right && typeof node.right === 'object') {
+        const childX = x + horizontalSpacing;
+        const childY = y + 60;
+        edges.push({ x1: x, y1: y, x2: childX, y2: childY });
+        traverse(node.right, childX, childY, horizontalSpacing / 1.8, pathId + 'R');
+      }
+    };
+
+    traverse(rootNode, 250, 30, 100, 'root');
+    return { nodes, edges };
+  };
+
+  const treeLayout = primaryTreeRoot ? getTreeLayout(primaryTreeRoot) : { nodes: [], edges: [] };
 
   const variableEntries = Object.entries(variables);
   const codeLines = code.split('\n');
@@ -383,8 +433,49 @@ print("Indices found:", found_indices)`;
               </div>
             )}
 
-            {/* SECTION 1: Graphical Visualizers (Prioritizing Linked Lists over temporary Arrays) */}
-            {flatLinkedList.length > 0 ? (
+            {/* SECTION 1: Graphical Visualizers (Trees > Linked Lists > Arrays) */}
+            {treeLayout.nodes.length > 0 ? (
+              <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 shadow-md flex flex-col items-center">
+                <div className="w-full flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
+                  <span className="text-xs font-mono font-bold text-green-400 uppercase tracking-wider">
+                    Binary Tree ({primaryTreeKey})
+                  </span>
+                  <span className="text-xs font-mono text-gray-500">
+                    nodes: {treeLayout.nodes.length}
+                  </span>
+                </div>
+
+                <div className="relative w-full min-h-[220px] overflow-auto flex justify-center bg-gray-950/50 rounded-lg border border-gray-800/50">
+                  <div className="relative w-[500px] h-[220px]">
+                    <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                      {treeLayout.edges.map((edge, idx) => (
+                        <line 
+                          key={`edge-${idx}`} 
+                          x1={edge.x1} y1={edge.y1 + 16} 
+                          x2={edge.x2} y2={edge.y2 + 16} 
+                          stroke="#374151" 
+                          strokeWidth="2" 
+                        />
+                      ))}
+                    </svg>
+
+                    <AnimatePresence>
+                      {treeLayout.nodes.map((node) => (
+                        <motion.div
+                          key={`tree-node-${node.id}`}
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="absolute w-10 h-10 -ml-5 -mt-5 rounded-full border-2 bg-gray-900 border-green-500 flex items-center justify-center text-sm font-bold font-mono text-green-400 shadow-md shadow-green-500/20 z-10"
+                          style={{ left: node.x, top: node.y + 16 }}
+                        >
+                          {String(node.val)}
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </div>
+            ) : flatLinkedList.length > 0 ? (
                <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 shadow-md flex flex-col items-center">
                 <div className="w-full flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
                   <span className="text-xs font-mono font-bold text-blue-400 uppercase tracking-wider">
@@ -493,7 +584,7 @@ print("Indices found:", found_indices)`;
               </div>
             ) : (
               <div className="bg-gray-900/40 border border-gray-800/80 rounded-xl p-4 text-center text-gray-500 font-mono text-xs">
-                No active list structure currently in scope.
+                No active list or tree structure currently in scope.
               </div>
             )}
 
@@ -508,8 +599,9 @@ print("Indices found:", found_indices)`;
                 <div className="grid grid-cols-2 gap-2.5">
                   {variableEntries.map(([varName, varVal]) => {
                     const isList = Array.isArray(varVal);
-                    const isNode = typeof varVal === 'object' && varVal !== null && (('val' in varVal || 'data' in varVal || 'value' in varVal) || 'head' in varVal);
-                    const isPrimary = varName === primaryArrayKey || varName === primaryLinkedListKey;
+                    // Updated to detect both Tree nodes and Linked List nodes
+                    const isNode = typeof varVal === 'object' && varVal !== null && (('val' in varVal || 'data' in varVal || 'value' in varVal) || 'head' in varVal || 'root' in varVal);
+                    const isPrimary = varName === primaryArrayKey || varName === primaryLinkedListKey || varName === primaryTreeKey;
 
                     return (
                       <div 
@@ -523,7 +615,7 @@ print("Indices found:", found_indices)`;
                         <div className="text-[10px] text-gray-400 flex justify-between items-center mb-0.5">
                           <span className="font-bold text-purple-300">{varName}</span>
                           <span className="text-[9px] text-gray-500 uppercase">
-                            {isList ? `list[${varVal.length}]` : isNode ? "Object" : typeof varVal}
+                            {isList ? `list[${varVal.length}]` : isNode ? "Node / Structure" : typeof varVal}
                           </span>
                         </div>
                         
