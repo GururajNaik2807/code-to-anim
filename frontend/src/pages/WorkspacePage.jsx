@@ -149,12 +149,13 @@ print("Indices found:", found_indices)`;
   const variables = currentStep?.variables || {};
   const consoleOutput = currentStep?.output ?? "";
 
-  // --- ARRAY PARSING ---
+  // --- ARRAY & STRING PARSING ---
   const primaryArrayKey = Object.keys(variables).find((key) =>
-    Array.isArray(variables[key]) && key !== 'found_indices'
-  ) || Object.keys(variables).find((key) => Array.isArray(variables[key]));
+    (Array.isArray(variables[key]) || typeof variables[key] === 'string') && key !== 'found_indices' && variables[key].length > 0
+  );
 
-  const primaryArray = primaryArrayKey ? variables[primaryArrayKey] : null;
+  const rawData = primaryArrayKey ? variables[primaryArrayKey] : null;
+  const primaryArray = typeof rawData === 'string' ? rawData.split('') : rawData;
   const arrayLength = Array.isArray(primaryArray) ? primaryArray.length : 0;
   
   const activePointers = Object.keys(variables).filter(
@@ -174,12 +175,11 @@ print("Indices found:", found_indices)`;
 
   const findLinkedList = (vars) => {
     for (const [key, obj] of Object.entries(vars)) {
-      if (!obj || typeof obj !== 'object') continue;
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) continue;
       
       if (('val' in obj || 'data' in obj || 'value' in obj) && 'next' in obj) {
         return { key, head: obj };
       }
-      
       if ('head' in obj && obj.head && typeof obj.head === 'object') {
         if (('val' in obj.head || 'data' in obj.head || 'value' in obj.head) && 'next' in obj.head) {
            return { key: `${key}.head`, head: obj.head };
@@ -202,18 +202,16 @@ print("Indices found:", found_indices)`;
     }
     return nodes;
   };
-
   const flatLinkedList = primaryLinkedListHead ? flattenLinkedList(primaryLinkedListHead) : [];
 
   // --- BINARY TREE PARSING ---
   const findBinaryTree = (vars) => {
     for (const [key, obj] of Object.entries(vars)) {
-      if (!obj || typeof obj !== 'object') continue;
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) continue;
       
       if (('val' in obj || 'data' in obj || 'value' in obj) && ('left' in obj || 'right' in obj)) {
         return { key, root: obj };
       }
-      
       if ('root' in obj && obj.root && typeof obj.root === 'object') {
         if (('val' in obj.root || 'data' in obj.root || 'value' in obj.root) && ('left' in obj.root || 'right' in obj.root)) {
            return { key: `${key}.root`, root: obj.root };
@@ -232,13 +230,7 @@ print("Indices found:", found_indices)`;
 
     const traverse = (node, x, y, horizontalSpacing, pathId) => {
       if (!node || typeof node !== 'object') return;
-
-      nodes.push({ 
-        val: getNodeValue(node), 
-        x, 
-        y, 
-        id: pathId 
-      });
+      nodes.push({ val: getNodeValue(node), x, y, id: pathId });
 
       if (node.left && typeof node.left === 'object') {
         const childX = x - horizontalSpacing;
@@ -246,7 +238,6 @@ print("Indices found:", found_indices)`;
         edges.push({ x1: x, y1: y, x2: childX, y2: childY });
         traverse(node.left, childX, childY, horizontalSpacing / 1.8, pathId + 'L');
       }
-      
       if (node.right && typeof node.right === 'object') {
         const childX = x + horizontalSpacing;
         const childY = y + 60;
@@ -254,12 +245,28 @@ print("Indices found:", found_indices)`;
         traverse(node.right, childX, childY, horizontalSpacing / 1.8, pathId + 'R');
       }
     };
-
     traverse(rootNode, 250, 30, 100, 'root');
     return { nodes, edges };
   };
-
   const treeLayout = primaryTreeRoot ? getTreeLayout(primaryTreeRoot) : { nodes: [], edges: [] };
+
+  // --- DICTIONARY / HASH MAP PARSING ---
+  const findDictionary = (vars) => {
+    const dictKey = Object.keys(vars).find(key => {
+      const val = vars[key];
+      // It must be an object, not null, not an array
+      if (!val || typeof val !== 'object' || Array.isArray(val)) return false;
+      
+      // It must NOT be a Linked List or Tree node
+      const isNode = ('val' in val || 'data' in val || 'value' in val) || 'head' in val || 'root' in val;
+      return !isNode;
+    });
+    return dictKey || null;
+  };
+
+  const primaryDictKey = findDictionary(variables);
+  const primaryDict = primaryDictKey ? variables[primaryDictKey] : null;
+  const dictEntries = primaryDict ? Object.entries(primaryDict) : [];
 
   const variableEntries = Object.entries(variables);
   const codeLines = code.split('\n');
@@ -433,7 +440,7 @@ print("Indices found:", found_indices)`;
               </div>
             )}
 
-            {/* SECTION 1: Graphical Visualizers (Trees > Linked Lists > Arrays) */}
+            {/* SECTION 1: Graphical Visualizers (Trees > Linked Lists > Dictionaries > Arrays) */}
             {treeLayout.nodes.length > 0 ? (
               <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 shadow-md flex flex-col items-center">
                 <div className="w-full flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
@@ -521,11 +528,55 @@ print("Indices found:", found_indices)`;
                   </AnimatePresence>
                 </div>
               </div>
+            ) : primaryDictKey ? (
+              <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 shadow-md flex flex-col items-center">
+                <div className="w-full flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
+                  <span className="text-xs font-mono font-bold text-yellow-400 uppercase tracking-wider">
+                    Dictionary / Hash Map ({primaryDictKey})
+                  </span>
+                  <span className="text-xs font-mono text-gray-500">
+                    keys: {dictEntries.length}
+                  </span>
+                </div>
+
+                <div className="w-full max-w-md flex flex-col gap-1.5 py-2 max-h-[220px] overflow-y-auto pr-2">
+                  {dictEntries.length > 0 ? (
+                    <AnimatePresence mode="popLayout">
+                      {dictEntries.map(([dKey, dVal]) => (
+                        <motion.div
+                          key={`dict-${dKey}`}
+                          layout
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="flex justify-between items-center bg-gray-950 border border-gray-800 rounded-md p-2.5 shadow-sm"
+                        >
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <span className="font-mono text-xs text-gray-500">Key:</span>
+                            <span className="font-mono text-sm text-yellow-300 font-bold truncate">
+                              {dKey}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <span className="font-mono text-xs text-gray-500">Val:</span>
+                            <span className="font-mono text-sm text-gray-200 truncate">
+                              {typeof dVal === 'object' ? JSON.stringify(dVal) : String(dVal)}
+                            </span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  ) : (
+                    <div className="text-center text-xs font-mono text-gray-600 italic py-4">
+                      Dictionary is empty {}
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : Array.isArray(primaryArray) && primaryArray.length > 0 ? (
               <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 shadow-md flex flex-col items-center">
                 <div className="w-full flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
                   <span className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider">
-                    Array Structure ({primaryArrayKey})
+                    {typeof rawData === 'string' ? 'String' : 'Array'} Structure ({primaryArrayKey})
                   </span>
                   <span className="text-xs font-mono text-gray-500">
                     length: {primaryArray.length}
@@ -584,7 +635,7 @@ print("Indices found:", found_indices)`;
               </div>
             ) : (
               <div className="bg-gray-900/40 border border-gray-800/80 rounded-xl p-4 text-center text-gray-500 font-mono text-xs">
-                No active list or tree structure currently in scope.
+                No active list, tree, or dict structure currently in scope.
               </div>
             )}
 
@@ -599,9 +650,10 @@ print("Indices found:", found_indices)`;
                 <div className="grid grid-cols-2 gap-2.5">
                   {variableEntries.map(([varName, varVal]) => {
                     const isList = Array.isArray(varVal);
-                    // Updated to detect both Tree nodes and Linked List nodes
-                    const isNode = typeof varVal === 'object' && varVal !== null && (('val' in varVal || 'data' in varVal || 'value' in varVal) || 'head' in varVal || 'root' in varVal);
-                    const isPrimary = varName === primaryArrayKey || varName === primaryLinkedListKey || varName === primaryTreeKey;
+                    const isNode = typeof varVal === 'object' && varVal !== null && !isList && (('val' in varVal || 'data' in varVal || 'value' in varVal) || 'head' in varVal || 'root' in varVal);
+                    const isDict = typeof varVal === 'object' && varVal !== null && !isList && !isNode;
+                    
+                    const isPrimary = varName === primaryArrayKey || varName === primaryLinkedListKey || varName === primaryTreeKey || varName === primaryDictKey;
 
                     return (
                       <div 
@@ -615,12 +667,12 @@ print("Indices found:", found_indices)`;
                         <div className="text-[10px] text-gray-400 flex justify-between items-center mb-0.5">
                           <span className="font-bold text-purple-300">{varName}</span>
                           <span className="text-[9px] text-gray-500 uppercase">
-                            {isList ? `list[${varVal.length}]` : isNode ? "Node / Structure" : typeof varVal}
+                            {isList ? `list[${varVal.length}]` : isNode ? "Node" : isDict ? "Dict" : typeof varVal}
                           </span>
                         </div>
                         
                         <div className="text-xs font-semibold text-white truncate">
-                          {isList ? JSON.stringify(varVal) : isNode ? "{...}" : String(varVal)}
+                          {isList || isDict ? JSON.stringify(varVal) : isNode ? "{...}" : String(varVal)}
                         </div>
                       </div>
                     );
