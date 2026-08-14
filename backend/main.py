@@ -43,27 +43,53 @@ class TraceResponse(BaseModel):
 
 
 # --- Helper Function for Safe JSON Serialization ---
-def make_json_safe(val):
+def make_json_safe(val, depth=0):
     """Recursively converts variables to JSON-friendly primitives."""
+    # 1. Limit to prevent infinite loops
+    if depth > 20:
+        return "..."
+        
+    # 2. Primitives
     if isinstance(val, (int, float, str, bool, type(None))):
         return val
-    elif isinstance(val, list):
-        return [make_json_safe(item) for item in val]
-    elif isinstance(val, dict):
-        return {str(k): make_json_safe(v) for k, v in val.items()}
-    elif isinstance(val, (set, tuple)):
-        return [make_json_safe(item) for item in val]
-    else:
+        
+    # 3. Iterables
+    if isinstance(val, (list, tuple, set)):
+        return [make_json_safe(item, depth + 1) for item in val]
+    if isinstance(val, dict):
+        return {str(k): make_json_safe(v, depth + 1) for k, v in val.items()}
+        
+    # 4. Skip raw Classes and Functions
+    if isinstance(val, type) or callable(val):
         return str(val)
 
+    # 🚀 5. BRUTE FORCE CHECK: Look at the exact class name as a string!
+    if type(val).__name__ == 'ListNode':
+        return {
+            "val": make_json_safe(getattr(val, 'val', None), depth + 1),
+            "next": make_json_safe(getattr(val, 'next', None), depth + 1)
+        }
 
+    # 6. Ultimate fallback using dir() instead of __dict__
+    try:
+        safe_dict = {}
+        for attr in dir(val):
+            if not attr.startswith('_'):
+                attr_val = getattr(val, attr)
+                if not callable(attr_val):
+                    safe_dict[attr] = make_json_safe(attr_val, depth + 1)
+        if safe_dict:
+            return safe_dict
+    except Exception:
+        pass
+
+    return str(val)
 # --- Standalone Worker Function for ProcessPoolExecutor ---
 def run_trace_worker(code_string: str) -> dict:
     steps = []
     step_counter = 0
-    MAX_STEPS = 500  # Cap step count to prevent bloated payloads
+    MAX_STEPS = 500  
 
-    # Redirect stdout to capture prints
     stdout_buffer = io.StringIO()
     old_stdout = sys.stdout
     sys.stdout = stdout_buffer
@@ -73,7 +99,6 @@ def run_trace_worker(code_string: str) -> dict:
         if event == 'line':
             step_counter += 1
             
-            # Stop tracing if execution steps exceed limit
             if step_counter > MAX_STEPS:
                 sys.settrace(None)
                 return None
@@ -83,11 +108,12 @@ def run_trace_worker(code_string: str) -> dict:
             for key, val in raw_locals.items():
                 if not key.startswith('__'):
                     try:
-                        clean_locals[key] = make_json_safe(copy.deepcopy(val))
-                    except Exception:
-                        clean_locals[key] = str(val)
+                        # IMPORTANT: Deepcopy is completely removed here
+                        clean_locals[key] = make_json_safe(val)
+                    except Exception as e:
+                        # If it fails, print the real error instead of hiding it
+                        clean_locals[key] = f"Error: {str(e)}"
 
-            # Capture all output printed up to the current line
             current_output = stdout_buffer.getvalue()
 
             steps.append({
@@ -103,7 +129,6 @@ def run_trace_worker(code_string: str) -> dict:
     try:
         exec(code_string, execution_scope)
         
-        # Ensure the last step holds any prints produced right before exit
         final_output = stdout_buffer.getvalue()
         if steps and steps[-1]["output"] != final_output:
             steps[-1]["output"] = final_output
@@ -113,9 +138,9 @@ def run_trace_worker(code_string: str) -> dict:
         return {"success": False, "error": f"{type(e).__name__}: {str(e)}"}
     finally:
         sys.settrace(None)
-        sys.stdout = old_stdout  # Restore standard output buffer
+        sys.stdout = old_stdout
 
-
+        
 # --- API Endpoints ---
 @app.get("/")
 def read_root():

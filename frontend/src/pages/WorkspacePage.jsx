@@ -6,13 +6,13 @@ import { supabase } from '../supabaseClient';
 import LoginModal from '../components/LoginModal';
 
 // Read production URL from environment variable, fallback to localhost for dev
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://codetoanim-api.onrender.com";
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://codetoanim-api.onrender.com";
+const API_BASE_URL = "http://127.0.0.1:8000"; // Hardcoded to local for testing
 
 export default function WorkspacePage() {
   const location = useLocation();
   const { user, openAuthModal } = useAuth(); 
   
-  // Default algorithm fallback
   const DEFAULT_CODE = `# 1. Define input variables
 nums = [2, 7, 11, 15]
 target = 9
@@ -31,7 +31,6 @@ for i in range(len(nums)):
 
 print("Indices found:", found_indices)`;
 
-  // Initialize code state with incoming preset from LearnPage or default code
   const [code, setCode] = useState(location.state?.presetCode || DEFAULT_CODE);
   const [steps, setSteps] = useState([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -39,25 +38,19 @@ print("Indices found:", found_indices)`;
   const [errorMessage, setErrorMessage] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Update code state if user selects another preset while navigating
   useEffect(() => {
     if (location.state?.presetCode) {
       setCode(location.state.presetCode);
     }
   }, [location.state]);
 
-
- // Handle Save Code Action
   const handleSaveCode = async () => {
     if (!user) {
       openAuthModal('Create a free account or log in to save your custom code and algorithms!');
       return;
     }
 
-    // Ask the user to name their algorithm before saving
     const algoName = prompt("Enter a name for this algorithm:", "My Custom Algorithm");
-    
-    // If they click 'Cancel' on the prompt, stop the save process
     if (!algoName) return; 
     
     setIsLoading(true);
@@ -86,11 +79,9 @@ print("Indices found:", found_indices)`;
     }
   };
 
-  // Execute trace API against dynamic backend URL with Guest Limits
   const handleExecuteTrace = async () => {
-    // --- GUEST LIMIT LOGIC (Daily Reset) ---
     if (!user) {
-      const today = new Date().toDateString(); // e.g., "Fri Aug 14 2026"
+      const today = new Date().toDateString(); 
       let execData = { count: 0, date: today };
 
       try {
@@ -122,7 +113,6 @@ print("Indices found:", found_indices)`;
         console.warn('localStorage set failed for guest_exec_data', err);
       }
     }
-    // ---------------------------------------
 
     setIsLoading(true);
     setErrorMessage(null);
@@ -150,26 +140,24 @@ print("Indices found:", found_indices)`;
     }
   };
 
-  // Step Controls
   const handleFirstStep = () => setCurrentStepIndex(0);
   const handlePrevStep = () => setCurrentStepIndex((prev) => Math.max(0, prev - 1));
   const handleNextStep = () => setCurrentStepIndex((prev) => Math.min(steps.length - 1, prev + 1));
   const handleLastStep = () => setCurrentStepIndex(Math.max(0, steps.length - 1));
 
-  // Current Step Data
   const currentStep = steps[currentStepIndex];
   const activeLineNumber = currentStep?.line ?? null;
   const variables = currentStep?.variables || {};
   const consoleOutput = currentStep?.output ?? "";
 
-  // Universal Parsers
-  const primaryArrayKey = Object.keys(variables).find((key) =>
+  // --- ARRAY PARSING ---
+ const primaryArrayKey = Object.keys(variables).find((key) =>
     Array.isArray(variables[key]) && key !== 'found_indices'
   ) || Object.keys(variables).find((key) => Array.isArray(variables[key]));
 
   const primaryArray = primaryArrayKey ? variables[primaryArrayKey] : null;
-
   const arrayLength = Array.isArray(primaryArray) ? primaryArray.length : 0;
+  
   const activePointers = Object.keys(variables).filter(
     (key) =>
       typeof variables[key] === 'number' &&
@@ -177,16 +165,60 @@ print("Indices found:", found_indices)`;
       variables[key] < arrayLength
   );
 
+  // --- UNIVERSAL LINKED LIST PARSING ---
+  // Helper to extract the value regardless of naming convention (val, data, or value)
+  const getNodeValue = (node) => {
+    if (node.val !== undefined) return node.val;
+    if (node.data !== undefined) return node.data;
+    if (node.value !== undefined) return node.value;
+    return '?';
+  };
+
+  // Helper to dynamically find a linked list in the variables
+  const findLinkedList = (vars) => {
+    for (const [key, obj] of Object.entries(vars)) {
+      if (!obj || typeof obj !== 'object') continue;
+      
+      // Case 1: The variable is directly a Node
+      if (('val' in obj || 'data' in obj || 'value' in obj) && 'next' in obj) {
+        return { key, head: obj };
+      }
+      
+      // Case 2: The variable is a Wrapper Class (like LinkedList) with a 'head' pointer
+      if ('head' in obj && obj.head && typeof obj.head === 'object') {
+        if (('val' in obj.head || 'data' in obj.head || 'value' in obj.head) && 'next' in obj.head) {
+           return { key: `${key}.head`, head: obj.head };
+        }
+      }
+    }
+    return { key: null, head: null };
+  };
+
+  const { key: primaryLinkedListKey, head: primaryLinkedListHead } = findLinkedList(variables);
+
+  // Flatten the linked list for rendering
+  const flattenLinkedList = (head) => {
+    const nodes = [];
+    let current = head;
+    let safeCount = 0; 
+    while (current && safeCount < 50) {
+      nodes.push(current);
+      current = current.next;
+      safeCount++;
+    }
+    return nodes;
+  };
+
+  const flatLinkedList = primaryLinkedListHead ? flattenLinkedList(primaryLinkedListHead) : [];
+
   const variableEntries = Object.entries(variables);
   const codeLines = code.split('\n');
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-gray-950 text-gray-100 font-sans selection:bg-purple-500 selection:text-white">
       
-      {/* ADD THE MODAL HERE */}
       <LoginModal />
 
-      {/* Header Bar */}
       <header className="h-16 border-b bg-gray-900 border-gray-800 flex items-center justify-between px-6 shadow-sm z-10">
         <div className="flex items-center gap-3">
           <Link to="/" className="text-3xl hover:scale-105 transition-transform" title="Home">
@@ -212,7 +244,6 @@ print("Indices found:", found_indices)`;
             💾 Save Code
           </button>
 
-          {/* HIDDEN FOR GUESTS: Only render if 'user' is logged in */}
           {user && (
             <>
               <button 
@@ -222,7 +253,6 @@ print("Indices found:", found_indices)`;
                 {isEditing ? "👁️ View Visual Execution" : "✏️ Edit Python Code"}
               </button>
 
-              {/* DYNAMIC PROFILE BUTTON FOR LOGGED-IN USERS */}
               <Link
                 to="/profile"
                 className="px-4 py-2 text-sm bg-purple-900/30 hover:bg-purple-900/60 text-purple-200 rounded-md font-medium border border-purple-500/40 transition-colors flex items-center gap-2"
@@ -236,7 +266,6 @@ print("Indices found:", found_indices)`;
             </>
           )}
 
-          {/* SHOW FOR GUESTS: Sign Up / Log In Button */}
           {!user && (
             <button 
               onClick={() => openAuthModal('Create an account to unlock unlimited executions and edit code!')}
@@ -256,17 +285,15 @@ print("Indices found:", found_indices)`;
         </div>
       </header>
 
-      {/* Main Workspace Split View */}
       <main className="flex-1 flex overflow-hidden">
         
-        {/* LEFT PANEL: Code Editor / Execution Trace */}
+        {/* LEFT PANEL */}
         <div className="w-1/2 h-full border-r border-gray-800 flex flex-col bg-gray-950">
           <div className="px-4 py-2 border-b bg-gray-900 border-gray-800 text-xs font-mono font-semibold text-gray-400 flex justify-between items-center">
             <span>{isEditing && user ? "✏️ PYTHON EDITOR" : "🔍 EXECUTION TRACE"}</span>
             <span className="text-purple-400">main.py</span>
           </div>
 
-          {/* HIDDEN FOR GUESTS: Guarding the editor area with user check */}
           {isEditing && user ? (
             <div className="flex-1 flex flex-col p-4 bg-gray-950">
               <div className="flex-1 relative flex rounded-lg border border-gray-800 bg-gray-900/60 overflow-hidden focus-within:border-purple-500/80 transition-colors">
@@ -338,7 +365,7 @@ print("Indices found:", found_indices)`;
           )}
         </div>
 
-        {/* RIGHT PANEL: Visual Canvas, Variables & Terminal Box */}
+        {/* RIGHT PANEL */}
         <div className="w-1/2 h-full flex flex-col bg-gray-900/40">
           <div className="px-4 py-2 border-b bg-gray-900 border-gray-800 text-xs font-mono font-semibold text-gray-400 flex justify-between items-center">
             <span>VISUAL CANVAS & STATE INSPECTOR</span>
@@ -356,8 +383,54 @@ print("Indices found:", found_indices)`;
               </div>
             )}
 
-            {/* SECTION 1: Graphical Array Visualizer */}
-            {Array.isArray(primaryArray) && primaryArray.length > 0 ? (
+            {/* SECTION 1: Graphical Visualizers (Prioritizing Linked Lists over temporary Arrays) */}
+            {flatLinkedList.length > 0 ? (
+               <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 shadow-md flex flex-col items-center">
+                <div className="w-full flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
+                  <span className="text-xs font-mono font-bold text-blue-400 uppercase tracking-wider">
+                    Linked List Structure ({primaryLinkedListKey})
+                  </span>
+                  <span className="text-xs font-mono text-gray-500">
+                    nodes: {flatLinkedList.length}
+                  </span>
+                </div>
+
+                <div className="flex gap-2 items-center py-4 min-h-[120px] overflow-x-auto max-w-full px-4">
+                  <AnimatePresence mode="popLayout">
+                    {flatLinkedList.map((node, idx) => (
+                        <motion.div
+                          key={`ll-node-${idx}`}
+                          layout
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.8, opacity: 0 }}
+                          className="flex items-center flex-shrink-0"
+                        >
+                          <div className="flex flex-col items-center">
+                            <div className="w-12 h-12 rounded-full border-2 bg-gray-800 border-blue-500/50 flex items-center justify-center text-lg font-bold font-mono text-blue-300 shadow-md shadow-blue-500/20">
+                              {String(getNodeValue(node))}
+                            </div>
+                          </div>
+                          
+                          {idx < flatLinkedList.length - 1 && (
+                            <div className="mx-2 text-gray-600 font-bold">
+                              ➔
+                            </div>
+                          )}
+                          
+                          {idx === flatLinkedList.length - 1 && (
+                            <>
+                              <div className="mx-2 text-gray-600 font-bold">➔</div>
+                              <div className="text-xs font-mono text-gray-500 font-bold italic">None</div>
+                            </>
+                          )}
+                        </motion.div>
+                      )
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            ) : Array.isArray(primaryArray) && primaryArray.length > 0 ? (
               <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 shadow-md flex flex-col items-center">
                 <div className="w-full flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
                   <span className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider">
@@ -435,7 +508,8 @@ print("Indices found:", found_indices)`;
                 <div className="grid grid-cols-2 gap-2.5">
                   {variableEntries.map(([varName, varVal]) => {
                     const isList = Array.isArray(varVal);
-                    const isPrimary = varName === primaryArrayKey;
+                    const isNode = typeof varVal === 'object' && varVal !== null && (('val' in varVal || 'data' in varVal || 'value' in varVal) || 'head' in varVal);
+                    const isPrimary = varName === primaryArrayKey || varName === primaryLinkedListKey;
 
                     return (
                       <div 
@@ -449,12 +523,12 @@ print("Indices found:", found_indices)`;
                         <div className="text-[10px] text-gray-400 flex justify-between items-center mb-0.5">
                           <span className="font-bold text-purple-300">{varName}</span>
                           <span className="text-[9px] text-gray-500 uppercase">
-                            {isList ? `list[${varVal.length}]` : typeof varVal}
+                            {isList ? `list[${varVal.length}]` : isNode ? "Object" : typeof varVal}
                           </span>
                         </div>
                         
                         <div className="text-xs font-semibold text-white truncate">
-                          {isList ? JSON.stringify(varVal) : String(varVal)}
+                          {isList ? JSON.stringify(varVal) : isNode ? "{...}" : String(varVal)}
                         </div>
                       </div>
                     );
@@ -467,7 +541,7 @@ print("Indices found:", found_indices)`;
               )}
             </div>
 
-            {/* SECTION 3: Terminal Console / Print Output Box */}
+            {/* SECTION 3: Terminal Console */}
             <div className="bg-gray-950 border border-gray-800 rounded-xl p-4 shadow-inner flex flex-col min-h-[120px]">
               <div className="text-xs font-mono font-bold text-green-400 uppercase tracking-wider mb-2 border-b border-gray-800/80 pb-1.5 flex justify-between items-center">
                 <span>📟 Terminal Output (Standard Print)</span>
@@ -485,7 +559,6 @@ print("Indices found:", found_indices)`;
 
           </div>
 
-          {/* Controls Footer */}
           <footer className="h-16 border-t bg-gray-900 border-gray-800 flex items-center justify-center gap-4 px-6 shadow-inner">
             <button 
               onClick={handleFirstStep}

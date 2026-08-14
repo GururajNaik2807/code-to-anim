@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import LoginModal from '../components/LoginModal';
 
 const ALGORITHMS_DATABASE = [
   // --- SORTING ---
@@ -1134,7 +1135,8 @@ export default function LearnPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 font-sans selection:bg-purple-500 selection:text-white flex flex-col">
-      
+      {/* ADD THIS LINE HERE */}
+      <LoginModal />    
       {/* Top Header */}
       <header className="h-16 border-b bg-gray-900 border-gray-800 flex items-center justify-between px-8 shadow-sm">
         <div className="flex items-center gap-3">
@@ -1147,6 +1149,26 @@ export default function LearnPage() {
         </div>
 
         <div className="flex items-center gap-4">
+          {user ? (
+            <Link
+              to="/profile"
+              className="px-4 py-2 text-sm bg-purple-900/30 hover:bg-purple-900/60 text-purple-200 rounded-md font-medium border border-purple-500/40 transition-colors flex items-center gap-2 shadow-sm"
+              title="Go to Profile"
+            >
+              <div className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-bold shadow-inner">
+                {user?.email?.[0]?.toUpperCase() || 'U'}
+              </div>
+              Profile
+            </Link>
+          ) : (
+            <button 
+              onClick={() => openAuthModal('Create an account to track your progress and save favorites!')}
+              className="px-4 py-2 text-sm bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-md font-medium border border-purple-500/50 transition-colors flex items-center gap-1.5"
+            >
+              🔐 Sign Up / Log In
+            </button>
+          )}
+
           <Link 
             to="/workspace"
             className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md shadow-purple-500/20 transition-all flex items-center gap-2"
