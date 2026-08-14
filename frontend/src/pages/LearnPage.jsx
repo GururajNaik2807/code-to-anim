@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const ALGORITHMS_DATABASE = [
   // --- SORTING ---
@@ -1105,7 +1106,29 @@ export default function LearnPage() {
   }, [searchTerm, selectedCategory, selectedDifficulty]);
 
   // Navigate to workspace with selected algorithm preset
-  const handleOpenInTracer = (algoCode) => {
+  const { user, openAuthModal } = useAuth();
+
+  const handleOpenInTracer = (algoId, algoCode) => {
+    // If user is authenticated, bypass any guest limits
+    if (!user) {
+      try {
+        const raw = localStorage.getItem('guest_algo_views');
+        const views = raw ? JSON.parse(raw) : [];
+        // If this is a new unique algorithm and limit reached, block and prompt
+        if (!views.includes(algoId)) {
+          views.push(algoId);
+          if (views.length > 5) {
+            openAuthModal('Guest algorithm view limit reached (5 unique algorithms viewed). Sign up to unlock the full library.');
+            return;
+          }
+          localStorage.setItem('guest_algo_views', JSON.stringify(views));
+        }
+      } catch (err) {
+        // If localStorage fails for any reason, allow navigation but don't crash
+        console.warn('Could not access guest_algo_views in localStorage', err);
+      }
+    }
+
     navigate('/workspace', { state: { presetCode: algoCode } });
   };
 
@@ -1119,7 +1142,7 @@ export default function LearnPage() {
             🎬
           </Link>
           <h1 className="text-xl font-extrabold text-white tracking-tighter">
-            Code<span className="text-purple-500">Anim</span> Learn Hub
+            Code<span className="text-purple-500">Anim</span> Algorithm Library
           </h1>
         </div>
 
@@ -1267,7 +1290,7 @@ export default function LearnPage() {
 
                 {/* Visualize Action Button */}
                 <button
-                  onClick={() => handleOpenInTracer(algo.code)}
+                  onClick={() => handleOpenInTracer(algo.id, algo.code)}
                   className="w-full py-2.5 bg-purple-600/10 hover:bg-purple-600 border border-purple-500/30 hover:border-purple-500 text-purple-300 hover:text-white font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"></path></svg>

@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-
-
-
+import { useAuth } from '../context/AuthContext'; 
+import { supabase } from '../supabaseClient';
 
 // Read production URL from environment variable, fallback to localhost for dev
-// Change line 6 in src/pages/WorkspacePage.jsx to this:
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://codetoanim-api.onrender.com";
 
 export default function WorkspacePage() {
   const location = useLocation();
+  const { user, openAuthModal } = useAuth(); 
   
   // Default algorithm fallback
   const DEFAULT_CODE = `# 1. Define input variables
@@ -46,8 +45,77 @@ print("Indices found:", found_indices)`;
     }
   }, [location.state]);
 
-  // Execute trace API against dynamic backend URL
+
+ // Handle Save Code Action
+  const handleSaveCode = async () => {
+    if (!user) {
+      openAuthModal('Create a free account or log in to save your custom code and algorithms!');
+      return;
+    }
+
+    // Ask the user to name their algorithm before saving
+    const algoName = prompt("Enter a name for this algorithm:", "My Custom Algorithm");
+    
+    // If they click 'Cancel' on the prompt, stop the save process
+    if (!algoName) return; 
+    
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('saved_algorithms') 
+        .insert([
+          { 
+            user_id: user.id,
+            title: algoName,           
+            code_content: code,        
+            list_name: 'Favorites'     
+          }
+        ]);
+
+      if (error) {
+        throw error;
+      }
+      
+      alert(`"${algoName}" saved successfully to your profile!`);
+    } catch (error) {
+      console.error("Error saving to Supabase:", error.message);
+      setErrorMessage("Failed to save code: " + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Execute trace API against dynamic backend URL with Guest Limits
   const handleExecuteTrace = async () => {
+    // --- GUEST LIMIT LOGIC ---
+    if (!user) {
+      let execCount = 0;
+      try {
+        const raw = localStorage.getItem('guest_exec_count');
+        execCount = parseInt(raw || '0', 10);
+        if (Number.isNaN(execCount)) execCount = 0;
+      } catch (err) {
+        console.warn('localStorage access failed for guest_exec_count, allowing execution by default.', err);
+        execCount = 0;
+      }
+
+      if (execCount >= 3) {
+        try {
+          openAuthModal('Guest execution limit reached (3/3 runs used). Sign up for unlimited executions!');
+        } catch (err) {
+          console.warn('openAuthModal failed to open', err);
+        }
+        return; 
+      }
+
+      try {
+        localStorage.setItem('guest_exec_count', (execCount + 1).toString());
+      } catch (err) {
+        console.warn('localStorage set failed for guest_exec_count', err);
+      }
+    }
+    // -------------------------
+
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -120,18 +188,52 @@ print("Indices found:", found_indices)`;
         
         <div className="flex items-center gap-3">
           <Link
-            to="/learn"
+            to="/algorithms"
             className="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-purple-300 rounded-md font-medium border border-purple-500/30 transition-colors flex items-center gap-1.5"
           >
-            📚 Learn Hub
+            📚 Algorithm Library
           </Link>
 
           <button 
-            onClick={() => setIsEditing(!isEditing)}
-            className="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-purple-300 rounded-md font-medium border border-purple-500/30 transition-colors flex items-center gap-1.5"
+            onClick={handleSaveCode}
+            className="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-blue-300 rounded-md font-medium border border-blue-500/30 transition-colors flex items-center gap-1.5"
           >
-            {isEditing ? "👁️ View Visual Execution" : "✏️ Edit Python Code"}
+            💾 Save Code
           </button>
+
+          {/* HIDDEN FOR GUESTS: Only render if 'user' is logged in */}
+          {user && (
+            <>
+              <button 
+                onClick={() => setIsEditing(!isEditing)}
+                className="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-purple-300 rounded-md font-medium border border-purple-500/30 transition-colors flex items-center gap-1.5"
+              >
+                {isEditing ? "👁️ View Visual Execution" : "✏️ Edit Python Code"}
+              </button>
+
+              {/* DYNAMIC PROFILE BUTTON FOR LOGGED-IN USERS */}
+              <Link
+                to="/profile"
+                className="px-4 py-2 text-sm bg-purple-900/30 hover:bg-purple-900/60 text-purple-200 rounded-md font-medium border border-purple-500/40 transition-colors flex items-center gap-2"
+                title="Go to Profile"
+              >
+                <div className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
+                  {user?.email?.[0]?.toUpperCase() || 'U'}
+                </div>
+                Profile
+              </Link>
+            </>
+          )}
+
+          {/* SHOW FOR GUESTS: Sign Up / Log In Button */}
+          {!user && (
+            <button 
+              onClick={() => openAuthModal('Create an account to unlock unlimited executions and edit code!')}
+              className="px-4 py-2 text-sm bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-md font-medium border border-purple-500/50 transition-colors flex items-center gap-1.5"
+            >
+              🔐 Sign Up / Log In
+            </button>
+          )}
 
           <button 
             onClick={handleExecuteTrace}
@@ -149,11 +251,12 @@ print("Indices found:", found_indices)`;
         {/* LEFT PANEL: Code Editor / Execution Trace */}
         <div className="w-1/2 h-full border-r border-gray-800 flex flex-col bg-gray-950">
           <div className="px-4 py-2 border-b bg-gray-900 border-gray-800 text-xs font-mono font-semibold text-gray-400 flex justify-between items-center">
-            <span>{isEditing ? "✏️ PYTHON EDITOR" : "🔍 EXECUTION TRACE"}</span>
+            <span>{isEditing && user ? "✏️ PYTHON EDITOR" : "🔍 EXECUTION TRACE"}</span>
             <span className="text-purple-400">main.py</span>
           </div>
 
-          {isEditing ? (
+          {/* HIDDEN FOR GUESTS: Guarding the editor area with user check */}
+          {isEditing && user ? (
             <div className="flex-1 flex flex-col p-4 bg-gray-950">
               <div className="flex-1 relative flex rounded-lg border border-gray-800 bg-gray-900/60 overflow-hidden focus-within:border-purple-500/80 transition-colors">
                 <div className="select-none py-3 px-2 bg-gray-950/80 text-right text-gray-600 font-mono text-xs leading-6 border-r border-gray-800/80 min-w-[36px]">
@@ -171,7 +274,13 @@ print("Indices found:", found_indices)`;
                 />
               </div>
 
-              <div className="mt-3 flex justify-end">
+              <div className="mt-3 flex justify-end gap-3">
+                <button
+                  onClick={handleSaveCode}
+                  className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-blue-300 font-bold text-sm rounded-lg border border-blue-500/30 transition-all"
+                >
+                  💾 Save Code
+                </button>
                 <button
                   onClick={handleExecuteTrace}
                   disabled={isLoading}
@@ -222,7 +331,7 @@ print("Indices found:", found_indices)`;
         <div className="w-1/2 h-full flex flex-col bg-gray-900/40">
           <div className="px-4 py-2 border-b bg-gray-900 border-gray-800 text-xs font-mono font-semibold text-gray-400 flex justify-between items-center">
             <span>VISUAL CANVAS & STATE INSPECTOR</span>
-            {activeLineNumber && !isEditing && (
+            {activeLineNumber && (!isEditing || !user) && (
               <span className="text-xs text-purple-400 font-mono bg-purple-950/60 border border-purple-800 px-2 py-0.5 rounded">
                 Line {activeLineNumber}
               </span>

@@ -6,8 +6,10 @@ import { ThemeProvider } from './context/ThemeContext'; // Import it here
 import LandingPage from './pages/LandingPage';
 import WorkspacePage from './pages/WorkspacePage';
 import LearnPage from './pages/LearnPage';
+import LearnHub from './pages/LearnHub';
 import AuthPage from './pages/AuthPage';
 import ProfilePage from './pages/ProfilePage';
+import { AuthProvider } from './context/AuthContext.jsx'
 
 export default function App() {
   // 1. Set up the state to track if a user is logged in
@@ -30,30 +32,33 @@ export default function App() {
   }, []);
 
   return (
-    // Wrap the Router completely inside the ThemeProvider
-    <ThemeProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          
-          {/* Pass session to workspace so it knows if it should show the Login Modal */}
-          <Route path="/workspace" element={<WorkspacePage session={session} />} />
-          
-          <Route path="/learn" element={<LearnPage />} />
-          
-          {/* The single, correct Auth route: Redirects to Profile if already logged in */}
-          <Route 
-            path="/auth" 
-            element={session ? <Navigate to="/profile" /> : <AuthPage />} 
-          />
-          
-          {/* Protect the Profile route: Redirects to Auth if THEY ARE NOT logged in */}
-          <Route 
-            path="/profile" 
-            element={session ? <ProfilePage session={session} /> : <Navigate to="/auth" />} 
-          />
-        </Routes>
-      </Router>
-    </ThemeProvider>
+    // Wrap the ThemeProvider inside the AuthProvider
+    <AuthProvider>
+      <ThemeProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            
+            {/* Pass session to workspace so it knows if it should show the Login Modal */}
+            <Route path="/workspace" element={<WorkspacePage session={session} />} />
+            
+            <Route path="/learn" element={<LearnHub />} />
+            <Route path="/algorithms" element={<LearnPage />} />
+            
+            {/* The single, correct Auth route: Redirects to Profile if already logged in */}
+            <Route 
+              path="/auth" 
+              element={session ? <Navigate to="/profile" /> : <AuthPage />} 
+            />
+            
+            {/* Protect the Profile route: Redirects to Auth if THEY ARE NOT logged in */}
+            <Route 
+              path="/profile" 
+              element={session ? <ProfilePage session={session} /> : <Navigate to="/auth" />} 
+            />
+          </Routes>
+        </Router>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
