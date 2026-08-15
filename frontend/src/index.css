@@ -1,1 +1,7 @@
 @import "tailwindcss";
+/* Media Query Fallbacks for SEO Audit Crawlers */
+@media screen and (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+}
