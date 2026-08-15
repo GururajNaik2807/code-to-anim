@@ -141,7 +141,7 @@ export default function LoginModal() {
           </div>
 
           {/* Google Sign-in Button */}
-          <button
+          {/* <button
             onClick={handleGoogleLogin}
             type="button"
             className="flex items-center justify-center w-full gap-3 py-2.5 font-medium text-gray-200 transition-colors bg-gray-950 border border-gray-800 rounded-lg hover:bg-gray-800 hover:text-white"
@@ -165,7 +165,7 @@ export default function LoginModal() {
               />
             </svg>
             Google
-          </button>
+          </button> */}
 
           <div className="mt-6 text-sm text-center text-gray-500">
             {isLogin ? "Don't have an account? " : "Already have an account? "}
