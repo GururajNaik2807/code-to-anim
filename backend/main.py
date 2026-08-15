@@ -63,14 +63,14 @@ def make_json_safe(val, depth=0):
     if isinstance(val, type) or callable(val):
         return str(val)
 
-    # 🚀 5. BRUTE FORCE CHECK: Look at the exact class name as a string!
+    # 5. Check ListNode structure
     if type(val).__name__ == 'ListNode':
         return {
             "val": make_json_safe(getattr(val, 'val', None), depth + 1),
             "next": make_json_safe(getattr(val, 'next', None), depth + 1)
         }
 
-    # 6. Ultimate fallback using dir() instead of __dict__
+    # 6. Fallback using dir()
     try:
         safe_dict = {}
         for attr in dir(val):
@@ -95,8 +95,16 @@ def run_trace_worker(code_string: str) -> dict:
     old_stdout = sys.stdout
     sys.stdout = stdout_buffer
 
+    # System/Stream parameters to exclude from variable state
+    IGNORED_SYSTEM_KEYS = {'file', 'sep', 'end', 'flush', 'args', 'func'}
+
     def trace_func(frame, event, arg):
         nonlocal step_counter
+
+        # 1. Filter out standard library & built-in calls (e.g. print)
+        if frame.f_code.co_filename != "<string>":
+            return None
+
         if event == 'line':
             step_counter += 1
             
@@ -104,23 +112,29 @@ def run_trace_worker(code_string: str) -> dict:
                 sys.settrace(None)
                 return None
 
-            raw_locals = frame.f_locals
-            clean_locals = {}
-            for key, val in raw_locals.items():
-                if not key.startswith('__'):
-                    try:
-                        # IMPORTANT: Deepcopy is completely removed here
-                        clean_locals[key] = make_json_safe(val)
-                    except Exception as e:
-                        # If it fails, print the real error instead of hiding it
-                        clean_locals[key] = f"Error: {str(e)}"
+            # 2. Combine locals and globals, stripping internal system noise
+            combined_vars = {}
+            for k, v in frame.f_globals.items():
+                if not k.startswith('__') and k not in IGNORED_SYSTEM_KEYS and not callable(v):
+                    combined_vars[k] = v
+            
+            for k, v in frame.f_locals.items():
+                if not k.startswith('__') and k not in IGNORED_SYSTEM_KEYS:
+                    combined_vars[k] = v
+
+            clean_vars = {}
+            for key, val in combined_vars.items():
+                try:
+                    clean_vars[key] = make_json_safe(val)
+                except Exception as e:
+                    clean_vars[key] = f"Error: {str(e)}"
 
             current_output = stdout_buffer.getvalue()
 
             steps.append({
                 "step": step_counter,
                 "line": frame.f_lineno,
-                "variables": clean_locals,
+                "variables": clean_vars,
                 "output": current_output
             })
         return trace_func
@@ -160,7 +174,7 @@ def execute_code_trace(request: CodeExecutionRequest):
     with ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(run_trace_worker, request.code)
         try:
-            result = future.result(timeout=3.0)  # 3-second timeout limit
+            result = future.result(timeout=3.0)
         except TimeoutError:
             raise HTTPException(
                 status_code=400, 
