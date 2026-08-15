@@ -9,17 +9,15 @@ const LandingPage = () => {
       {/* Navbar */}
       <nav className="w-full p-6 flex justify-between items-center max-w-7xl mx-auto border-b border-gray-800/50">
         <div className="text-2xl font-extrabold tracking-tighter text-white flex items-center gap-2">
-          CodeTo<span className="text-purple-500">Anim</span> 🎬
+          CodeTo<span className="text-purple-500">Anim</span> 🚀
         </div>
         <div className="flex items-center gap-6">
-          {/* Linked Sign In Option */}
           <Link 
             to="/auth" 
             className="text-sm font-semibold text-gray-400 hover:text-white transition-colors"
           >
             Sign In
           </Link>
-          {/* Corrected path from /app to /workspace */}
           <Link 
             to="/workspace" 
             className="text-sm font-bold bg-white text-black px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
@@ -41,6 +39,7 @@ const LandingPage = () => {
             <div className="inline-block mb-4 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium">
               v1.0 is now live in the workspace
             </div>
+            
             <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-6 tracking-tight leading-tight">
               Don't just run your code.
               <br />
@@ -65,7 +64,7 @@ const LandingPage = () => {
               </Link>
               <Link to="/learn">
                 <button className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg border border-gray-700 transition-all w-full sm:w-auto">
-                  Explore Presets 📚
+                  Explore Presets 💡
                 </button>
               </Link>
             </div>
@@ -74,7 +73,7 @@ const LandingPage = () => {
 
         <hr className="w-full border-gray-800/50" />
 
-        {/* Informational / Features Section */}
+        {/* How CodeToAnim Works Section */}
         <section className="py-20 px-6 max-w-7xl mx-auto w-full">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-white mb-4">How CodeToAnim Works</h2>
@@ -85,7 +84,7 @@ const LandingPage = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-gray-900 p-8 rounded-2xl border border-gray-800 hover:border-gray-700 transition-colors">
-              <div className="text-blue-400 mb-4 text-2xl">📝</div>
+              <div className="text-blue-400 mb-4 text-2xl">💻</div>
               <h3 className="text-xl font-bold text-white mb-3">1. Write Your Logic</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
                 Use our integrated Monaco Editor to write custom Python code. Whether you are implementing Two-Pointers, sorting algorithms, or tree traversals, the engine reads your exact syntax.
@@ -101,7 +100,7 @@ const LandingPage = () => {
             </div>
 
             <div className="bg-gray-900 p-8 rounded-2xl border border-gray-800 hover:border-gray-700 transition-colors">
-              <div className="text-pink-400 mb-4 text-2xl">🎬</div>
+              <div className="text-pink-400 mb-4 text-2xl">🚀</div>
               <h3 className="text-xl font-bold text-white mb-3">3. Play The Animation</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
                 Data structures physically slide, swap, and highlight on our Framer Motion canvas. Use the playback controls to step backward and forward through your execution timeline.
@@ -132,6 +131,37 @@ const LandingPage = () => {
           </div>
         </section>
 
+        {/* Frequently Asked Questions (Adds keyword depth & prevents thin content flags) */}
+        <section className="py-20 px-6 max-w-5xl mx-auto w-full border-t border-gray-800/50">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white mb-4">Frequently Asked Questions</h2>
+            <p className="text-gray-400">Everything you need to know about visualizing code execution step-by-step.</p>
+          </div>
+
+          <div className="space-y-8">
+            <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
+              <h3 className="text-lg font-bold text-white mb-2">What programming languages are supported?</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                CodeToAnim currently specializes in Python execution tracing. We capture standard data structures including Arrays, Linked Lists, Binary Trees, and Graphs directly from your code logic without extra manual setup.
+              </p>
+            </div>
+
+            <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
+              <h3 className="text-lg font-bold text-white mb-2">How does real-time visualization work?</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                When you submit code in our workspace, our backend traces system calls step-by-step. Each frame captures pointer modifications, variable updates, and memory states, translating them directly into smooth React canvas animations.
+              </p>
+            </div>
+
+            <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
+              <h3 className="text-lg font-bold text-white mb-2">Is CodeToAnim free to use for algorithm practice?</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Yes! CodeToAnim is completely free for individual learning, teaching, and algorithm debugging. Creating an account unlocks custom code saving and personal workspace history.
+              </p>
+            </div>
+          </div>
+        </section>
+
       </main>
 
       {/* Footer */}
@@ -156,10 +186,13 @@ const LandingPage = () => {
           </div>
 
           <div>
-            <h4 className="text-white font-semibold mb-4">Resources</h4>
+            <h4 className="text-white font-semibold mb-4">Social &amp; Connect</h4>
             <ul className="space-y-2 text-sm text-gray-500">
-              <li><a href="#" className="hover:text-purple-400 transition-colors">Documentation</a></li>
-              <li><a href="#" className="hover:text-purple-400 transition-colors">GitHub Repository</a></li>
+              <li><a href="https://github.com/your-username" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors">GitHub</a></li>
+              <li><a href="https://x.com/your-handle" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors">X (Twitter)</a></li>
+              <li><a href="https://linkedin.com/in/your-profile" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors">LinkedIn</a></li>
+              <li><a href="https://youtube.com/@your-channel" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors">YouTube</a></li>
+              <li><a href="https://instagram.com/your-handle" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors">Instagram</a></li>
             </ul>
           </div>
         </div>
