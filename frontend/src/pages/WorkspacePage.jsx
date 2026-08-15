@@ -6,7 +6,7 @@ import { supabase } from '../supabaseClient';
 import LoginModal from '../components/LoginModal';
 
 // Read production URL from environment variable, fallback to localhost for dev
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://your-new-backend-name.vercel.app";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
 
 export default function WorkspacePage() {
   const location = useLocation();
