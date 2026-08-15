@@ -1,7 +1,7 @@
 import sys
 import copy
 import io
-from concurrent.futures import ProcessPoolExecutor, TimeoutError
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -84,7 +84,8 @@ def make_json_safe(val, depth=0):
         pass
 
     return str(val)
-# --- Standalone Worker Function for ProcessPoolExecutor ---
+
+# --- Standalone Worker Function for ThreadPoolExecutor ---
 def run_trace_worker(code_string: str) -> dict:
     steps = []
     step_counter = 0
@@ -156,7 +157,7 @@ def execute_code_trace(request: CodeExecutionRequest):
     if not request.code.strip():
         raise HTTPException(status_code=400, detail="Code string cannot be empty.")
 
-    with ProcessPoolExecutor(max_workers=1) as executor:
+    with ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(run_trace_worker, request.code)
         try:
             result = future.result(timeout=3.0)  # 3-second timeout limit
