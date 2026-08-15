@@ -62,7 +62,7 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate('/');
+    navigate('/', { state: { openLogin: true } });
   };
 
   const handleThemeChange = async (themeKey) => {
