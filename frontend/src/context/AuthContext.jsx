@@ -1,4 +1,3 @@
-// src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
@@ -6,21 +5,26 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
 
   useEffect(() => {
-    // Get initial Supabase session
+    // 1. Fetch initial session on app load
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setLoading(false);
     });
 
-    // Listen for auth state changes
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    // 2. Listen for auth state updates (sign in, sign out, email link verification)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setLoading(false);
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const openAuthModal = (message = '') => {
@@ -34,7 +38,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthModalOpen, modalMessage, openAuthModal, closeAuthModal }}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        loading, 
+        isAuthModalOpen, 
+        modalMessage, 
+        openAuthModal, 
+        closeAuthModal 
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

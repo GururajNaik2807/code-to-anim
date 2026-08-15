@@ -35,7 +35,7 @@ export default function LoginModal() {
           password,
         });
         if (error) throw error;
-        alert('Check your email for the confirmation link!');
+        alert('Check your email in the Spam Folder for the confirmation link!');
       }
       
       // If successful, close the modal
