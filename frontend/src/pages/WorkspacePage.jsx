@@ -6,7 +6,6 @@ import { supabase } from '../supabaseClient';
 import LoginModal from '../components/LoginModal';
 
 // Read production URL from environment variable, fallback to localhost for dev
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://codetoanim-api.onrender.com";
 
 export default function WorkspacePage() {
@@ -37,6 +36,7 @@ print("Indices found:", found_indices)`;
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditorMinimized, setIsEditorMinimized] = useState(false);
 
   useEffect(() => {
     if (location.state?.presetCode) {
@@ -117,11 +117,18 @@ print("Indices found:", found_indices)`;
     setIsLoading(true);
     setErrorMessage(null);
 
+    // FIX 1: Intercept __main__ block AND append a hidden 'pass' statement
+    // The 'pass' forces the tracer to capture the final global state after the last line executes
+    const executableCode = code.replace(
+      /if\s+__name__\s*==\s*['"]__main__['"]\s*:/g,
+      "if True: # forced main "
+    ) + "\npass"; 
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/trace`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code: executableCode }),
       });
 
       const data = await response.json();
@@ -151,9 +158,32 @@ print("Indices found:", found_indices)`;
   const consoleOutput = currentStep?.output ?? "";
 
   // --- ARRAY & STRING PARSING ---
-  const primaryArrayKey = Object.keys(variables).find((key) =>
-    (Array.isArray(variables[key]) || typeof variables[key] === 'string') && key !== 'found_indices' && variables[key].length > 0
-  );
+  const primaryArrayKey = Object.keys(variables).find((key) => {
+    const val = variables[key];
+    
+    // Ignore empty values or specific result variables
+    if (!val || val.length === 0 || key === 'found_indices') return false;
+    
+    // Allow standard arrays
+    if (Array.isArray(val)) return true;
+    
+    // Allow strings, BUT exclude Python internal representations
+    if (typeof val === 'string') {
+      if (
+        val.startsWith("<class") || 
+        val.startsWith("<module") || 
+        val.startsWith("<function") || 
+        val.startsWith("<built-in") ||
+        val.startsWith("<method") ||
+        (val.startsWith("<") && val.includes("object at 0x"))
+      ) {
+        return false; 
+      }
+      return true;
+    }
+    
+    return false;
+  });
 
   const rawData = primaryArrayKey ? variables[primaryArrayKey] : null;
   const primaryArray = typeof rawData === 'string' ? rawData.split('') : rawData;
@@ -171,18 +201,19 @@ print("Indices found:", found_indices)`;
     if (node.val !== undefined) return node.val;
     if (node.data !== undefined) return node.data;
     if (node.value !== undefined) return node.value;
-    return '?';
+    return '?'; // Renders '?' if partially constructed
   };
 
   const findLinkedList = (vars) => {
     for (const [key, obj] of Object.entries(vars)) {
       if (!obj || typeof obj !== 'object' || Array.isArray(obj)) continue;
       
-      if (('val' in obj || 'data' in obj || 'value' in obj) && 'next' in obj) {
+      // FIX 2a: Accept nodes even if they only have 'next' initialized
+      if ('next' in obj) {
         return { key, head: obj };
       }
       if ('head' in obj && obj.head && typeof obj.head === 'object') {
-        if (('val' in obj.head || 'data' in obj.head || 'value' in obj.head) && 'next' in obj.head) {
+        if ('next' in obj.head) {
            return { key: `${key}.head`, head: obj.head };
         }
       }
@@ -210,11 +241,12 @@ print("Indices found:", found_indices)`;
     for (const [key, obj] of Object.entries(vars)) {
       if (!obj || typeof obj !== 'object' || Array.isArray(obj)) continue;
       
-      if (('val' in obj || 'data' in obj || 'value' in obj) && ('left' in obj || 'right' in obj)) {
+      // FIX 2b: Accept nodes even if they only have 'left' or 'right' initialized
+      if ('left' in obj || 'right' in obj) {
         return { key, root: obj };
       }
       if ('root' in obj && obj.root && typeof obj.root === 'object') {
-        if (('val' in obj.root || 'data' in obj.root || 'value' in obj.root) && ('left' in obj.root || 'right' in obj.root)) {
+        if ('left' in obj.root || 'right' in obj.root) {
            return { key: `${key}.root`, root: obj.root };
         }
       }
@@ -255,11 +287,10 @@ print("Indices found:", found_indices)`;
   const findDictionary = (vars) => {
     const dictKey = Object.keys(vars).find(key => {
       const val = vars[key];
-      // It must be an object, not null, not an array
       if (!val || typeof val !== 'object' || Array.isArray(val)) return false;
       
-      // It must NOT be a Linked List or Tree node
-      const isNode = ('val' in val || 'data' in val || 'value' in val) || 'head' in val || 'root' in val;
+      // FIX 2c: Include 'left', 'right', and 'next' so partially built objects skip the dict visualizer
+      const isNode = ('val' in val || 'data' in val || 'value' in val) || 'head' in val || 'root' in val || 'left' in val || 'right' in val || 'next' in val;
       return !isNode;
     });
     return dictKey || null;
@@ -270,6 +301,30 @@ print("Indices found:", found_indices)`;
   const dictEntries = primaryDict ? Object.entries(primaryDict) : [];
 
   const variableEntries = Object.entries(variables);
+
+  // --- FILTER CLASSES & FUNCTIONS ---
+  const classAndFuncEntries = variableEntries.filter(([_, val]) => {
+    return typeof val === 'string' && (
+      val.startsWith("<class") || 
+      val.startsWith("<function") || 
+      val.startsWith("<method") ||
+      val.startsWith("<module")
+    );
+  });
+
+  // --- FILTER STANDARD VARIABLES ---
+  const standardVariableEntries = variableEntries.filter(([_, val]) => {
+    if (typeof val === 'string') {
+      return !(
+        val.startsWith("<class") || 
+        val.startsWith("<function") || 
+        val.startsWith("<method") ||
+        val.startsWith("<module")
+      );
+    }
+    return true;
+  });
+
   const codeLines = code.split('\n');
 
   return (
@@ -346,14 +401,18 @@ print("Indices found:", found_indices)`;
       <main className="flex-1 flex overflow-hidden">
         
         {/* LEFT PANEL */}
-        <div className="w-1/2 h-full border-r border-gray-800 flex flex-col bg-gray-950">
-          <div className="px-4 py-2 border-b bg-gray-900 border-gray-800 text-xs font-mono font-semibold text-gray-400 flex justify-between items-center">
+        <div 
+          className={`h-full flex flex-col bg-gray-950 transition-all duration-300 ease-in-out border-gray-800 ${
+            isEditorMinimized ? "w-0 border-r-0 overflow-hidden opacity-0" : "w-1/2 border-r opacity-100"
+          }`}
+        >
+          <div className="px-4 py-2 border-b bg-gray-900 border-gray-800 text-xs font-mono font-semibold text-gray-400 flex justify-between items-center whitespace-nowrap min-w-max">
             <span>{isEditing && user ? "✏️ PYTHON EDITOR" : "🔍 EXECUTION TRACE"}</span>
             <span className="text-purple-400">main.py</span>
           </div>
 
           {isEditing && user ? (
-            <div className="flex-1 flex flex-col p-4 bg-gray-950">
+            <div className="flex-1 flex flex-col p-4 bg-gray-950 min-w-[300px]">
               <div className="flex-1 relative flex rounded-lg border border-gray-800 bg-gray-900/60 overflow-hidden focus-within:border-purple-500/80 transition-colors">
                 <div className="select-none py-3 px-2 bg-gray-950/80 text-right text-gray-600 font-mono text-xs leading-6 border-r border-gray-800/80 min-w-[36px]">
                   {codeLines.map((_, i) => (
@@ -387,7 +446,7 @@ print("Indices found:", found_indices)`;
               </div>
             </div>
           ) : (
-            <div className="flex-1 relative bg-gray-950 font-mono text-sm overflow-auto flex">
+            <div className="flex-1 relative bg-gray-950 font-mono text-sm overflow-auto flex min-w-[300px]">
               <div className="bg-gray-900/50 border-r border-gray-800/60 select-none py-4 text-right pr-3 pl-2 text-gray-600 font-mono text-xs leading-6 min-w-[40px]">
                 {codeLines.map((_, idx) => {
                   const lineNum = idx + 1;
@@ -424,9 +483,22 @@ print("Indices found:", found_indices)`;
         </div>
 
         {/* RIGHT PANEL */}
-        <div className="w-1/2 h-full flex flex-col bg-gray-900/40">
+        <div 
+          className={`h-full flex flex-col bg-gray-900/40 transition-all duration-300 ease-in-out ${
+            isEditorMinimized ? "w-full" : "w-1/2"
+          }`}
+        >
           <div className="px-4 py-2 border-b bg-gray-900 border-gray-800 text-xs font-mono font-semibold text-gray-400 flex justify-between items-center">
-            <span>VISUAL CANVAS & STATE INSPECTOR</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsEditorMinimized(!isEditorMinimized)}
+                className="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-purple-300 rounded border border-gray-700 transition-colors flex items-center gap-2"
+                title={isEditorMinimized ? "Expand Editor" : "Minimize Editor"}
+              >
+                {isEditorMinimized ? "▶ Show Editor" : "◀ Hide Editor"}
+              </button>
+              <span>VISUAL CANVAS & STATE INSPECTOR</span>
+            </div>
             {activeLineNumber && (!isEditing || !user) && (
               <span className="text-xs text-purple-400 font-mono bg-purple-950/60 border border-purple-800 px-2 py-0.5 rounded">
                 Line {activeLineNumber}
@@ -640,16 +712,58 @@ print("Indices found:", found_indices)`;
               </div>
             )}
 
+            {/* SECTION 1.5: Registered Classes & Functions */}
+            {classAndFuncEntries.length > 0 && (
+              <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 shadow-md">
+                <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider mb-3 border-b border-gray-800 pb-2 flex justify-between items-center">
+                  <span>Registered Definitions</span>
+                  <span className="text-gray-500">{classAndFuncEntries.length} Active</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  {classAndFuncEntries.map(([name, val]) => {
+                    const isClass = val.startsWith("<class");
+                    // Clean up the string for display (e.g., removing the < > brackets)
+                    const cleanVal = val.replace(/<|>/g, ''); 
+
+                    return (
+                      <div 
+                        key={name} 
+                        className="flex justify-between items-center p-2.5 rounded-lg border bg-gray-950/60 border-gray-800 font-mono transition-colors hover:border-cyan-900/50"
+                      >
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold tracking-wide ${
+                            isClass 
+                              ? 'bg-blue-900/40 text-blue-300 border border-blue-800/50' 
+                              : 'bg-teal-900/40 text-teal-300 border border-teal-800/50'
+                          }`}>
+                            {isClass ? 'CLASS' : 'FUNC'}
+                          </span>
+                          <span className="text-xs font-bold text-gray-200 truncate">{name}</span>
+                        </div>
+                        <span 
+                          className="text-[10px] text-gray-500 truncate max-w-[100px] ml-2" 
+                          title={val}
+                        >
+                          {cleanVal}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* SECTION 2: Live Variable State Grid */}
             <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 shadow-md">
               <div className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider mb-3 border-b border-gray-800 pb-2 flex justify-between">
                 <span>Variable Inspector</span>
-                <span>{variableEntries.length} Active</span>
+                <span>{standardVariableEntries.length} Active</span>
               </div>
 
-              {variableEntries.length > 0 ? (
+              {standardVariableEntries.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2.5">
-                  {variableEntries.map(([varName, varVal]) => {
+                  {standardVariableEntries.map(([varName, varVal]) => {
                     const isList = Array.isArray(varVal);
                     const isNode = typeof varVal === 'object' && varVal !== null && !isList && (('val' in varVal || 'data' in varVal || 'value' in varVal) || 'head' in varVal || 'root' in varVal);
                     const isDict = typeof varVal === 'object' && varVal !== null && !isList && !isNode;
