@@ -13,14 +13,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS for local React/Vite development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "*"
-    ],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,7 +29,8 @@ class TraceStep(BaseModel):
     step: int
     line: int
     variables: Dict[str, Any]
-    output: Optional[str] = ""  # Captures stdout (print) history per step
+    output: Optional[str] = "" 
+    visual_layout: Dict[str, Any] = {} # NEW: Pre-calculated layout blueprint
 
 class TraceResponse(BaseModel):
     success: bool
@@ -42,50 +38,93 @@ class TraceResponse(BaseModel):
     error: Optional[str] = None
 
 
-# --- Helper Function for Safe JSON Serialization ---
+# --- Helper: Safe JSON Serialization ---
 def make_json_safe(val, depth=0):
-    """Recursively converts variables to JSON-friendly primitives."""
-    # 1. Limit to prevent infinite loops
-    if depth > 20:
-        return "..."
-        
-    # 2. Primitives
-    if isinstance(val, (int, float, str, bool, type(None))):
-        return val
-        
-    # 3. Iterables
-    if isinstance(val, (list, tuple, set)):
-        return [make_json_safe(item, depth + 1) for item in val]
-    if isinstance(val, dict):
-        return {str(k): make_json_safe(v, depth + 1) for k, v in val.items()}
-        
-    # 4. Skip raw Classes and Functions
-    if isinstance(val, type) or callable(val):
-        return str(val)
+    if depth > 20: return "..."
+    if isinstance(val, (int, float, str, bool, type(None))): return val
+    if isinstance(val, (list, tuple, set)): return [make_json_safe(item, depth + 1) for item in val]
+    if isinstance(val, dict): return {str(k): make_json_safe(v, depth + 1) for k, v in val.items()}
+    if isinstance(val, type) or callable(val): return str(val)
 
-    # 5. Check ListNode structure
-    if type(val).__name__ == 'ListNode':
-        return {
-            "val": make_json_safe(getattr(val, 'val', None), depth + 1),
-            "next": make_json_safe(getattr(val, 'next', None), depth + 1)
-        }
-
-    # 6. Fallback using dir()
+    # Automatically parse Custom Classes (like ListNode, TreeNode) into safe dicts
+    safe_dict = {}
     try:
-        safe_dict = {}
         for attr in dir(val):
             if not attr.startswith('_'):
                 attr_val = getattr(val, attr)
                 if not callable(attr_val):
                     safe_dict[attr] = make_json_safe(attr_val, depth + 1)
-        if safe_dict:
-            return safe_dict
-    except Exception:
-        pass
+        if safe_dict: return safe_dict
+    except Exception: pass
 
     return str(val)
 
-# --- Standalone Worker Function for ThreadPoolExecutor ---
+# --- NEW: Abstracted Blueprint Generator ---
+# This runs securely on your server, hiding your parsing secrets from the browser
+def generate_visual_layout(clean_vars: dict) -> dict:
+    
+    # 1. Binary Tree Check
+    def is_tree(obj):
+        return isinstance(obj, dict) and ('left' in obj or 'right' in obj)
+
+    for key, val in clean_vars.items():
+        root = val if is_tree(val) else (val.get('root') if isinstance(val, dict) and is_tree(val.get('root')) else None)
+        if root:
+            nodes, edges = [], []
+            def traverse(node, x, y, h_spacing, path_id):
+                if not isinstance(node, dict): return
+                val_str = str(node.get('val', node.get('data', node.get('value', '?'))))
+                nodes.append({"val": val_str, "x": x, "y": y, "id": path_id})
+                
+                if isinstance(node.get('left'), dict):
+                    cx, cy = x - h_spacing, y + 60
+                    edges.append({"x1": x, "y1": y, "x2": cx, "y2": cy})
+                    traverse(node['left'], cx, cy, h_spacing / 1.8, path_id + 'L')
+                
+                if isinstance(node.get('right'), dict):
+                    cx, cy = x + h_spacing, y + 60
+                    edges.append({"x1": x, "y1": y, "x2": cx, "y2": cy})
+                    traverse(node['right'], cx, cy, h_spacing / 1.8, path_id + 'R')
+            
+            traverse(root, 250, 30, 100, 'root')
+            return {"type": "tree", "key": key, "nodes": nodes, "edges": edges}
+
+    # 2. Linked List Check
+    def is_ll(obj):
+        return isinstance(obj, dict) and 'next' in obj
+
+    for key, val in clean_vars.items():
+        head = val if is_ll(val) else (val.get('head') if isinstance(val, dict) and is_ll(val.get('head')) else None)
+        if head:
+            nodes, curr, safe_count = [], head, 0
+            while isinstance(curr, dict) and safe_count < 50:
+                nodes.append({"val": str(curr.get('val', curr.get('data', curr.get('value', '?'))))})
+                curr = curr.get('next')
+                safe_count += 1
+            return {"type": "linked_list", "key": key, "nodes": nodes}
+
+    # 3. Dictionary Check
+    for key, val in clean_vars.items():
+        if isinstance(val, dict) and len(val) > 0 and not isinstance(list(val.values())[0], dict):
+            entries = [{"key": str(k), "val": str(v)} for k, v in val.items()]
+            return {"type": "dict", "key": key, "entries": entries}
+
+    # 4. Array / String Check
+    for key, val in clean_vars.items():
+        is_valid_array = isinstance(val, list)
+        is_valid_string = isinstance(val, str) and not val.startswith("<")
+        
+        if is_valid_array or is_valid_string:
+            arr_data = [str(v) for v in val] if is_valid_array else list(val)
+            pointers = []
+            for p_key, p_val in clean_vars.items():
+                if isinstance(p_val, int) and 0 <= p_val < len(val):
+                    pointers.append({"key": p_key, "index": p_val})
+            return {"type": "array", "key": key, "data": arr_data, "pointers": pointers}
+
+    return {"type": "none"}
+
+# --- Standalone Worker Function ---
 def run_trace_worker(code_string: str) -> dict:
     steps = []
     step_counter = 0
@@ -95,47 +134,36 @@ def run_trace_worker(code_string: str) -> dict:
     old_stdout = sys.stdout
     sys.stdout = stdout_buffer
 
-    # System/Stream parameters to exclude from variable state
     IGNORED_SYSTEM_KEYS = {'file', 'sep', 'end', 'flush', 'args', 'func'}
 
     def trace_func(frame, event, arg):
         nonlocal step_counter
-
-        # 1. Filter out standard library & built-in calls (e.g. print)
-        if frame.f_code.co_filename != "<string>":
-            return None
+        if frame.f_code.co_filename != "<string>": return None
 
         if event == 'line':
             step_counter += 1
-            
             if step_counter > MAX_STEPS:
                 sys.settrace(None)
                 return None
 
-            # 2. Combine locals and globals, stripping internal system noise
-            combined_vars = {}
-            for k, v in frame.f_globals.items():
-                if not k.startswith('__') and k not in IGNORED_SYSTEM_KEYS and not callable(v):
-                    combined_vars[k] = v
-            
-            for k, v in frame.f_locals.items():
-                if not k.startswith('__') and k not in IGNORED_SYSTEM_KEYS:
-                    combined_vars[k] = v
-
+            combined_vars = {**frame.f_globals, **frame.f_locals}
             clean_vars = {}
-            for key, val in combined_vars.items():
-                try:
-                    clean_vars[key] = make_json_safe(val)
-                except Exception as e:
-                    clean_vars[key] = f"Error: {str(e)}"
+            for k, v in combined_vars.items():
+                if not k.startswith('__') and k not in IGNORED_SYSTEM_KEYS and not callable(v):
+                    try:
+                        clean_vars[k] = make_json_safe(v)
+                    except Exception as e:
+                        clean_vars[k] = f"Error: {str(e)}"
 
-            current_output = stdout_buffer.getvalue()
+            # GENERATE THE BLUEPRINT SECURELY ON THE BACKEND
+            layout_blueprint = generate_visual_layout(clean_vars)
 
             steps.append({
                 "step": step_counter,
                 "line": frame.f_lineno,
                 "variables": clean_vars,
-                "output": current_output
+                "output": stdout_buffer.getvalue(),
+                "visual_layout": layout_blueprint # Attach blueprint to response
             })
         return trace_func
 
@@ -143,11 +171,8 @@ def run_trace_worker(code_string: str) -> dict:
     sys.settrace(trace_func)
     try:
         exec(code_string, execution_scope)
-        
-        final_output = stdout_buffer.getvalue()
-        if steps and steps[-1]["output"] != final_output:
-            steps[-1]["output"] = final_output
-
+        if steps and steps[-1]["output"] != stdout_buffer.getvalue():
+            steps[-1]["output"] = stdout_buffer.getvalue()
         return {"success": True, "steps": steps}
     except Exception as e:
         return {"success": False, "error": f"{type(e).__name__}: {str(e)}"}
@@ -155,44 +180,19 @@ def run_trace_worker(code_string: str) -> dict:
         sys.settrace(None)
         sys.stdout = old_stdout
 
-        
 # --- API Endpoints ---
-@app.get("/")
-def read_root():
-    return {
-        "status": "Backend Engine Running",
-        "service": "CodeToAnim API",
-        "docs_url": "/docs"
-    }
-
-
 @app.post("/api/trace", response_model=TraceResponse)
 def execute_code_trace(request: CodeExecutionRequest):
     if not request.code.strip():
         raise HTTPException(status_code=400, detail="Code string cannot be empty.")
-
     with ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(run_trace_worker, request.code)
         try:
             result = future.result(timeout=3.0)
         except TimeoutError:
-            raise HTTPException(
-                status_code=400, 
-                detail="Execution timed out (3s safety limit exceeded). Please check for infinite loops!"
-            )
+            raise HTTPException(status_code=400, detail="Execution timed out (3s safety limit exceeded).")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Engine execution error: {str(e)}")
 
-    if not result["success"]:
-        return TraceResponse(success=False, steps=[], error=result["error"])
-
+    if not result["success"]: return TraceResponse(success=False, steps=[], error=result["error"])
     return TraceResponse(success=True, steps=result["steps"])
-
-
-@app.get("/api/presets")
-def get_preset_algorithms():
-    return {
-        "bubble_sort": "arr = [4, 2, 8, 1]\nn = len(arr)\nfor i in range(n):\n    for j in range(0, n - i - 1):\n        if arr[j] > arr[j + 1]:\n            arr[j], arr[j + 1] = arr[j + 1], arr[j]\n    print(f'Pass {i+1}:', arr)",
-        "selection_sort": "arr = [64, 25, 12, 22, 11]\nfor i in range(len(arr)):\n    min_idx = i\n    for j in range(i+1, len(arr)):\n        if arr[min_idx] > arr[j]:\n            min_idx = j\n    arr[i], arr[min_idx] = arr[min_idx], arr[i]\n    print(f'Sorted up to index {i}:', arr)",
-        "reverse_array": "arr = [1, 2, 3, 4, 5]\nleft = 0\nright = len(arr) - 1\nwhile left < right:\n    arr[left], arr[right] = arr[right], arr[left]\n    left += 1\n    right -= 1\nprint('Reversed:', arr)"
-    }

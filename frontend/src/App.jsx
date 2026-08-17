@@ -10,6 +10,7 @@ import LearnHub from './pages/LearnHub';
 import AuthPage from './pages/AuthPage';
 import ProfilePage from './pages/ProfilePage';
 import { AuthProvider } from './context/AuthContext.jsx';
+import CommunityPage from './pages/CommunityPage';
 
 // Built-in 404 Component to pass SEO Audit Custom 404 Test
 function NotFoundPage() {
@@ -69,6 +70,8 @@ export default function App() {
 
             {/* Catch-all 404 Route for unmatched paths */}
             <Route path="*" element={<NotFoundPage />} />
+            {/* community page route  */}
+            <Route path="/community" element={<CommunityPage />} />
           </Routes>
         </Router>
       </ThemeProvider>
