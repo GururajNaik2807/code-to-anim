@@ -1,64 +1,55 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+// Create the context
 const ThemeContext = createContext();
 
-export const themes = {
-  'midnight-purple': {
-    name: 'Midnight Purple 🟣',
-    bg: 'bg-gray-950',
-    card: 'bg-gray-900 border-gray-800',
-    primary: 'bg-purple-600 hover:bg-purple-500 text-white',
-    accentText: 'text-purple-400',
-    monacoTheme: 'vs-dark',
-  },
-  'cyberpunk': {
-    name: 'Cyberpunk Neon ⚡',
-    bg: 'bg-black',
-    card: 'bg-gray-900 border-yellow-500/30',
-    primary: 'bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold',
-    accentText: 'text-yellow-400',
-    monacoTheme: 'hc-black',
-  },
-  'monokai': {
-    name: 'Monokai Dark 🟢',
-    bg: 'bg-stone-950',
-    card: 'bg-stone-900 border-stone-800',
-    primary: 'bg-green-600 hover:bg-green-500 text-white',
-    accentText: 'text-green-400',
-    monacoTheme: 'vs-dark',
-  },
-  'nordic': {
-    name: 'Nordic Slate ❄️',
-    bg: 'bg-slate-950',
-    card: 'bg-slate-900 border-slate-800',
-    primary: 'bg-sky-600 hover:bg-sky-500 text-white',
-    accentText: 'text-sky-400',
-    monacoTheme: 'vs-dark',
-  },
-};
-
 export function ThemeProvider({ children }) {
-  const [currentTheme, setCurrentTheme] = useState('midnight-purple');
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('codetoanim_theme');
-    if (savedTheme && themes[savedTheme]) {
-      setCurrentTheme(savedTheme);
+  // Initialize state from localStorage, defaulting to 'dark'
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('app_theme');
+      return savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'dark';
+    } catch (error) {
+      return 'dark';
     }
-  }, []);
+  });
 
-  const changeTheme = (themeKey) => {
-    if (themes[themeKey]) {
-      setCurrentTheme(themeKey);
-      localStorage.setItem('codetoanim_theme', themeKey);
+  // Function to change the theme and persist it
+  const changeTheme = (themeName) => {
+    if (themeName !== 'light' && themeName !== 'dark') return;
+    
+    setCurrentTheme(themeName);
+    
+    try {
+      localStorage.setItem('app_theme', themeName);
+    } catch (error) {
+      console.warn('Could not save theme to localStorage:', error);
     }
   };
 
+  // Optional: Apply a global class to the <body> if you ever want to use standard Tailwind dark mode (e.g. `dark:bg-gray-900`)
+  useEffect(() => {
+    if (currentTheme === 'dark') {
+      document.body.classList.add('dark');
+      document.body.classList.remove('light');
+    } else {
+      document.body.classList.add('light');
+      document.body.classList.remove('dark');
+    }
+  }, [currentTheme]);
+
   return (
-    <ThemeContext.Provider value={{ currentTheme, theme: themes[currentTheme], changeTheme, themes }}>
+    <ThemeContext.Provider value={{ currentTheme, changeTheme }}>
       {children}
     </ThemeContext.Provider>
   );
 }
 
-export const useTheme = () => useContext(ThemeContext);
+// Custom hook to use the Theme context
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+};
