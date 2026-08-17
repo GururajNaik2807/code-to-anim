@@ -4,6 +4,9 @@ import { supabase } from '../supabaseClient';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ProfilePage() {
+  // Check session storage so full loader only triggers once per tab session
+  const hasLoadedBefore = sessionStorage.getItem('profile_loaded') === 'true';
+
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [savedCodes, setSavedCodes] = useState([]);
@@ -11,11 +14,14 @@ export default function ProfilePage() {
   const [dailyActivity, setDailyActivity] = useState([]);
   const [recentActivities, setRecentActivities] = useState([]);
   
-  const [loading, setLoading] = useState(true);
+  // Only show full loading screen if it hasn't loaded in this tab session yet
+  const [loading, setLoading] = useState(!hasLoadedBefore);
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [shareText, setShareText] = useState('Share Profile');
+
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const navigate = useNavigate();
   const { currentTheme, changeTheme } = useTheme(); 
@@ -33,37 +39,46 @@ export default function ProfilePage() {
     }
     setUser(session.user);
 
-    // 1. Fetch Profile
-    const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-    setProfile(profileData || {});
+    try {
+      // Fetch all concurrently for maximum speed
+      const [
+        { data: profileData },
+        { data: codesData },
+        { data: progData },
+        { data: actData },
+        { data: logData }
+      ] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle(),
+        supabase.from('saved_algorithms').select('*').eq('user_id', session.user.id).order('updated_at', { ascending: false }),
+        supabase.from('user_progress').select('*').eq('user_id', session.user.id).order('last_accessed', { ascending: false }),
+        supabase.from('daily_activity').select('*').eq('user_id', session.user.id),
+        supabase.from('activity_logs').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(5)
+      ]);
 
-    // 2. Fetch Saved Algorithms
-    const { data: codesData } = await supabase.from('saved_algorithms').select('*').eq('user_id', session.user.id).order('updated_at', { ascending: false });
-    setSavedCodes(codesData || []);
+      setProfile(profileData || {});
+      setSavedCodes(codesData || []);
+      setProgressData(progData || []);
+      setDailyActivity(actData || []);
+      setRecentActivities(logData || []);
 
-    // 3. Fetch User Progress 
-    const { data: progData } = await supabase.from('user_progress').select('*').eq('user_id', session.user.id).order('last_accessed', { ascending: false });
-    setProgressData(progData || []);
-
-    // 4. Fetch Daily Activity 
-    const { data: actData } = await supabase.from('daily_activity').select('*').eq('user_id', session.user.id);
-    setDailyActivity(actData || []);
-
-    // 5. Fetch Recent Activity Logs
-    const { data: logData } = await supabase
-      .from('activity_logs')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
-      .limit(5);
-    setRecentActivities(logData || []);
-
-    setLoading(false);
+      // Mark that this session has loaded once, preventing future full-screen flashes
+      sessionStorage.setItem('profile_loaded', 'true');
+    } catch (err) {
+      console.error("Error fetching profile data:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/', { state: { openLogin: true } });
+    setIsLoggingOut(true);
+    // Clear session cache on logout so next login triggers fresh load if desired
+    sessionStorage.removeItem('profile_loaded');
+    
+    setTimeout(async () => {
+      await supabase.auth.signOut();
+      navigate('/');
+    }, 2000);
   };
 
   const toggleTheme = async () => {
@@ -89,9 +104,10 @@ export default function ProfilePage() {
   };
 
   const handleShareProfile = () => {
-    const handle = (profile?.display_name || user?.email?.split('@')[0] || 'user').toLowerCase().replace(/\s/g, '');
-    navigator.clipboard.writeText(`${window.location.origin}/user/${handle}`).then(() => {
-      setShareText('Copied! ✅');
+    if (!user?.id) return;
+    const shareUrl = `${window.location.origin}/p/${user.id}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setShareText('Link Copied! 🔗');
       setTimeout(() => setShareText('Share Profile'), 2000);
     });
   };
@@ -140,35 +156,19 @@ export default function ProfilePage() {
     }
   };
 
-  // --- PROGRESS CALCULATION LOGIC ---
   const ALGORITHM_TOTALS = {
-    'Searching': 2,
-    'Sorting': 5,
-    'Two Pointers': 4,
-    'Arrays': 5,
-    'Math': 3,
-    'Dynamic Programming': 4,
-    'Stack': 2,
-    'Graphs': 2,
-    'Linked Lists': 5,
-    'Strings': 5,
-    'Trees': 5,
-    'Bit Manipulation': 3,
-    'Greedy': 2,
-    'Hash Map': 5,
-    'Intervals': 3,
-    'Heaps': 3,
-    'Backtracking': 1
+    'Searching': 2, 'Sorting': 5, 'Two Pointers': 4, 'Arrays': 5, 'Math': 3,
+    'Dynamic Programming': 4, 'Stack': 2, 'Graphs': 2, 'Linked Lists': 5,
+    'Strings': 5, 'Trees': 5, 'Bit Manipulation': 3, 'Greedy': 2,
+    'Hash Map': 5, 'Intervals': 3, 'Heaps': 3, 'Backtracking': 1
   };
 
   const calculateCategoryProgress = (categoryName) => {
-    const categoryAlgos = progressData.filter(p => p.category === categoryName);
+    const categoryAlgos = progressData.filter(p => p.category?.toLowerCase() === categoryName.toLowerCase());
     if (categoryAlgos.length === 0) return 0;
-    
-    // Count only algorithms that are 100% completed
-    const completedCount = categoryAlgos.filter(p => p.progress_percent === 100).length;
-    const total = ALGORITHM_TOTALS[categoryName] || 5; 
-    return Math.round((completedCount / total) * 100);
+    const totalProgressPercent = categoryAlgos.reduce((sum, item) => sum + (item.progress_percent || 0), 0);
+    const totalPossible = (ALGORITHM_TOTALS[categoryName] || 5) * 100; 
+    return Math.min(100, Math.round((totalProgressPercent / totalPossible) * 100));
   };
 
   const algoProgressStats = [
@@ -179,8 +179,6 @@ export default function ProfilePage() {
     { name: 'Trees', icon: '🌲', prog: calculateCategoryProgress('Trees') }
   ];
 
-  // --- UPDATED: RECENT ALGO FILTER ---
-  // Finds the most recently accessed algorithm/lesson that is NOT 100% complete
   const recentAlgo = progressData.find(algo => algo.progress_percent < 100) || null;
 
   const bgMain = isDark ? 'bg-[#0E1117]' : 'bg-[#F9FAFB]';
@@ -200,8 +198,14 @@ export default function ProfilePage() {
     }
   `;
 
+  // Only displays full-screen on the absolute first tab load
   if (loading) {
-    return <div className={`h-screen w-screen flex items-center justify-center font-mono ${bgMain} ${textPrimary}`}>Loading dashboard...</div>;
+    return (
+      <div className={`h-screen w-screen flex flex-col items-center justify-center font-mono gap-4 ${bgMain} ${textPrimary}`}>
+        <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-sm tracking-widest text-purple-400 uppercase font-bold animate-pulse">Loading Dashboard...</p>
+      </div>
+    );
   }
 
   const displayName = profile?.display_name || user?.email?.split('@')[0] || 'User';
@@ -229,21 +233,31 @@ export default function ProfilePage() {
 
   const navLinks = [
     { section: 'WORKSPACE', links: [{ name: 'Workspace', path: '/workspace', icon: '⚡' }] },
-    { section: 'ALGORITHMS', links: [
-      { name: 'My Algorithms', path: '/profile', icon: '📂', active: true }
-    ]},
-    { section: 'LEARNING', links: [
-      { name: 'Learning Path', path: '/learn', icon: '🎓' },          
-      { name: 'Topics', path: '/algorithms', icon: '📚' }              
-    ]},
-    { section: 'COMMUNITY', links: [
-      { name: 'Community', path: '/community', icon: '💬' }
-    ]}
+    { section: 'ALGORITHMS', links: [{ name: 'My Algorithms', path: '/profile', icon: '📂', active: true }] },
+    { section: 'LEARNING', links: [{ name: 'Learning Path', path: '/learn', icon: '🎓' }, { name: 'Topics', path: '/algorithms', icon: '📚' }] },
+    { section: 'COMMUNITY', links: [{ name: 'Community', path: '/community', icon: '💬' }] }
   ];
 
   return (
     <div className={`flex h-screen w-screen font-sans ${bgMain} ${textPrimary} overflow-hidden`}>
       
+      {isLoggingOut && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className={`relative w-full max-w-sm border rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center transform transition-all ${isDark ? 'bg-[#121620] border-emerald-500/30 text-white shadow-emerald-900/20' : 'bg-white border-emerald-500/30 text-gray-900 shadow-emerald-500/10'}`}>
+            <div className="w-16 h-16 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center text-3xl mb-4 border border-emerald-500/30 shadow-inner">
+              👋
+            </div>
+            <h2 className="text-2xl font-black mb-2">Successfully Logged Out</h2>
+            <p className={`text-sm leading-relaxed mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              Your progress has been securely saved. Redirecting you to home...
+            </p>
+            <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
+              <div className="h-full bg-emerald-500 w-full animate-[pulse_1s_ease-in-out_infinite]"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <aside className={`w-64 flex-shrink-0 border-r ${borderCol} ${bgPanel} flex flex-col justify-between overflow-y-auto ${scrollbarStyles}`}>
         <div>
           <div className="h-16 flex items-center px-6 font-extrabold text-xl tracking-tight">
@@ -397,7 +411,7 @@ export default function ProfilePage() {
                 ) : (
                    <div className="flex-1 flex items-center justify-center text-sm text-gray-500">No pending algorithms or lessons.</div>
                 )}
-                <button onClick={() => navigate('/learn', { state: { from: '/profile' } })} className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors">
+                <button onClick={() => navigate('/learn')} className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors">
                   {recentAlgo ? 'Continue Visualization ▷' : 'Explore Library ▷'}
                 </button>
               </div>
@@ -420,7 +434,7 @@ export default function ProfilePage() {
                     </div>
                   ))}
                 </div>
-                <Link to="/algorithms" className={`text-xs ${textSecondary} hover:text-white mt-4 inline-block`}>View All Topics →</Link>
+                <Link to="/learn" className={`text-xs ${textSecondary} hover:text-white mt-4 inline-block`}>View All Topics →</Link>
               </div>
             </div>
 
@@ -444,7 +458,7 @@ export default function ProfilePage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {savedCodes.filter(c => (c.title || '').toLowerCase().includes(searchQuery.toLowerCase())).slice(0,4).map((item) => (
-                                          <div key={item.id} className={`border ${borderCol} rounded-lg p-4 hover:border-indigo-500 transition-all cursor-pointer`} onClick={() => navigate('/workspace', { state: { presetCode: item.code_content, from: '/profile' } })}>
+                      <div key={item.id} className={`border ${borderCol} rounded-lg p-4 hover:border-indigo-500 transition-all cursor-pointer`} onClick={() => navigate('/workspace', { state: { presetCode: item.code_content } })}>
                         <div className="flex justify-between items-start mb-2"><h4 className="font-bold text-sm">{item.title}</h4><span className="text-yellow-500 text-sm">⭐</span></div>
                         <div className="flex gap-2 mb-2"><span className={`text-[10px] px-2 py-0.5 rounded ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>Python</span><span className="text-[10px] px-2 py-0.5 rounded bg-orange-500/10 text-orange-500">Medium</span></div>
                         <p className={`text-xs ${textSecondary} line-clamp-2 mb-3 h-8`}>{item.code_content?.substring(0, 50) || "Code snippet..."}</p>

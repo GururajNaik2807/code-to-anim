@@ -64,6 +64,10 @@ print("Indices found:", found_indices)`;
   const [isCompleted, setIsCompleted] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
 
+  // --- NEW: Custom Limit Overlay State ---
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitMessage, setLimitMessage] = useState("");
+
   const autoPlayRef = useRef(null);
 
   useEffect(() => {
@@ -112,23 +116,20 @@ print("Indices found:", found_indices)`;
     if (!user) return; 
     const userId = user.id;
     try {
-      // 1. Log to activity logs
       await supabase.from('activity_logs').insert([{ user_id: userId, action_type: 'EXECUTE', action_details: algorithmTitle }]);
 
-      // 2. Update profile total executions
       const { data: profile } = await supabase.from('profiles').select('total_executions').eq('id', userId).maybeSingle();
       if (profile) await supabase.from('profiles').update({ total_executions: (profile.total_executions || 0) + 1 }).eq('id', userId);
 
-      // 3. Update daily heatmap
       const today = new Date().toISOString().split('T')[0];
       const { data: dailyActivity } = await supabase.from('daily_activity').select('execution_count').eq('user_id', userId).eq('activity_date', today).maybeSingle();
+      
       if (dailyActivity) {
         await supabase.from('daily_activity').update({ execution_count: dailyActivity.execution_count + 1 }).eq('user_id', userId).eq('activity_date', today);
       } else {
         await supabase.from('daily_activity').insert([{ user_id: userId, activity_date: today, execution_count: 1 }]);
       }
 
-      // 4. NEW: Register as "In Progress" (50%) for the Continue Learning widget
       if (algoMetadata.id) {
         const { data: existingProgress } = await supabase
           .from('user_progress')
@@ -148,7 +149,7 @@ print("Indices found:", found_indices)`;
             title: algoMetadata.algorithmTitle,
             category: algoMetadata.category || 'General',
             difficulty: algoMetadata.difficulty || 'Medium',
-            progress_percent: 50, // 50% means started but not marked complete
+            progress_percent: 50,
             last_accessed: new Date().toISOString()
           }]);
         }
@@ -225,6 +226,7 @@ print("Indices found:", found_indices)`;
     }
   };
 
+  // --- UPDATED: Replaced alert with custom modal logic ---
   const handleExecuteTrace = async () => {
     if (!user) {
       const today = new Date().toDateString(); 
@@ -237,10 +239,30 @@ print("Indices found:", found_indices)`;
         }
       } catch (err) {}
 
-      if (execData.count >= 3) return openAuthModal('Daily execution limit reached (3/3 runs used). Sign up for unlimited executions!');
+      if (execData.count >= 3) return openAuthModal('Daily execution limit reached (3/3 runs used). Sign up for more executions!');
       execData.count += 1;
       execData.date = today;
       localStorage.setItem('guest_exec_data', JSON.stringify(execData));
+    } 
+    else {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const { data: dailyActivity } = await supabase
+          .from('daily_activity')
+          .select('execution_count')
+          .eq('user_id', user.id)
+          .eq('activity_date', today)
+          .maybeSingle();
+          
+        if (dailyActivity && dailyActivity.execution_count >= 10) {
+          // Replaced alert with custom modal
+          setLimitMessage("You've hit your limit of 10 executions for today! You're making great progress. Come back tomorrow to continue your learning journey.");
+          setShowLimitModal(true);
+          return; 
+        }
+      } catch (err) {
+        console.error("Error checking daily limit:", err);
+      }
     }
 
     setIsLoading(true);
@@ -294,6 +316,27 @@ print("Indices found:", found_indices)`;
     <div className={`h-screen w-screen flex font-sans overflow-hidden ${bgMain} ${textPrimary}`}>
       <LoginModal />
 
+      {/* --- NEW: THE CUSTOM LIMIT OVERLAY --- */}
+      {showLimitModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className={`relative w-full max-w-md border rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center transform transition-all ${isDark ? 'bg-[#121620] border-purple-500/30 text-white shadow-purple-900/20' : 'bg-white border-purple-500/30 text-gray-900 shadow-purple-500/10'}`}>
+            <div className="w-16 h-16 bg-purple-500/10 text-purple-400 rounded-full flex items-center justify-center text-3xl mb-4 border border-purple-500/30">
+              ⏳
+            </div>
+            <h2 className="text-2xl font-black mb-2">Daily Limit Reached</h2>
+            <p className={`text-sm mb-8 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              {limitMessage}
+            </p>
+            <button 
+              onClick={() => setShowLimitModal(false)}
+              className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors shadow-md"
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      )}
+
       <aside className={`w-16 flex-shrink-0 border-r ${borderCol} ${bgNav} flex flex-col items-center justify-between py-4 z-20`}>
         <div className="flex flex-col items-center gap-6">
           <Link to="/" className="w-10 h-10 rounded-xl bg-purple-600/10 border border-purple-500/30 flex items-center justify-center p-2 hover:scale-105 transition-transform shadow-md">
@@ -301,17 +344,8 @@ print("Indices found:", found_indices)`;
           </Link>
 
           <nav className="flex flex-col gap-3">
-            <button className="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/40 flex flex-col items-center justify-center text-[10px] font-bold">
-              <span>&lt;/&gt;</span>
-              <span>Workspace</span>
-            </button>
-            <Link to="/learn" className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center text-[10px] ${textSecondary} hover:bg-gray-800/40`}>
-              <span>⚡</span>
-              <span>Algorithms</span>
-            </Link>
-            <Link to="/profile" className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center text-[10px] ${textSecondary} hover:bg-gray-800/40`}>
-              <span>📂</span>
-              <span>Saved</span>
+            <Link to="/profile" className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold shadow">
+              {user?.email?.[0]?.toUpperCase() || 'U'}
             </Link>
           </nav>
         </div>
@@ -340,7 +374,6 @@ print("Indices found:", found_indices)`;
           </div>
 
           <div className="flex items-center gap-3">
-            
             {algoMetadata.id && (
               <button 
                 onClick={handleMarkComplete} 
@@ -369,9 +402,9 @@ print("Indices found:", found_indices)`;
               💾 Save Code
             </button>
             
-            <Link to="/profile" className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold shadow">
+            {/* <Link to="/profile" className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold shadow">
               {user?.email?.[0]?.toUpperCase() || 'U'}
-            </Link>
+            </Link> */}
             
             <button onClick={handleExecuteTrace} disabled={isLoading} className="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-md shadow-purple-500/20 transition-all flex items-center gap-1.5">
               <span>▷</span>

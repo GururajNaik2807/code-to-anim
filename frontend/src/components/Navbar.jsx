@@ -9,7 +9,7 @@ export default function Navbar() {
   return (
     <nav className="navbar flex items-center justify-between px-6 h-16 bg-gray-900 border-b border-gray-800">
       <div className="flex items-center gap-4">
-        <Link to="/" className="text-2xl font-extrabold">🎬 CodeAnim</Link>
+        <Link to="/" className="text-2xl font-extrabold">🎬 CodeToAnim</Link>
         <div className="flex items-center gap-2">
           <Link to="/algorithms" className="text-sm text-gray-300 hover:text-purple-400">Algorithm Library</Link>
           <Link to="/learn" className="text-sm text-gray-500 hover:text-gray-300 ml-3">Learn Hub (Coming Soon)</Link>

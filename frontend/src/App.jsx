@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { ThemeProvider } from './context/ThemeContext';
@@ -8,11 +8,28 @@ import WorkspacePage from './pages/WorkspacePage';
 import LearnPage from './pages/LearnPage';
 import LearnHub from './pages/LearnHub';
 import LessonPage from './pages/LessonPage';
-import AuthPage from './pages/AuthPage';
 import ProfilePage from './pages/ProfilePage';
-import { AuthProvider } from './context/AuthContext.jsx';
+import PublicProfileCard from './pages/PublicProfileCard';
 import CommunityPage from './pages/CommunityPage';
+import LoginModal from './components/LoginModal';
+import { AuthProvider, useAuth } from './context/AuthContext.jsx'; // <-- IMPORT useAuth
 
+// 1. NEW COMPONENT: Catches old /auth links and opens the modal instead
+function AuthRedirect() {
+  const { openAuthModal } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate('/', { replace: true });
+    setTimeout(() => {
+      openAuthModal('Please log in or sign up to continue.');
+    }, 100);
+  }, [navigate, openAuthModal]);
+
+  return null; // Renders nothing, just redirects
+}
+
+// 404 Page
 function NotFoundPage() {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col justify-center items-center text-center p-6 text-white font-sans">
@@ -52,26 +69,28 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider>
         <Router>
+          
+          {/* THE LOGIN MODAL IS NOW GLOBAL AND SITS OVER ALL ROUTES */}
+          <LoginModal />
+
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/workspace" element={<WorkspacePage session={session} />} />
             <Route path="/learn" element={<LearnHub />} />
             <Route path="/algorithms" element={<LearnPage />} />
-            
-            {/* SEO-Optimized Dynamic Lesson Route */}
             <Route path="/learn/:category/:topic" element={<LessonPage />} />
+            <Route path="/p/:userId" element={<PublicProfileCard />} />
+            
+            {/* 2. THE FIX: Any link to /auth gets caught here and triggers the modal */}
+            <Route path="/auth" element={<AuthRedirect />} />
 
             <Route 
-              path="/auth" 
-              element={session ? <Navigate to="/profile" /> : <AuthPage />} 
-            />
-            
-            <Route 
               path="/profile" 
-              element={session ? <ProfilePage session={session} /> : <Navigate to="/auth" />} 
+              element={session ? <ProfilePage session={session} /> : <Navigate to="/" />} 
             />
 
             <Route path="/community" element={<CommunityPage />} />
+            
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Router>

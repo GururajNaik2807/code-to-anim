@@ -71,7 +71,7 @@ export default function LearnHub() {
             <img src="/favicon.svg" alt="Logo" className="w-full h-full object-contain" />
           </Link>
           <h1 className="text-lg font-extrabold tracking-tight">
-            Code<span className="text-purple-400">Anim</span> Learn Hub
+            CodeTo<span className="text-purple-400">Anim</span> Learn Hub
           </h1>
         </div>
         

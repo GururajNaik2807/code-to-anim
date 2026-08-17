@@ -836,7 +836,7 @@ export default function LearnPage() {
               <div className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-bold shadow-inner">
                 {user?.email?.[0]?.toUpperCase() || 'U'}
               </div>
-              Profile
+              Back to Profile
             </Link>
           ) : (
             <button 
