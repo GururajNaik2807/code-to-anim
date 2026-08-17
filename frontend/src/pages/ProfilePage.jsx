@@ -210,26 +210,26 @@ export default function ProfilePage() {
     { section: 'WORKSPACE', links: [{ name: 'Workspace', path: '/workspace', icon: '⚡' }] },
     { section: 'ALGORITHMS', links: [
       { name: 'My Algorithms', path: '/profile', icon: '📂', active: true },
-      { name: 'Favorites', path: '#', icon: '❤️' },
-      { name: 'Folders', path: '#', icon: '📁' }
+      // { name: 'Favorites', path: '#', icon: '❤️' },
+      // { name: 'Folders', path: '#', icon: '📁' }
     ]},
     { section: 'LEARNING', links: [
       { name: 'Learning Path', path: '/learn', icon: '🎓' },
       { name: 'Topics', path: '/algorithms', icon: '📚' }
     ]},
-    { section: 'CHALLENGES', links: [
-      { name: 'Daily Challenge', path: '#', icon: '🎯' },
-      { name: 'Weekly Challenge', path: '#', icon: '🏆' }
-    ]},
+    // { section: 'CHALLENGES', links: [
+    //   { name: 'Daily Challenge', path: '#', icon: '🎯' },
+    //   { name: 'Weekly Challenge', path: '#', icon: '🏆' }
+    // ]},
     { section: 'COMMUNITY', links: [
       { name: 'Leaderboard', path: '#', icon: '📊' },
       { name: 'Community', path: '/community', icon: '💬' }
     ]},
-    { section: 'OTHER', links: [
-      { name: 'Statistics', path: '#', icon: '📈' },
-      { name: 'Achievements', path: '#', icon: '🏅' },
-      { name: 'Settings', path: '/settings', icon: '⚙️' }
-    ]}
+    // { section: 'OTHER', links: [
+    //   { name: 'Statistics', path: '#', icon: '📈' },
+    //   { name: 'Achievements', path: '#', icon: '🏅' },
+    //   { name: 'Settings', path: '/settings', icon: '⚙️' }
+    // ]}
   ];
 
   return (
