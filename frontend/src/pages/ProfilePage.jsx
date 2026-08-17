@@ -9,8 +9,6 @@ export default function ProfilePage() {
   const [savedCodes, setSavedCodes] = useState([]);
   const [progressData, setProgressData] = useState([]);
   const [dailyActivity, setDailyActivity] = useState([]);
-  
-  // --- NEW STATE FOR RECENT ACTIVITY ---
   const [recentActivities, setRecentActivities] = useState([]);
   
   const [loading, setLoading] = useState(true);
@@ -51,7 +49,7 @@ export default function ProfilePage() {
     const { data: actData } = await supabase.from('daily_activity').select('*').eq('user_id', session.user.id);
     setDailyActivity(actData || []);
 
-    // 5. NEW: Fetch Recent Activity Logs (Limit to 5)
+    // 5. Fetch Recent Activity Logs
     const { data: logData } = await supabase
       .from('activity_logs')
       .select('*')
@@ -98,7 +96,6 @@ export default function ProfilePage() {
     });
   };
 
-  // --- TIME AGO HELPER ---
   const getTimeAgo = (dateString) => {
     const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
     let interval = seconds / 31536000;
@@ -132,7 +129,6 @@ export default function ProfilePage() {
     });
   };
 
-  // --- NEW: ACTIVITY ICON MAPPING ---
   const getActivityFormatting = (type, details) => {
     switch (type) {
       case 'EXECUTE': return { icon: '▶️', action: `Executed ${details}` };
@@ -144,22 +140,48 @@ export default function ProfilePage() {
     }
   };
 
-  const recentAlgo = progressData.length > 0 ? progressData[0] : null;
-  
+  // --- PROGRESS CALCULATION LOGIC ---
+  const ALGORITHM_TOTALS = {
+    'Searching': 2,
+    'Sorting': 5,
+    'Two Pointers': 4,
+    'Arrays': 5,
+    'Math': 3,
+    'Dynamic Programming': 4,
+    'Stack': 2,
+    'Graphs': 2,
+    'Linked Lists': 5,
+    'Strings': 5,
+    'Trees': 5,
+    'Bit Manipulation': 3,
+    'Greedy': 2,
+    'Hash Map': 5,
+    'Intervals': 3,
+    'Heaps': 3,
+    'Backtracking': 1
+  };
+
   const calculateCategoryProgress = (categoryName) => {
     const categoryAlgos = progressData.filter(p => p.category === categoryName);
     if (categoryAlgos.length === 0) return 0;
-    const totalProgress = categoryAlgos.reduce((sum, item) => sum + item.progress_percent, 0);
-    return Math.round(totalProgress / categoryAlgos.length);
+    
+    // Count only algorithms that are 100% completed
+    const completedCount = categoryAlgos.filter(p => p.progress_percent === 100).length;
+    const total = ALGORITHM_TOTALS[categoryName] || 5; 
+    return Math.round((completedCount / total) * 100);
   };
 
   const algoProgressStats = [
-    { name: 'Searching', icon: '🔍', prog: calculateCategoryProgress('Searching') },
     { name: 'Sorting', icon: '📊', prog: calculateCategoryProgress('Sorting') },
-    { name: 'Graphs', icon: '🕸️', prog: calculateCategoryProgress('Graphs') },
-    { name: 'Dynamic Programming', icon: '🧩', prog: calculateCategoryProgress('Dynamic Programming') },
+    { name: 'Searching', icon: '🔍', prog: calculateCategoryProgress('Searching') },
+    { name: 'Linked Lists', icon: '🔗', prog: calculateCategoryProgress('Linked Lists') },
+    { name: 'Strings', icon: '📝', prog: calculateCategoryProgress('Strings') },
     { name: 'Trees', icon: '🌲', prog: calculateCategoryProgress('Trees') }
   ];
+
+  // --- UPDATED: RECENT ALGO FILTER ---
+  // Finds the most recently accessed algorithm/lesson that is NOT 100% complete
+  const recentAlgo = progressData.find(algo => algo.progress_percent < 100) || null;
 
   const bgMain = isDark ? 'bg-[#0E1117]' : 'bg-[#F9FAFB]';
   const bgPanel = isDark ? 'bg-[#161B22]' : 'bg-white';
@@ -168,7 +190,6 @@ export default function ProfilePage() {
   const borderCol = isDark ? 'border-gray-800' : 'border-gray-200';
   const hoverBg = isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100';
 
-  // Custom sleek scrollbar styles for Tailwind based on the theme
   const scrollbarStyles = `
     [&::-webkit-scrollbar]:w-1.5 
     [&::-webkit-scrollbar-track]:bg-transparent 
@@ -202,34 +223,22 @@ export default function ProfilePage() {
     { label: 'Executions', val: profile?.total_executions || 0, icon: '▶️', trend: '+18%', color: 'text-emerald-500' },
     { label: 'Algorithms Solved', val: profile?.algorithms_solved || 0, icon: '🧠', trend: '+8%', color: 'text-purple-500' },
     { label: 'Success Rate', val: `${profile?.success_rate || 0}%`, icon: '🎯', trend: '+5%', color: 'text-orange-500' },
-    { label: 'Topics Explored', val: profile?.topics_explored || 0, icon: '📁', trend: '↑ 2 new', color: 'text-blue-400' },
+    { label: 'Topics Explored', val: profile?.topics_explored || 0, icon: '📁', trend: 'Docs Read', color: 'text-blue-400' },
     { label: 'Longest Streak', val: `${streakCount} ${streakCount === 1 ? 'day' : 'days'}`, icon: '🔥', trend: 'Best Record', color: 'text-red-500' }
   ];
 
   const navLinks = [
     { section: 'WORKSPACE', links: [{ name: 'Workspace', path: '/workspace', icon: '⚡' }] },
     { section: 'ALGORITHMS', links: [
-      { name: 'My Algorithms', path: '/profile', icon: '📂', active: true },
-      // { name: 'Favorites', path: '#', icon: '❤️' },
-      // { name: 'Folders', path: '#', icon: '📁' }
+      { name: 'My Algorithms', path: '/profile', icon: '📂', active: true }
     ]},
     { section: 'LEARNING', links: [
-      { name: 'Learning Path', path: '/learn', icon: '🎓' },
-      { name: 'Topics', path: '/algorithms', icon: '📚' }
+      { name: 'Learning Path', path: '/learn', icon: '🎓' },          
+      { name: 'Topics', path: '/algorithms', icon: '📚' }              
     ]},
-    // { section: 'CHALLENGES', links: [
-    //   { name: 'Daily Challenge', path: '#', icon: '🎯' },
-    //   { name: 'Weekly Challenge', path: '#', icon: '🏆' }
-    // ]},
     { section: 'COMMUNITY', links: [
-      { name: 'Leaderboard', path: '#', icon: '📊' },
       { name: 'Community', path: '/community', icon: '💬' }
-    ]},
-    // { section: 'OTHER', links: [
-    //   { name: 'Statistics', path: '#', icon: '📈' },
-    //   { name: 'Achievements', path: '#', icon: '🏅' },
-    //   { name: 'Settings', path: '/settings', icon: '⚙️' }
-    // ]}
+    ]}
   ];
 
   return (
@@ -333,7 +342,7 @@ export default function ProfilePage() {
                   <div>
                     <h4 className={`text-xs font-semibold ${textSecondary}`}>{stat.label}</h4>
                     <div className="text-xl font-bold mt-1">{stat.val}</div>
-                    <div className="text-[10px] text-emerald-500 font-medium mt-1">{stat.trend} this week</div>
+                    <div className="text-[10px] text-emerald-500 font-medium mt-1">{stat.trend}</div>
                   </div>
                 </div>
               ))}
@@ -386,9 +395,9 @@ export default function ProfilePage() {
                     <p className={`text-[10px] ${textSecondary} mt-4 mb-3`}>Last activity: {getTimeAgo(recentAlgo.last_accessed)}</p>
                   </>
                 ) : (
-                   <div className="flex-1 flex items-center justify-center text-sm text-gray-500">No recent algorithms found.</div>
+                   <div className="flex-1 flex items-center justify-center text-sm text-gray-500">No pending algorithms or lessons.</div>
                 )}
-                <button onClick={() => navigate('/learn')} className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors">
+                <button onClick={() => navigate('/learn', { state: { from: '/profile' } })} className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors">
                   {recentAlgo ? 'Continue Visualization ▷' : 'Explore Library ▷'}
                 </button>
               </div>
@@ -411,7 +420,7 @@ export default function ProfilePage() {
                     </div>
                   ))}
                 </div>
-                <Link to="/learn" className={`text-xs ${textSecondary} hover:text-white mt-4 inline-block`}>View All Topics →</Link>
+                <Link to="/algorithms" className={`text-xs ${textSecondary} hover:text-white mt-4 inline-block`}>View All Topics →</Link>
               </div>
             </div>
 
@@ -435,7 +444,7 @@ export default function ProfilePage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {savedCodes.filter(c => (c.title || '').toLowerCase().includes(searchQuery.toLowerCase())).slice(0,4).map((item) => (
-                      <div key={item.id} className={`border ${borderCol} rounded-lg p-4 hover:border-indigo-500 transition-all cursor-pointer`} onClick={() => navigate('/workspace', { state: { presetCode: item.code_content } })}>
+                                          <div key={item.id} className={`border ${borderCol} rounded-lg p-4 hover:border-indigo-500 transition-all cursor-pointer`} onClick={() => navigate('/workspace', { state: { presetCode: item.code_content, from: '/profile' } })}>
                         <div className="flex justify-between items-start mb-2"><h4 className="font-bold text-sm">{item.title}</h4><span className="text-yellow-500 text-sm">⭐</span></div>
                         <div className="flex gap-2 mb-2"><span className={`text-[10px] px-2 py-0.5 rounded ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>Python</span><span className="text-[10px] px-2 py-0.5 rounded bg-orange-500/10 text-orange-500">Medium</span></div>
                         <p className={`text-xs ${textSecondary} line-clamp-2 mb-3 h-8`}>{item.code_content?.substring(0, 50) || "Code snippet..."}</p>
@@ -450,8 +459,6 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-6">
-                
-                {/* --- DYNAMIC RECENT ACTIVITY FEED --- */}
                 <div className={`${bgPanel} border ${borderCol} p-5 rounded-xl`}>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="font-bold">Recent Activity</h3>

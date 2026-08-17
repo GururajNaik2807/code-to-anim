@@ -7,12 +7,12 @@ import LandingPage from './pages/LandingPage';
 import WorkspacePage from './pages/WorkspacePage';
 import LearnPage from './pages/LearnPage';
 import LearnHub from './pages/LearnHub';
+import LessonPage from './pages/LessonPage';
 import AuthPage from './pages/AuthPage';
 import ProfilePage from './pages/ProfilePage';
 import { AuthProvider } from './context/AuthContext.jsx';
 import CommunityPage from './pages/CommunityPage';
 
-// Built-in 404 Component to pass SEO Audit Custom 404 Test
 function NotFoundPage() {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col justify-center items-center text-center p-6 text-white font-sans">
@@ -58,6 +58,9 @@ export default function App() {
             <Route path="/learn" element={<LearnHub />} />
             <Route path="/algorithms" element={<LearnPage />} />
             
+            {/* SEO-Optimized Dynamic Lesson Route */}
+            <Route path="/learn/:category/:topic" element={<LessonPage />} />
+
             <Route 
               path="/auth" 
               element={session ? <Navigate to="/profile" /> : <AuthPage />} 
@@ -68,10 +71,8 @@ export default function App() {
               element={session ? <ProfilePage session={session} /> : <Navigate to="/auth" />} 
             />
 
-            {/* Catch-all 404 Route for unmatched paths */}
-            <Route path="*" element={<NotFoundPage />} />
-            {/* community page route  */}
             <Route path="/community" element={<CommunityPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Router>
       </ThemeProvider>
