@@ -36,7 +36,7 @@ export default function ProfilePage() {
     setUser(session.user);
 
     // 1. Fetch Profile
-    const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+    const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
     setProfile(profileData || {});
 
     // 2. Fetch Saved Algorithms

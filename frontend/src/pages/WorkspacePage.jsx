@@ -37,7 +37,7 @@ export default function WorkspacePage() {
     try {
       await supabase.from('activity_logs').insert([{ user_id: userId, action_type: 'EXECUTE', action_details: algorithmTitle }]);
 
-      const { data: profile } = await supabase.from('profiles').select('total_executions').eq('id', userId).single();
+      const { data: profile } = await supabase.from('profiles').select('total_executions').eq('id', userId).maybesingle();
       if (profile) await supabase.from('profiles').update({ total_executions: (profile.total_executions || 0) + 1 }).eq('id', userId);
 
       const today = new Date().toISOString().split('T')[0];
