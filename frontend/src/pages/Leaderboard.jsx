@@ -176,7 +176,7 @@ export default function Leaderboard() {
       <aside className={`w-64 flex-shrink-0 ${metallicBorder} border-y-0 border-l-0 ${bgPanel} flex flex-col justify-between overflow-y-auto ${scrollbarStyles} z-20`}>
         <div>
           <div className="h-16 flex items-center px-6 font-extrabold text-xl tracking-tight border-b border-transparent">
-            <span className={isDark ? 'text-white' : 'text-slate-900'}>&lt;/&gt; Code</span>
+            <span className={isDark ? 'text-white' : 'text-slate-900'}>&lt;/&gt; CodeTo</span>
             <span className="text-indigo-500 ml-1">Anim</span>
           </div>
           <div className="px-4 py-4">
@@ -239,7 +239,7 @@ export default function Leaderboard() {
             {/* Header Title */}
             <div className="text-center space-y-3">
               <h1 className="text-4xl font-black tracking-tight">Global Rankings</h1>
-              <p className={`text-sm font-medium ${textSecondary}`}>Top 50 developers by total XP across CodeAnim.</p>
+              <p className={`text-sm font-medium ${textSecondary}`}>Top 50 developers by total XP across CodeToAnim.</p>
             </div>
 
             {/* Podium Section (Top 3) */}

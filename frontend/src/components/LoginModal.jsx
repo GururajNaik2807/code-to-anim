@@ -157,7 +157,7 @@ export default function LoginModal() {
             <>
               <div className="flex items-center my-6">
                 <div className="flex-grow border-t border-gray-800"></div>
-                <span className="px-3 text-xs text-gray-500 uppercase">Or continue with</span>
+                {/* <span className="px-3 text-xs text-gray-500 uppercase">Or continue with</span> */}
                 <div className="flex-grow border-t border-gray-800"></div>
               </div>
 

@@ -1,7 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+
+// 1. IMPORT YOUR FULL ALGORITHM DATABASE HERE:
+import { ALGORITHMS_DATABASE } from './LearnPage';
 
 // --- Level System Definitions ---
 const HONORS = [
@@ -41,13 +45,16 @@ export default function ProfilePage() {
   const [progressData, setProgressData] = useState([]);
   const [dailyActivity, setDailyActivity] = useState([]);
   const [recentActivities, setRecentActivities] = useState([]);
-  
-  // Single fetch for Top 50 to power both Mini and Full Leaderboard
   const [leaderboardData, setLeaderboardData] = useState([]); 
   
-  // View Toggle State: 'dashboard' | 'leaderboard'
+  // View Toggle State: 'dashboard' | 'leaderboard' | 'library'
   const [currentView, setCurrentView] = useState('dashboard');
   
+  // Library States
+  const [libSearchTerm, setLibSearchTerm] = useState('');
+  const [libCategory, setLibCategory] = useState('All');
+  const [libDifficulty, setLibDifficulty] = useState('All');
+
   const [loading, setLoading] = useState(!hasLoadedBefore);
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -57,6 +64,7 @@ export default function ProfilePage() {
 
   const navigate = useNavigate();
   const { currentTheme, changeTheme } = useTheme(); 
+  const { openAuthModal } = useAuth();
   const isDark = currentTheme === 'dark';
 
   useEffect(() => {
@@ -78,11 +86,11 @@ export default function ProfilePage() {
         { data: progData },
         { data: actData },
         { data: logData },
-        { data: topPlayersData } // Fetch Top 50 efficiently
+        { data: topPlayersData } 
       ] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle(),
         supabase.from('saved_algorithms').select('*').eq('user_id', session.user.id).order('updated_at', { ascending: false }).limit(20),
-        supabase.from('user_progress').select('*').eq('user_id', session.user.id).order('last_accessed', { ascending: false }).limit(50),
+        supabase.from('user_progress').select('*').eq('user_id', session.user.id).order('last_accessed', { ascending: false }).limit(200),
         supabase.from('daily_activity').select('*').eq('user_id', session.user.id).order('activity_date', { ascending: false }).limit(84),
         supabase.from('activity_logs').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(5),
         supabase.from('profiles').select('id, display_name, current_xp').order('current_xp', { ascending: false }).limit(50)
@@ -143,6 +151,51 @@ export default function ProfilePage() {
     });
   };
 
+  // --- LIBRARY LOGIC & MEMOIZATION ---
+  const completedAlgos = useMemo(() => {
+    return new Set(progressData.filter(p => p.progress_percent === 100).map(p => p.algorithm_id));
+  }, [progressData]);
+
+  const libCategories = useMemo(() => {
+    const cats = new Set(ALGORITHMS_DATABASE.map(algo => algo.category));
+    return ['All', ...Array.from(cats)].sort();
+  }, []);
+  const libDifficulties = ['All', 'Easy', 'Medium', 'Hard'];
+
+  const filteredLibrary = useMemo(() => {
+    return ALGORITHMS_DATABASE.filter((algo) => {
+      const searchStr = libSearchTerm.toLowerCase();
+      const matchesSearch = 
+        algo.title.toLowerCase().includes(searchStr) ||
+        algo.description.toLowerCase().includes(searchStr) ||
+        algo.category.toLowerCase().includes(searchStr);
+      const matchesCategory = libCategory === 'All' || algo.category === libCategory;
+      const matchesDifficulty = libDifficulty === 'All' || algo.difficulty === libDifficulty;
+      return matchesSearch && matchesCategory && matchesDifficulty;
+    });
+  }, [libSearchTerm, libCategory, libDifficulty]);
+
+  const handleOpenInTracer = (algo) => {
+    navigate('/workspace', { 
+      state: { 
+        presetCode: algo.code,
+        metadata: {
+          id: algo.id,
+          type: 'algorithm',
+          algorithmTitle: algo.title,
+          strategy: algo.category,
+          category: algo.category,
+          difficulty: algo.difficulty,
+          description: algo.description,
+          language: 'Python 3',
+          complexityTime: algo.timeComplexity,
+          complexitySpace: algo.spaceComplexity
+        }
+      } 
+    });
+  };
+
+  // --- DASHBOARD HELPERS ---
   const getTimeAgo = (dateString) => {
     const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
     let interval = seconds / 31536000;
@@ -166,12 +219,10 @@ export default function ProfilePage() {
       const dateStr = d.toISOString().split('T')[0];
       const activity = dailyActivity.find(a => a.activity_date === dateStr);
       const count = activity ? activity.execution_count : 0;
-      
       let bgClass = isDark ? 'bg-slate-800' : 'bg-slate-200';
       if (count > 0 && count <= 2) bgClass = 'bg-indigo-500/40';
       if (count > 2 && count <= 5) bgClass = 'bg-indigo-500/70';
       if (count > 5) bgClass = 'bg-indigo-500';
-      
       return <div key={i} className={`w-full aspect-square rounded-[2px] ${bgClass} transition-colors`} title={`${dateStr}: ${count} executions`}></div>;
     });
   };
@@ -191,7 +242,7 @@ export default function ProfilePage() {
     const categoryAlgos = progressData.filter(p => p.category?.toLowerCase() === categoryName.toLowerCase());
     if (categoryAlgos.length === 0) return 0;
     const totalProgressPercent = categoryAlgos.reduce((sum, item) => sum + (item.progress_percent || 0), 0);
-    return Math.min(100, Math.round((totalProgressPercent / 500) * 100)); // Defaulting total to 5 algos * 100%
+    return Math.min(100, Math.round((totalProgressPercent / 500) * 100));
   };
 
   const algoProgressStats = [
@@ -253,16 +304,15 @@ export default function ProfilePage() {
     { label: 'Longest Streak', val: `${streakCount} ${streakCount === 1 ? 'day' : 'days'}`, icon: '🔥', trend: 'Best Record', color: 'text-red-500' }
   ];
 
-  // Dynamic Sidebar Links using onClick for state swapping
   const navLinks = [
     { section: 'WORKSPACE', links: [{ name: 'Workspace', path: '/workspace', icon: '⚡' }] },
     { section: 'LEARNING', links: [
-      { name: 'Learning Path', path: '#', icon: '🎓', tag: 'In Construction', tagColor: isDark ? 'bg-amber-900/40 text-amber-400 border-amber-500/30' : 'bg-amber-100 text-amber-700 border-amber-300' }, 
-      { name: 'Topics', path: '/algorithms', icon: '📚' }
+      { name: 'Learning Path', path: '#', icon: '🎓', tag: 'Building', tagColor: isDark ? 'bg-amber-900/40 text-amber-400 border-amber-500/30' : 'bg-amber-100 text-amber-700 border-amber-300' }, 
+      { name: 'Algorithm Library', action: () => setCurrentView('library'), icon: '📚', isActive: currentView === 'library' }
     ] },
     { section: 'COMMUNITY', links: [
       { name: 'Leaderboard', action: () => setCurrentView('leaderboard'), icon: '🏆', isActive: currentView === 'leaderboard' },
-      { name: 'Discussions', path: '#', icon: '💬', tag: 'Coming Soon', tagColor: isDark ? 'bg-indigo-900/40 text-indigo-400 border-indigo-500/30' : 'bg-indigo-100 text-indigo-700 border-indigo-300' }
+      // { name: 'Discussions', path: '#', icon: '💬', tag: 'Soon', tagColor: isDark ? 'bg-indigo-900/40 text-indigo-400 border-indigo-500/30' : 'bg-indigo-100 text-indigo-700 border-indigo-300' }
     ] }
   ];
 
@@ -394,7 +444,6 @@ export default function ProfilePage() {
           {/* ===================== */}
           {currentView === 'dashboard' && (
             <div className="max-w-7xl mx-auto space-y-6">
-              
               <div className={`${bgPanel} ${metallicBorder} rounded-3xl p-8 flex flex-col md:flex-row justify-between items-center shadow-sm relative overflow-hidden`}>
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
                 <div className="flex items-center gap-6 relative z-10 w-full md:w-auto">
@@ -483,7 +532,7 @@ export default function ProfilePage() {
                   ) : (
                     <div className="flex-1 flex items-center justify-center text-sm font-medium text-slate-500 py-10">No pending lessons.</div>
                   )}
-                  <button onClick={() => navigate('/learn')} className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-bold rounded-xl shadow-md transition-all mt-6">Explore Library</button>
+                  <button onClick={() => setCurrentView('library')} className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-bold rounded-xl shadow-md transition-all mt-6">Explore Library</button>
                 </div>
 
                 <div className={`lg:col-span-1 ${bgPanel} ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
@@ -694,7 +743,158 @@ export default function ProfilePage() {
               )}
             </div>
           )}
-          
+
+          {/* ===================== */}
+          {/*     LIBRARY VIEW      */}
+          {/* ===================== */}
+          {currentView === 'library' && (
+            <div className="max-w-7xl mx-auto pb-10">
+              
+              <div className="text-center space-y-3 mb-10 mt-4">
+                <h1 className="text-4xl font-black tracking-tight">Algorithm Library</h1>
+                <p className={`text-sm font-medium ${textSecondary}`}>Explore and visualize {ALGORITHMS_DATABASE.length} computer science algorithms step-by-step.</p>
+              </div>
+
+              <div className={`flex flex-col gap-5 p-6 rounded-3xl ${metallicBorder} ${bgPanel} shadow-sm mb-8`}>
+                <div className="flex flex-col lg:flex-row gap-5 items-center justify-between">
+                  <div className="relative w-full lg:w-96">
+                    <span className={`absolute left-4 top-3 text-sm ${textSecondary}`}>🔍</span>
+                    <input 
+                      type="text"
+                      placeholder="Search algorithms or topics..."
+                      value={libSearchTerm}
+                      onChange={(e) => setLibSearchTerm(e.target.value)}
+                      className={`w-full border rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-inner ${isDark ? 'bg-[#0A0D14] border-slate-800 text-slate-200 placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                    />
+                  </div>
+
+                  <div className={`flex border rounded-xl p-1.5 w-full lg:w-auto ${isDark ? 'bg-[#0A0D14] border-slate-800' : 'bg-slate-50 border-slate-200'} shadow-inner`}>
+                    {libDifficulties.map((diff) => (
+                      <button
+                        key={diff}
+                        onClick={() => setLibDifficulty(diff)}
+                        className={`flex-1 px-5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          libDifficulty === diff
+                            ? diff === 'Easy' ? 'bg-emerald-500/20 text-emerald-500 shadow-sm' 
+                              : diff === 'Medium' ? 'bg-amber-500/20 text-amber-500 shadow-sm'
+                              : diff === 'Hard' ? 'bg-rose-500/20 text-rose-500 shadow-sm'
+                              : 'bg-indigo-500/20 text-indigo-500 shadow-sm'
+                            : `${textSecondary} ${hoverBg}`
+                        }`}
+                      >
+                        {diff}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${textSecondary}`}>Topics:</span>
+                  <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent flex-1">
+                    {libCategories.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setLibCategory(cat)}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+                          libCategory === cat
+                            ? "bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-900/30"
+                            : `${isDark ? 'bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'}`
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredLibrary.map((algo) => {
+                  const isCompleted = completedAlgos.has(algo.id);
+                  
+                  return (
+                    <div 
+                      key={algo.id}
+                      className={`border hover:border-indigo-500/50 rounded-3xl p-6 flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-900/10 group ${metallicBorder} ${bgPanel}`}
+                    >
+                      <div>
+                        <div className="flex justify-between items-start mb-5">
+                          <div className="flex gap-2">
+                            <span className="text-[10px] font-mono uppercase font-black text-indigo-500 bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-1 rounded-md shadow-sm">
+                              {algo.category}
+                            </span>
+                            {isCompleted && (
+                              <span className="text-[10px] font-mono font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-md shadow-sm flex items-center gap-1">
+                                ✅ DONE
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-[10px] font-mono px-2.5 py-1 rounded-md font-black shadow-sm ${
+                            algo.difficulty === 'Easy' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30' 
+                              : algo.difficulty === 'Medium' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/30'
+                              : 'bg-rose-500/10 text-rose-500 border border-rose-500/30'
+                          }`}>
+                            {algo.difficulty}
+                          </span>
+                        </div>
+
+                        <h3 className={`text-lg font-black mb-3 tracking-tight transition-colors ${isDark ? 'text-slate-100 group-hover:text-indigo-400' : 'text-slate-900 group-hover:text-indigo-600'}`}>
+                          {algo.title}
+                        </h3>
+
+                        <p className={`text-xs leading-relaxed mb-6 font-medium line-clamp-3 ${textSecondary}`}>
+                          {algo.description}
+                        </p>
+                      </div>
+
+                      <div>
+                        <div className={`flex justify-between py-3 border-t border-b mb-6 font-mono text-[11px] font-bold rounded-xl px-4 ${isDark ? 'border-slate-800/80 text-slate-400 bg-slate-900/50' : 'border-slate-200 text-slate-500 bg-slate-50'} shadow-inner`}>
+                          <div className="flex flex-col gap-1">
+                            <span className={`text-[9px] uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Time</span>
+                            <span className={isDark ? 'text-slate-200' : 'text-slate-700'}>{algo.timeComplexity}</span>
+                          </div>
+                          <div className={`w-px h-auto ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
+                          <div className="flex flex-col gap-1 text-right">
+                            <span className={`text-[9px] uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Space</span>
+                            <span className={isDark ? 'text-slate-200' : 'text-slate-700'}>{algo.spaceComplexity}</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleOpenInTracer(algo)}
+                          className={`w-full py-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm border ${
+                            isDark 
+                              ? 'bg-indigo-500/10 hover:bg-indigo-600 border-indigo-500/30 hover:border-indigo-500 text-indigo-400 hover:text-white' 
+                              : 'bg-indigo-50 hover:bg-indigo-600 border-indigo-200 hover:border-indigo-600 text-indigo-700 hover:text-white'
+                          }`}
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"></path></svg>
+                          <span>{isCompleted ? 'Review Algorithm' : 'Visualize Step-by-Step'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {filteredLibrary.length === 0 && (
+                <div className={`py-24 flex flex-col items-center justify-center text-center rounded-3xl ${metallicBorder} ${isDark ? 'bg-slate-900/30' : 'bg-slate-50'}`}>
+                  <span className="text-5xl mb-5 opacity-50">📭</span>
+                  <h3 className="text-xl font-bold mb-2">No algorithms found</h3>
+                  <p className={`text-sm font-medium max-w-sm ${textSecondary}`}>
+                    Adjust your search or filter criteria to explore the database.
+                  </p>
+                  <button 
+                    onClick={() => { setLibSearchTerm(''); setLibCategory('All'); setLibDifficulty('All'); }}
+                    className={`mt-6 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors ${metallicBorder} ${hoverBg}`}
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
         </main>
       </div>
     </div>

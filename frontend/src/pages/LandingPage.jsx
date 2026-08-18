@@ -234,7 +234,7 @@ const LandingPage = () => {
             <h4 className="text-white font-semibold mb-4">Platform</h4>
             <ul className="space-y-2 text-sm text-gray-500">
               <li><Link to="/workspace" className="hover:text-purple-400 transition-colors">Interactive Workspace</Link></li>
-              <li><Link to="/learn" className="hover:text-purple-400 transition-colors">Algorithm Presets</Link></li>
+              <li><Link to="/algorithms" className="hover:text-purple-400 transition-colors">Algorithm Presets</Link></li>
               <li><Link to="/auth" className="hover:text-purple-400 transition-colors">Developer Dashboard</Link></li>
             </ul>
           </div>

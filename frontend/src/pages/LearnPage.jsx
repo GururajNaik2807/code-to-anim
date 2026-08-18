@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../supabaseClient';
 import LoginModal from '../components/LoginModal';
 
-const ALGORITHMS_DATABASE = [
+export const ALGORITHMS_DATABASE = [
   // --- SORTING ---
   {
     id: 'bubble-sort',
