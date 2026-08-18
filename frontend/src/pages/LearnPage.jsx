@@ -822,7 +822,7 @@ export default function LearnPage() {
             <img src="/favicon.svg" alt="CodeAnim Logo" className="w-full h-full object-contain" />
           </Link>
           <h1 className="text-xl font-extrabold tracking-tighter">
-            Code<span className="text-purple-500">Anim</span> Algorithm Library
+            CodeTo<span className="text-purple-500">Anim</span> Algorithm Library
           </h1>
         </div>
 

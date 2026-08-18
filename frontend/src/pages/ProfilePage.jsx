@@ -257,12 +257,12 @@ export default function ProfilePage() {
   const navLinks = [
     { section: 'WORKSPACE', links: [{ name: 'Workspace', path: '/workspace', icon: '⚡' }] },
     { section: 'LEARNING', links: [
-      { name: 'Learning Path', path: '#', icon: '🎓', tag: 'Building', tagColor: isDark ? 'bg-amber-900/40 text-amber-400 border-amber-500/30' : 'bg-amber-100 text-amber-700 border-amber-300' }, 
+      { name: 'Learning Path', path: '#', icon: '🎓', tag: 'In Construction', tagColor: isDark ? 'bg-amber-900/40 text-amber-400 border-amber-500/30' : 'bg-amber-100 text-amber-700 border-amber-300' }, 
       { name: 'Topics', path: '/algorithms', icon: '📚' }
     ] },
     { section: 'COMMUNITY', links: [
       { name: 'Leaderboard', action: () => setCurrentView('leaderboard'), icon: '🏆', isActive: currentView === 'leaderboard' },
-      { name: 'Discussions', path: '#', icon: '💬', tag: 'Soon', tagColor: isDark ? 'bg-indigo-900/40 text-indigo-400 border-indigo-500/30' : 'bg-indigo-100 text-indigo-700 border-indigo-300' }
+      { name: 'Discussions', path: '#', icon: '💬', tag: 'Coming Soon', tagColor: isDark ? 'bg-indigo-900/40 text-indigo-400 border-indigo-500/30' : 'bg-indigo-100 text-indigo-700 border-indigo-300' }
     ] }
   ];
 
@@ -319,7 +319,7 @@ export default function ProfilePage() {
       <aside className={`w-64 flex-shrink-0 ${metallicBorder} border-y-0 border-l-0 ${bgPanel} flex flex-col justify-between overflow-y-auto ${scrollbarStyles} z-20`}>
         <div>
           <div className="h-16 flex items-center px-6 font-extrabold text-xl tracking-tight border-b border-transparent">
-            <span className={isDark ? 'text-white' : 'text-slate-900'}>&lt;/&gt; Code</span>
+            <span className={isDark ? 'text-white' : 'text-slate-900'}>&lt;/&gt; CodeTo</span>
             <span className="text-indigo-500 ml-1">Anim</span>
           </div>
           <div className="px-4 py-4">
