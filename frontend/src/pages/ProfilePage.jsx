@@ -50,6 +50,9 @@ export default function ProfilePage() {
   // View Toggle State: 'dashboard' | 'leaderboard' | 'library'
   const [currentView, setCurrentView] = useState('dashboard');
   
+  // Sidebar Toggle State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
   // Library States
   const [libSearchTerm, setLibSearchTerm] = useState('');
   const [libCategory, setLibCategory] = useState('All');
@@ -365,66 +368,91 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Sidebar */}
-      <aside className={`w-64 flex-shrink-0 ${metallicBorder} border-y-0 border-l-0 ${bgPanel} flex flex-col justify-between overflow-y-auto ${scrollbarStyles} z-20`}>
-        <div>
-          <div className="h-16 flex items-center px-6 font-extrabold text-xl tracking-tight border-b border-transparent">
-            <span className={isDark ? 'text-white' : 'text-slate-900'}>&lt;/&gt; CodeTo</span>
-            <span className="text-indigo-500 ml-1">Anim</span>
+      {/* Sidebar Container with Animation */}
+      <div className={`transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
+        <aside className={`w-64 h-full ${metallicBorder} border-y-0 border-l-0 ${bgPanel} flex flex-col justify-between overflow-y-auto ${scrollbarStyles} z-20`}>
+          <div>
+            <div className="h-16 flex items-center px-6 font-extrabold text-xl tracking-tight border-b border-transparent">
+              {/* Replaced </> with Logo */}
+              <img src="/favicon.svg" alt="CodeToAnim Logo" className="w-7 h-7 mr-2 rounded-md object-contain" />
+              <span className={isDark ? 'text-white' : 'text-slate-900'}>CodeTo</span>
+              <span className="text-indigo-500 ml-1">Anim</span>
+            </div>
+            <div className="px-4 py-4">
+              <button 
+                onClick={() => setCurrentView('dashboard')}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  currentView === 'dashboard' ? (isDark ? 'text-white bg-slate-800/80 shadow-inner border border-slate-700/50' : 'text-slate-900 bg-slate-100 shadow-sm border border-slate-200') : `${textSecondary} ${hoverBg}`
+                }`}
+              >
+                <span className="opacity-80">🏠</span> Dashboard
+              </button>
+            </div>
+            <div className="px-4 pb-6">
+              {navLinks.map((group, idx) => (
+                <div key={idx} className="mt-6">
+                  <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-3 px-4 ${textSecondary}`}>{group.section}</h4>
+                  <div className="space-y-1">
+                    {group.links.map((link, lIdx) => {
+                      const activeClasses = (link.isActive) 
+                        ? (isDark ? 'text-white bg-slate-800/40 shadow-inner border border-slate-700/50' : 'text-slate-900 bg-slate-100 shadow-sm border border-slate-200') 
+                        : `${textSecondary} ${hoverBg} border border-transparent`;
+
+                      return link.action ? (
+                        <button key={lIdx} onClick={link.action} className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeClasses}`}>
+                          <span className="opacity-80">{link.icon}</span>{link.name}
+                          {link.tag && <span className={`ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${link.tagColor}`}>{link.tag}</span>}
+                        </button>
+                      ) : (
+                        <Link key={lIdx} to={link.path} className={`flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeClasses}`}>
+                          <span className="opacity-80">{link.icon}</span>{link.name}
+                          {link.tag && <span className={`ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${link.tagColor}`}>{link.tag}</span>}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="px-4 py-4">
-            <button 
-              onClick={() => setCurrentView('dashboard')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                currentView === 'dashboard' ? (isDark ? 'text-white bg-slate-800/80 shadow-inner border border-slate-700/50' : 'text-slate-900 bg-slate-100 shadow-sm border border-slate-200') : `${textSecondary} ${hoverBg}`
-              }`}
-            >
-              <span className="opacity-80">🏠</span> Dashboard
+          <div className={`p-4 ${metallicBorder} border-x-0 border-b-0`}>
+            <button onClick={toggleTheme} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl ${metallicBorder} ${hoverBg} transition-colors shadow-sm`}>
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+                <span>{isDark ? '🌙' : '☀️'}</span><span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Theme</span>
+              </div>
+              <span className={`text-xs font-medium ${textSecondary}`}>{isDark ? 'Dark' : 'Light'}</span>
             </button>
           </div>
-          <div className="px-4 pb-6">
-            {navLinks.map((group, idx) => (
-              <div key={idx} className="mt-6">
-                <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-3 px-4 ${textSecondary}`}>{group.section}</h4>
-                <div className="space-y-1">
-                  {group.links.map((link, lIdx) => {
-                    const activeClasses = (link.isActive) 
-                      ? (isDark ? 'text-white bg-slate-800/40 shadow-inner border border-slate-700/50' : 'text-slate-900 bg-slate-100 shadow-sm border border-slate-200') 
-                      : `${textSecondary} ${hoverBg} border border-transparent`;
-
-                    return link.action ? (
-                      <button key={lIdx} onClick={link.action} className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeClasses}`}>
-                        <span className="opacity-80">{link.icon}</span>{link.name}
-                        {link.tag && <span className={`ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${link.tagColor}`}>{link.tag}</span>}
-                      </button>
-                    ) : (
-                      <Link key={lIdx} to={link.path} className={`flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeClasses}`}>
-                        <span className="opacity-80">{link.icon}</span>{link.name}
-                        {link.tag && <span className={`ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${link.tagColor}`}>{link.tag}</span>}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className={`p-4 ${metallicBorder} border-x-0 border-b-0`}>
-          <button onClick={toggleTheme} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl ${metallicBorder} ${hoverBg} transition-colors shadow-sm`}>
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
-              <span>{isDark ? '🌙' : '☀️'}</span><span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Theme</span>
-            </div>
-            <span className={`text-xs font-medium ${textSecondary}`}>{isDark ? 'Dark' : 'Light'}</span>
-          </button>
-        </div>
-      </aside>
+        </aside>
+      </div>
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className={`h-16 flex-shrink-0 ${metallicBorder} border-x-0 border-t-0 ${bgPanel} flex items-center justify-between px-8 z-10`}>
-          <div className={`flex items-center w-96 ${metallicBorder} rounded-xl px-3 py-1.5 transition-shadow focus-within:ring-2 focus-within:ring-indigo-500/30 ${isDark ? 'bg-[#0A0D14]' : 'bg-slate-50'}`}>
-            <span className="text-slate-400 text-sm">🔍</span>
-            <input type="text" placeholder="Search algorithms, topics, users..." className={`bg-transparent border-none outline-none text-sm font-medium w-full ml-2 placeholder-slate-400/70 ${textPrimary}`} />
+        <header className={`h-16 flex-shrink-0 ${metallicBorder} border-x-0 border-t-0 ${bgPanel} flex items-center justify-between px-8 z-10 transition-all`}>
+          
+          <div className="flex items-center gap-4">
+            {/* Sidebar Toggle Button */}
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className={`p-2 rounded-xl ${metallicBorder} ${hoverBg} transition-all duration-300 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50 shadow-sm group`}
+              aria-label="Toggle Sidebar"
+            >
+              <svg 
+                className={`w-5 h-5 ${textSecondary} group-hover:text-indigo-500 transition-transform duration-300 ${isSidebarOpen ? '' : 'rotate-180'}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h8m-8 6h16" />
+              </svg>
+            </button>
+
+            {/* Search Bar */}
+            <div className={`flex items-center w-80 lg:w-96 ${metallicBorder} rounded-xl px-3 py-1.5 transition-shadow focus-within:ring-2 focus-within:ring-indigo-500/30 ${isDark ? 'bg-[#0A0D14]' : 'bg-slate-50'}`}>
+              <span className="text-slate-400 text-sm">🔍</span>
+              <input type="text" placeholder="Search algorithms, topics, users..." className={`bg-transparent border-none outline-none text-sm font-medium w-full ml-2 placeholder-slate-400/70 ${textPrimary}`} />
+            </div>
           </div>
+
           <div className="flex items-center gap-5">
             <Link to="/workspace" className={`flex items-center gap-2 px-4 py-1.5 ${metallicBorder} rounded-xl text-sm font-bold shadow-sm hover:border-indigo-500 hover:text-indigo-500 transition-colors ${isDark ? 'bg-slate-900' : 'bg-white'}`}>⚡ Workspace</Link>
             <div className={`flex items-center gap-3 cursor-pointer pl-4 border-l ${isDark ? 'border-slate-800' : 'border-slate-200'}`} onClick={handleLogout}>
