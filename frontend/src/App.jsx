@@ -11,8 +11,9 @@ import LessonPage from './pages/LessonPage';
 import ProfilePage from './pages/ProfilePage';
 import PublicProfileCard from './pages/PublicProfileCard';
 import CommunityPage from './pages/CommunityPage';
+import Leaderboard from './pages/Leaderboard'; // <-- 1. ADDED IMPORT
 import LoginModal from './components/LoginModal';
-import { AuthProvider, useAuth } from './context/AuthContext.jsx'; // <-- IMPORT useAuth
+import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 
 // 1. NEW COMPONENT: Catches old /auth links and opens the modal instead
 function AuthRedirect() {
@@ -80,6 +81,9 @@ export default function App() {
             <Route path="/algorithms" element={<LearnPage />} />
             <Route path="/learn/:category/:topic" element={<LessonPage />} />
             <Route path="/p/:userId" element={<PublicProfileCard />} />
+            
+            {/* 2. ADDED LEADERBOARD ROUTE HERE */}
+            <Route path="/leaderboard" element={<Leaderboard />} />
             
             {/* 2. THE FIX: Any link to /auth gets caught here and triggers the modal */}
             <Route path="/auth" element={<AuthRedirect />} />
