@@ -5,7 +5,9 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
 // 1. IMPORT YOUR FULL ALGORITHM DATABASE HERE:
-import { ALGORITHMS_DATABASE } from './LearnPage';
+import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
+// 2. IMPORT THE WORKSPACE COMPONENT
+import WorkspacePage from './WorkspacePage';
 
 // --- Level System Definitions ---
 const HONORS = [
@@ -47,7 +49,7 @@ export default function ProfilePage() {
   const [recentActivities, setRecentActivities] = useState([]);
   const [leaderboardData, setLeaderboardData] = useState([]); 
   
-  // View Toggle State: 'dashboard' | 'leaderboard' | 'library'
+  // View Toggle State: 'dashboard' | 'leaderboard' | 'library' | 'workspace'
   const [currentView, setCurrentView] = useState('dashboard');
   
   // Sidebar Toggle State
@@ -179,7 +181,8 @@ export default function ProfilePage() {
   }, [libSearchTerm, libCategory, libDifficulty]);
 
   const handleOpenInTracer = (algo) => {
-    navigate('/workspace', { 
+    // Navigating to profile rather than standalone workspace to keep the embedded view
+    navigate('/profile', { 
       state: { 
         presetCode: algo.code,
         metadata: {
@@ -196,6 +199,7 @@ export default function ProfilePage() {
         }
       } 
     });
+    setCurrentView('workspace');
   };
 
   // --- DASHBOARD HELPERS ---
@@ -308,14 +312,13 @@ export default function ProfilePage() {
   ];
 
   const navLinks = [
-    { section: 'WORKSPACE', links: [{ name: 'Workspace', path: '/workspace', icon: '⚡' }] },
+    { section: 'WORKSPACE', links: [{ name: 'Workspace', action: () => setCurrentView('workspace'), icon: '⚡', isActive: currentView === 'workspace' }] },
     { section: 'LEARNING', links: [
       { name: 'Learning Path', path: '#', icon: '🎓', tag: 'Building', tagColor: isDark ? 'bg-amber-900/40 text-amber-400 border-amber-500/30' : 'bg-amber-100 text-amber-700 border-amber-300' }, 
       { name: 'Algorithm Library', action: () => setCurrentView('library'), icon: '📚', isActive: currentView === 'library' }
     ] },
     { section: 'COMMUNITY', links: [
       { name: 'Leaderboard', action: () => setCurrentView('leaderboard'), icon: '🏆', isActive: currentView === 'leaderboard' },
-      // { name: 'Discussions', path: '#', icon: '💬', tag: 'Soon', tagColor: isDark ? 'bg-indigo-900/40 text-indigo-400 border-indigo-500/30' : 'bg-indigo-100 text-indigo-700 border-indigo-300' }
     ] }
   ];
 
@@ -454,7 +457,9 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex items-center gap-5">
-            <Link to="/workspace" className={`flex items-center gap-2 px-4 py-1.5 ${metallicBorder} rounded-xl text-sm font-bold shadow-sm hover:border-indigo-500 hover:text-indigo-500 transition-colors ${isDark ? 'bg-slate-900' : 'bg-white'}`}>⚡ Workspace</Link>
+            {/* <button onClick={() => setCurrentView('workspace')} className={`flex items-center gap-2 px-4 py-1.5 ${metallicBorder} rounded-xl text-sm font-bold shadow-sm hover:border-indigo-500 hover:text-indigo-500 transition-colors ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
+              ⚡ Workspace
+            </button> */}
             <div className={`flex items-center gap-3 cursor-pointer pl-4 border-l ${isDark ? 'border-slate-800' : 'border-slate-200'}`} onClick={handleLogout}>
               <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm ${metallicBorder} shadow-md`}>{userInitial}</div>
               <div className="flex flex-col hidden sm:flex">
@@ -465,7 +470,8 @@ export default function ProfilePage() {
           </div>
         </header>
 
-        <main className={`flex-1 overflow-y-auto p-8 ${scrollbarStyles}`}>
+        {/* Dynamic Main Container Area */}
+        <main className={`flex-1 ${currentView === 'workspace' ? 'overflow-hidden flex flex-col' : `overflow-y-auto p-8 ${scrollbarStyles}`}`}>
           
           {/* ===================== */}
           {/*    DASHBOARD VIEW     */}
@@ -608,7 +614,14 @@ export default function ProfilePage() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {savedCodes.filter(c => (c.title || '').toLowerCase().includes(searchQuery.toLowerCase())).slice(0,4).map((item) => (
-                        <div key={item.id} className={`${metallicBorder} rounded-2xl p-5 hover:border-indigo-500/50 cursor-pointer ${isDark ? 'bg-slate-900/30' : 'bg-slate-50'}`} onClick={() => navigate('/workspace', { state: { presetCode: item.code_content } })}>
+                        <div 
+                          key={item.id} 
+                          className={`${metallicBorder} rounded-2xl p-5 hover:border-indigo-500/50 cursor-pointer ${isDark ? 'bg-slate-900/30' : 'bg-slate-50'}`} 
+                          onClick={() => {
+                            navigate('/profile', { state: { presetCode: item.code_content } });
+                            setCurrentView('workspace');
+                          }}
+                        >
                           <h4 className="font-bold text-sm tracking-tight mb-3">{item.title}</h4>
                           <div className={`text-xs font-mono p-2 rounded-lg ${metallicBorder} ${isDark ? 'bg-[#0A0D14] text-slate-400' : 'bg-white text-slate-600'} line-clamp-2 h-10 mb-4 shadow-inner`}>
                             {item.code_content?.substring(0, 50) || "Code snippet..."}
@@ -921,6 +934,13 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* ======================= */}
+          {/*    WORKSPACE VIEW       */}
+          {/* ======================= */}
+          {currentView === 'workspace' && (
+            <WorkspacePage isEmbedded={true} />
           )}
 
         </main>

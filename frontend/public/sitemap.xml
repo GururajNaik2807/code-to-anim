@@ -1,46 +1,94 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://code-to-anim.vercel.app/</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://code-to-anim.vercel.app/learn</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://code-to-anim.vercel.app/algorithms</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <!-- Data Structures Lessons for SEO -->
-  <url>
-    <loc>https://code-to-anim.vercel.app/learn/data-structures/array</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://code-to-anim.vercel.app/learn/data-structures/linked-list</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://code-to-anim.vercel.app/learn/data-structures/stack</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://code-to-anim.vercel.app/community</loc>
-    <lastmod>2026-08-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
+  <!-- Core Public Pages -->
+  <url><loc>https://www.codetoanim.com/</loc><priority>1.0</priority></url>
+  <url><loc>https://www.codetoanim.com/algorithms</loc><priority>0.9</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace</loc><priority>0.8</priority></url>
+
+  <!-- Sorting -->
+  <url><loc>https://www.codetoanim.com/workspace?algo=bubble-sort</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=selection-sort</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=insertion-sort</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=merge-sort</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=quick-sort</loc><priority>0.7</priority></url>
+
+  <!-- Searching -->
+  <url><loc>https://www.codetoanim.com/workspace?algo=linear-search</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=binary-search</loc><priority>0.7</priority></url>
+
+  <!-- Two Pointers / Sliding Window -->
+  <url><loc>https://www.codetoanim.com/workspace?algo=two-sum</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=reverse-array</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=remove-duplicates</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=sliding-window-max</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=move-zeroes</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=squares-of-sorted-array</loc><priority>0.7</priority></url>
+
+  <!-- Arrays / Strings / Hash Maps -->
+  <url><loc>https://www.codetoanim.com/workspace?algo=prefix-sum</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=contains-duplicate</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=missing-number</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=kadanes-algorithm</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=find-disappeared-numbers</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=product-except-self</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=best-time-buy-sell-stock</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=pascals-triangle</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=majority-element</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=intersection-of-two-arrays</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=first-unique-character</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=isomorphic-strings</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=word-pattern</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=valid-anagram</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=longest-common-prefix</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=valid-palindrome-2</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=longest-substring-norepeat</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=group-anagrams</loc><priority>0.7</priority></url>
+
+  <!-- Math & Bit Manipulation -->
+  <url><loc>https://www.codetoanim.com/workspace?algo=gcd-euclidean</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=check-prime</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=fizz-buzz</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=single-number</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=number-of-1-bits</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=counting-bits</loc><priority>0.7</priority></url>
+
+  <!-- Dynamic Programming & Greedy -->
+  <url><loc>https://www.codetoanim.com/workspace?algo=fibonacci-dp</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=climbing-stairs</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=coin-change</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=longest-common-subsequence</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=assign-cookies</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=jump-game</loc><priority>0.7</priority></url>
+
+  <!-- Stacks, Queues, Heaps & Intervals -->
+  <url><loc>https://www.codetoanim.com/workspace?algo=valid-parentheses</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=next-greater-element</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=last-stone-weight</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=kth-largest-element-stream</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=top-k-frequent-elements</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=merge-intervals</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=insert-interval</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=non-overlapping-intervals</loc><priority>0.7</priority></url>
+
+  <!-- Trees & Graphs -->
+  <url><loc>https://www.codetoanim.com/workspace?algo=binary-tree-inorder</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=bfs-graph</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=dijkstra-shortest-path</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=max-depth-binary-tree</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=invert-binary-tree</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=same-tree</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=subtree-of-another-tree</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=lca-bst</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=symmetric-tree</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=diameter-binary-tree</loc><priority>0.7</priority></url>
+
+  <!-- Linked Lists -->
+  <url><loc>https://www.codetoanim.com/workspace?algo=reverse-linked-list</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=merge-two-sorted-lists</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=linked-list-cycle</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=middle-linked-list</loc><priority>0.7</priority></url>
+  <url><loc>https://www.codetoanim.com/workspace?algo=remove-nth-node</loc><priority>0.7</priority></url>
+
+  <!-- Backtracking -->
+  <url><loc>https://www.codetoanim.com/workspace?algo=subsets</loc><priority>0.7</priority></url>
 </urlset>

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'; 
+import { HelmetProvider } from 'react-helmet-async';
 
 import LandingPage from './pages/LandingPage';
 import WorkspacePage from './pages/WorkspacePage';
@@ -82,6 +83,7 @@ export default function App() {
   };
 
   return (
+  <HelmetProvider>
     <AuthProvider>
       <ThemeProvider>
         <Router>
@@ -93,19 +95,26 @@ export default function App() {
 
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/workspace" element={<WorkspacePage session={session} />} />
+            
+            {/* Public SEO-Indexed Workspace */}
+            <Route path="/workspace" element={<WorkspacePage />} />
+            
             <Route path="/learn" element={<LearnHub />} />
             <Route path="/algorithms" element={<LearnPage />} />
             <Route path="/learn/:category/:topic" element={<LessonPage />} />
             <Route path="/p/:userId" element={<PublicProfileCard />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/auth" element={<AuthRedirect />} />
-            <Route path="/profile" element={session ? <ProfilePage session={session} /> : <Navigate to="/" />} />
+            
+            {/* Private Profile (Hosts the Embedded Workspace) */}
+            <Route path="/profile" element={session ? <ProfilePage /> : <Navigate to="/" />} />
+            
             <Route path="/community" element={<CommunityPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Router>
       </ThemeProvider>
     </AuthProvider>
+  </HelmetProvider>
   );
 }

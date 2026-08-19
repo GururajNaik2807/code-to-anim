@@ -51,7 +51,17 @@ export default function Editor({
       textareaRef.current.focus();
     }
   }, [isEditing]);
-
+  
+  const scrollbarStyles = `
+      [&::-webkit-scrollbar]:w-2
+      [&::-webkit-scrollbar]:h-2
+      [&::-webkit-scrollbar-track]:bg-transparent 
+      [&::-webkit-scrollbar-thumb]:rounded-full 
+      ${isDark 
+        ? '[&::-webkit-scrollbar-thumb]:bg-slate-700 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600' 
+        : '[&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400'}
+    `;
+    
   const handleEditorClick = () => {
     if (!user) {
       openAuthModal('Log in to unlock direct code editing!');
@@ -96,14 +106,13 @@ export default function Editor({
               Done Editing
             </button>
           )}
-          {/* <button title="Settings">⚙️</button> */}
         </div>
       </div>
 
       {/* Main Code Area with Click-to-Edit Functionality */}
       <div 
         onClick={handleEditorClick}
-        className={`flex-1 flex overflow-auto font-mono text-sm leading-6 ${bgCodeArea} cursor-text relative`}
+        className={`flex-1 flex overflow-auto font-mono text-sm leading-6 ${bgCodeArea} cursor-text relative ${scrollbarStyles}`}
       >
         <div className={`select-none py-4 text-right pr-3 pl-3 ${textSecondary} font-mono text-xs min-w-[40px] border-r ${isDark ? 'border-slate-800/80' : 'border-slate-300'}`}>
           {codeLines.map((_, idx) => {
@@ -125,7 +134,7 @@ export default function Editor({
               value={code}
               onChange={(e) => setCode(e.target.value)}
               spellCheck={false}
-              className={`w-full h-full bg-transparent font-mono text-sm leading-6 resize-none outline-none ${isDark ? 'text-slate-100' : 'text-slate-900'} caret-purple-600 whitespace-pre`}
+              className={`w-full h-full bg-transparent font-mono text-sm leading-6 resize-none outline-none ${isDark ? 'text-slate-100' : 'text-slate-900'} caret-purple-600 whitespace-pre ${scrollbarStyles}`}
             />
           </div>
         ) : (

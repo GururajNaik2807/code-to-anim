@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext'; 
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../supabaseClient';
@@ -8,47 +8,52 @@ import LoginModal from '../components/LoginModal';
 import Editor from '../components/Editor';
 import Visualizer from '../components/Visualizer';
 
+// --- NEW IMPORTS FOR SEO ---
+import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
+import { Helmet } from 'react-helmet-async'; // Make sure to npm install react-helmet-async
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
 
-export default function WorkspacePage() {
+export default function WorkspacePage({ isEmbedded = false }) {
   const location = useLocation();
+  const navigate = useNavigate(); 
+  
+  // NEW: Grab the ?algo= parameter from the URL
+  const [searchParams] = useSearchParams();
+  const algoQueryId = searchParams.get('algo');
+
   const { user, openAuthModal } = useAuth(); 
   const { currentTheme, changeTheme } = useTheme();
   const isDark = currentTheme === 'dark';
 
-  const DEFAULT_CODE = `# 1. Define input variables
-nums = [2, 7, 11, 15]
-target = 9
+  const DEFAULT_CODE = `# Welcome to the CodeToAnim Workspace.
+# Use this sandbox to write, execute, and trace your Python algorithms.
 
-# 2. Result variable
-found_indices = []
+arr = [64, 34, 25, 12, 22, 11, 90]
+n = len(arr)
 
-# 3. Check every pair
-for i in range(len(nums)):
-    for j in range(i + 1, len(nums)):
-        if nums[i] + nums[j] == target:
-            found_indices = [i, j]
-            break
-    if found_indices:
-        break
+for i in range(n):
+    for j in range(0, n - i - 1):
+        if arr[j] > arr[j + 1]:
+            arr[j], arr[j + 1] = arr[j + 1], arr[j]
 
-print("Indices found:", found_indices)`;
+print("Final Sorted Array:", arr)`;
 
   const DEFAULT_METADATA = {
     id: null,
-    type: 'algorithm', 
-    algorithmTitle: 'Find Target Index',
-    strategy: 'Brute Force',
-    description: 'Searches for a target number in an array and returns all indices where the target is found.',
+    type: 'sandbox', 
+    algorithmTitle: 'Sandbox Workspace',
+    strategy: 'Custom Development',
+    description: 'Welcome to your personal algorithmic sandbox. This environment allows you to write custom scripts, test data structures, and visualize complex logic step-by-step. Start typing your Python code in the editor, and click "Execute Trace" to watch your logic come to life.',
     language: 'Python 3',
-    exampleInput: 'nums = [2, 7, 11, 15]\ntarget = 9',
-    exampleOutput: '[0, 1]'
+    exampleInput: null, 
+    exampleOutput: null 
   };
 
   const incomingLessonUrl = location.state?.lessonUrl || null;
 
-  const [code, setCode] = useState(location.state?.presetCode || DEFAULT_CODE);
-  const [algoMetadata, setAlgoMetadata] = useState(location.state?.metadata || DEFAULT_METADATA);
+  const [code, setCode] = useState(DEFAULT_CODE);
+  const [algoMetadata, setAlgoMetadata] = useState(DEFAULT_METADATA);
   const [steps, setSteps] = useState([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -69,10 +74,42 @@ print("Indices found:", found_indices)`;
 
   const autoPlayRef = useRef(null);
 
+  // --- NEW: INTELLIGENT ROUTING LOGIC ---
   useEffect(() => {
-    if (location.state?.presetCode) setCode(location.state.presetCode);
-    if (location.state?.metadata) setAlgoMetadata(location.state.metadata);
-  }, [location.state]);
+    // Priority 1: Check if there is a URL parameter (SEO Public Link)
+    if (algoQueryId) {
+      // Find matching algo by ID (converting both to strings to be safe)
+      const targetAlgo = ALGORITHMS_DATABASE.find(a => String(a.id) === String(algoQueryId));
+      if (targetAlgo) {
+        setCode(targetAlgo.code);
+        setAlgoMetadata({
+          id: targetAlgo.id,
+          type: 'algorithm',
+          algorithmTitle: targetAlgo.title,
+          strategy: targetAlgo.category,
+          category: targetAlgo.category,
+          difficulty: targetAlgo.difficulty,
+          description: targetAlgo.description,
+          language: 'Python 3',
+          exampleInput: null,
+          exampleOutput: null
+        });
+        return; // Exit early if we found it in the DB
+      }
+    }
+
+    // Priority 2: Check if state was passed (Embedded Profile Link)
+    if (location.state?.presetCode) {
+      setCode(location.state.presetCode);
+      if (location.state?.metadata) setAlgoMetadata(location.state.metadata);
+      return; // Exit early if state was provided
+    }
+
+    // Priority 3: No URL Param, No State -> Load default Sandbox
+    setCode(DEFAULT_CODE);
+    setAlgoMetadata(DEFAULT_METADATA);
+
+  }, [algoQueryId, location.state]);
 
   useEffect(() => {
     const checkCompletion = async () => {
@@ -278,7 +315,7 @@ print("Indices found:", found_indices)`;
       if (response.ok && data.success) {
         setSteps(data.steps || []);
         setCurrentStepIndex(0);
-        setIsEditing(false); // Drop out of edit mode to show execution
+        setIsEditing(false); 
         logCodeExecution(algoMetadata.algorithmTitle);
       } else {
         setErrorMessage(data.detail || data.error || "Execution trace failed.");
@@ -288,6 +325,19 @@ print("Indices found:", found_indices)`;
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleResetSandbox = () => {
+    setCode(DEFAULT_CODE);
+    setAlgoMetadata(DEFAULT_METADATA);
+    setSteps([]);
+    setCurrentStepIndex(0);
+    setErrorMessage(null);
+    setIsCompleted(false);
+    setIsPlaying(false);
+    
+    // Clear URL param AND state simultaneously
+    navigate('/workspace', { replace: true, state: {} });
   };
 
   const toggleTheme = () => changeTheme(isDark ? 'light' : 'dark');
@@ -302,267 +352,302 @@ print("Indices found:", found_indices)`;
   const activeLineNumber = currentStep?.line ?? null;
   const consoleOutput = currentStep?.output ?? "";
 
-  // Theming & Professional Finishes
   const bgMain = isDark ? 'bg-[#0A0D14]' : 'bg-[#FAFAFC]';
   const bgNav = isDark ? 'bg-[#10141D]' : 'bg-[#FFFFFF]';
   const bgPanel = isDark ? 'bg-[#131822]' : 'bg-[#FFFFFF]';
   const textPrimary = isDark ? 'text-slate-100' : 'text-slate-900';
   const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
   
-  // Universal High-End Metallic Black Border
   const metallicBorder = 'border border-slate-900 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_2px_5px_rgba(0,0,0,0.25)]';
 
   return (
-    <div className={`h-screen w-screen flex font-sans overflow-hidden ${bgMain} ${textPrimary}`}>
-      <LoginModal />
+    <>
+      {/* 
+        NEW: Helmet conditionally renders SEO titles/descriptions 
+        depending on what algorithm is loaded!
+      */}
+      <Helmet>
+        <title>{algoMetadata.algorithmTitle} | CodeToAnim Visualization</title>
+        <meta name="description" content={algoMetadata.description} />
+      </Helmet>
 
-      {/* Limit Modal */}
-      {showLimitModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-          <div className={`relative w-full max-w-md rounded-3xl p-8 flex flex-col items-center text-center transform transition-all ${metallicBorder} ${isDark ? 'bg-[#131822] text-white shadow-purple-950/40' : 'bg-white text-slate-900 shadow-xl'}`}>
-            <div className="w-16 h-16 bg-purple-500/10 text-purple-600 rounded-full flex items-center justify-center text-3xl mb-4 border border-purple-500/30 shadow-inner">
-              ⏳
-            </div>
-            <h2 className="text-2xl font-black mb-2 tracking-tight">Daily Limit Reached</h2>
-            <p className={`text-sm mb-8 leading-relaxed ${textSecondary}`}>
-              {limitMessage}
-            </p>
-            <button 
-              onClick={() => setShowLimitModal(false)}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all shadow-md shadow-purple-900/30"
-            >
-              Understood
-            </button>
-          </div>
-        </div>
-      )}
+      <div className={`${isEmbedded ? 'h-full w-full' : 'h-screen w-screen'} flex font-sans overflow-hidden ${bgMain} ${textPrimary}`}>
+        <LoginModal />
 
-      {/* Sidebar Navigation */}
-      <aside className={`w-16 flex-shrink-0 ${metallicBorder} ${bgNav} flex flex-col items-center justify-between py-4 z-20`}>
-        <div className="flex flex-col items-center gap-6">
-          <Link to="/" className={`w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600/20 to-indigo-600/20 flex items-center justify-center p-2 hover:scale-105 transition-transform ${metallicBorder}`}>
-            <img src="/favicon.svg" alt="CodeAnim Logo" className="w-full h-full object-contain" />
-          </Link>
-
-          <nav className="flex flex-col gap-3">
-            <Link to="/profile" className={`w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold ${metallicBorder}`}>
-              {user?.email?.[0]?.toUpperCase() || 'U'}
-            </Link>
-          </nav>
-        </div>
-
-        <button 
-          onClick={toggleTheme} 
-          className={`w-10 h-10 rounded-xl ${metallicBorder} flex items-center justify-center text-lg hover:bg-slate-800/10 transition-colors bg-white/5`}
-          title={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
-        >
-          {isDark ? '🌙' : '☀️'}
-        </button>
-      </aside>
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header Bar */}
-        <header className={`h-14 ${metallicBorder} border-x-0 border-t-0 ${bgNav} flex items-center justify-between px-6 z-10`}>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <img src="/favicon.svg" alt="Logo" className="w-5 h-5 object-contain" />
-              <span className="font-extrabold text-sm tracking-tight text-purple-600">CodeToAnim <span className="text-[17px] text-slate-500 font-mono">Workspace</span></span>
-            </div>
-
-            <div className={`flex items-center gap-2 ${metallicBorder} rounded-lg px-3 py-1 text-xs font-semibold ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}>
-              <span>{algoMetadata.algorithmTitle}</span>
-              <span className={`px-1.5 py-0.5 rounded text-[10px] ${isDark ? 'bg-purple-950 text-purple-300 border border-purple-800/60' : 'bg-purple-100 text-purple-700 border border-purple-300'}`}>
-                {algoMetadata.strategy || 'Lesson'}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {algoMetadata.id && (
+        {showLimitModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+            <div className={`relative w-full max-w-md rounded-3xl p-8 flex flex-col items-center text-center transform transition-all ${metallicBorder} ${isDark ? 'bg-[#131822] text-white shadow-purple-950/40' : 'bg-white text-slate-900 shadow-xl'}`}>
+              <div className="w-16 h-16 bg-purple-500/10 text-purple-600 rounded-full flex items-center justify-center text-3xl mb-4 border border-purple-500/30 shadow-inner">
+                ⏳
+              </div>
+              <h2 className="text-2xl font-black mb-2 tracking-tight">Daily Limit Reached</h2>
+              <p className={`text-sm mb-8 leading-relaxed ${textSecondary}`}>
+                {limitMessage}
+              </p>
               <button 
-                onClick={handleMarkComplete} 
-                disabled={isCompleting || isCompleted}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${metallicBorder} ${
-                  isCompleted 
-                    ? (isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-600/60' : 'bg-emerald-100 text-emerald-700 border-emerald-300')
-                    : `hover:border-emerald-500 hover:text-emerald-500 ${isDark ? 'bg-slate-900/60' : 'bg-white'}`
-                }`}
+                onClick={() => setShowLimitModal(false)}
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all shadow-md shadow-purple-900/30"
               >
-                {isCompleting ? '⏳ Saving...' : isCompleted ? '✅ Completed' : '🏆 Mark Complete'}
+                Understood
               </button>
-            )}
-
-            {incomingLessonUrl ? (
-              <Link to={incomingLessonUrl} className={`px-3 py-1.5 ${metallicBorder} rounded-lg text-xs font-semibold hover:border-purple-600 transition-colors text-purple-600 ${isDark ? 'bg-slate-900/60' : 'bg-white'}`}>
-                ← Back to Lesson
-              </Link>
-            ) : (
-              <Link to="/algorithms" className={`px-3 py-1.5 ${metallicBorder} rounded-lg text-xs font-semibold hover:border-purple-600 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-white'}`}>
-                📚 Algorithm Library
-              </Link>
-            )}
-            
-            <button onClick={handleSaveCode} className={`px-3 py-1.5 ${metallicBorder} rounded-lg text-xs font-semibold hover:border-blue-600 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-white'}`}>
-              💾 Save Code
-            </button>
-            
-            <button onClick={handleExecuteTrace} disabled={isLoading} className={`px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${metallicBorder}`}>
-              <span>▷</span>
-              <span>{isLoading ? "Tracing..." : "Execute Trace"}</span>
-            </button>
+            </div>
           </div>
-        </header>
+        )}
 
-        <div className="flex-1 flex overflow-hidden relative">
-          {/* Description Sidebar Panel */}
-          <aside className={`relative flex-shrink-0 ${metallicBorder} border-y-0 border-l-0 ${bgPanel} transition-all duration-300 flex flex-col justify-between overflow-hidden ${
-            isDescriptionOpen ? "w-64 p-5" : "w-10 p-2 items-center"
-          }`}>
-            <button 
-              onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
-              className={`absolute top-3 right-2 z-20 w-6 h-6 rounded-full ${metallicBorder} ${bgNav} hover:border-purple-500 text-purple-600 flex items-center justify-center text-xs transition-colors`}
-              title={isDescriptionOpen ? "Collapse Description" : "Expand Description"}
-            >
-              {isDescriptionOpen ? "◀" : "▶"}
-            </button>
+        {!isEmbedded && (
+          <aside className={`w-16 flex-shrink-0 ${metallicBorder} ${bgNav} flex flex-col items-center justify-between py-4 z-20`}>
+            <div className="flex flex-col items-center gap-6">
+              <Link to="/" className={`w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600/20 to-indigo-600/20 flex items-center justify-center p-2 hover:scale-105 transition-transform ${metallicBorder}`}>
+                <img src="/favicon.svg" alt="CodeAnim Logo" className="w-full h-full object-contain" />
+              </Link>
 
-            {!isDescriptionOpen ? (
-              <div className="flex flex-col items-center gap-6 mt-12 cursor-pointer" onClick={() => setIsDescriptionOpen(true)}>
-                <span className={`text-[10px] font-bold uppercase font-mono tracking-widest ${textSecondary} [writing-mode:vertical-lr] rotate-180`}>
-                  DESCRIPTION
-                </span>
-              </div>
-            ) : (
-              <div className="space-y-5 overflow-y-auto pr-2">
-                <div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>CURRENT ALGORITHM</span>
-                  <h2 className="text-lg font-bold mt-1 tracking-tight">{algoMetadata.algorithmTitle}</h2>
-                  <span className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-semibold border shadow-sm ${isDark ? 'bg-purple-950 text-purple-300 border-purple-800/60' : 'bg-purple-100 text-purple-700 border-purple-300'}`}>
-                    {algoMetadata.strategy || 'Standard'}
-                  </span>
-                  <p className={`text-xs ${textSecondary} mt-3 leading-relaxed`}>
-                    {algoMetadata.description}
-                  </p>
-                </div>
-
-                <div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>LANGUAGE</span>
-                  <div className={`mt-1 ${metallicBorder} rounded-lg p-2 text-xs font-medium flex items-center gap-2 ${isDark ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
-                    <span>🐍</span> {algoMetadata.language || 'Python 3'}
-                  </div>
-                </div>
-
-                {algoMetadata.exampleInput && (
-                  <div>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>EXAMPLE INPUT</span>
-                    <pre className={`mt-1 p-2 rounded-lg ${metallicBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-slate-100 text-slate-800'}`}>{algoMetadata.exampleInput}</pre>
-                  </div>
-                )}
-
-                {algoMetadata.exampleOutput && (
-                  <div>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>EXAMPLE OUTPUT</span>
-                    <pre className={`mt-1 p-2 rounded-lg ${metallicBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-slate-100 text-slate-800'}`}>{algoMetadata.exampleOutput}</pre>
-                  </div>
-                )}
-              </div>
-            )}
-          </aside>
-
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 flex overflow-hidden relative">
-              <Editor 
-                code={code} 
-                setCode={setCode} 
-                isEditing={isEditing}
-                setIsEditing={setIsEditing}
-                user={user} 
-                openAuthModal={openAuthModal}
-                activeLineNumber={activeLineNumber} 
-                handleSaveCode={handleSaveCode} 
-                handleExecuteTrace={handleExecuteTrace} 
-                isLoading={isLoading} 
-                isDark={isDark}
-                isEditorOpen={isEditorOpen}
-                setIsEditorOpen={setIsEditorOpen}
-              />
-
-              <Visualizer 
-                steps={steps} 
-                currentStepIndex={currentStepIndex} 
-                errorMessage={errorMessage} 
-                isDark={isDark}
-              />
+              <nav className="flex flex-col gap-3">
+                <Link to="/profile" className={`w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold ${metallicBorder}`}>
+                  {user?.email?.[0]?.toUpperCase() || 'U'}
+                </Link>
+              </nav>
             </div>
 
-            {/* Playback Footer */}
-            <footer className={`h-16 ${metallicBorder} border-x-0 border-b-0 ${bgNav} flex items-center justify-between px-8 z-10`}>
-              <div className={`font-mono text-xs ${textSecondary} flex items-center gap-2 max-w-xs truncate`}>
-                <span className="text-purple-600 font-bold">OUTPUT:</span>
-                <span className="text-emerald-500 font-semibold truncate">
-                  {consoleOutput.trim() ? consoleOutput : '> Stream empty...'}
+            <button 
+              onClick={toggleTheme} 
+              className={`w-10 h-10 rounded-xl ${metallicBorder} flex items-center justify-center text-lg hover:bg-slate-800/10 transition-colors bg-white/5`}
+              title={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
+            >
+              {isDark ? '🌙' : '☀️'}
+            </button>
+          </aside>
+        )}
+
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <header className={`h-14 ${metallicBorder} border-x-0 border-t-0 ${bgNav} flex items-center justify-between px-6 z-10`}>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <img src="/favicon.svg" alt="Logo" className="w-5 h-5 object-contain" />
+                <span className="font-extrabold text-sm tracking-tight text-purple-600">CodeToAnim <span className="text-[17px] text-slate-500 font-mono">Workspace</span></span>
+              </div>
+
+              <div className={`flex items-center gap-2 ${metallicBorder} rounded-lg px-3 py-1 text-xs font-semibold ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}>
+                <span>{algoMetadata.algorithmTitle}</span>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] ${isDark ? 'bg-purple-950 text-purple-300 border border-purple-800/60' : 'bg-purple-100 text-purple-700 border border-purple-300'}`}>
+                  {algoMetadata.strategy || 'Lesson'}
                 </span>
               </div>
+            </div>
 
-              <div className={`flex items-center gap-2 p-1.5 rounded-2xl ${metallicBorder} ${isDark ? 'bg-slate-950/80 shadow-inner' : 'bg-slate-200/50 shadow-sm'}`}>
-                <button 
-                  onClick={handleFirstStep} 
-                  disabled={steps.length === 0 || currentStepIndex === 0} 
-                  className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all ${metallicBorder} border-transparent hover:border-slate-900`}
+            <div className="flex items-center gap-3">
+              {algoMetadata.type !== 'sandbox' && (
+                 <button 
+                  onClick={handleResetSandbox} 
+                  className={`px-3 py-1.5 ${metallicBorder} rounded-lg text-xs font-semibold hover:border-amber-500 hover:text-amber-500 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-white'}`}
+                  title="Clear workspace and return to Sandbox"
                 >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                  🔄 Reset Sandbox
                 </button>
-                <button 
-                  onClick={handlePrevStep} 
-                  disabled={steps.length === 0 || currentStepIndex === 0} 
-                  className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all ${metallicBorder} border-transparent hover:border-slate-900`}
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
-                </button>
-                <button 
-                  onClick={handleTogglePlay} 
-                  disabled={steps.length === 0} 
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center text-white transition-all ${metallicBorder} ${
-                    isPlaying 
-                      ? 'bg-amber-600 hover:bg-amber-500' 
-                      : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500'
-                  } disabled:opacity-40`}
-                >
-                  {isPlaying ? (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                  ) : (
-                    <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              )}
+
+              {incomingLessonUrl ? (
+                <Link to={incomingLessonUrl} className={`px-3 py-1.5 ${metallicBorder} rounded-lg text-xs font-semibold hover:border-purple-600 transition-colors text-purple-600 ${isDark ? 'bg-slate-900/60' : 'bg-white'}`}>
+                  ← Back to Lesson
+                </Link>
+              ) : !isEmbedded ? (
+                <Link to="/algorithms" className={`px-3 py-1.5 ${metallicBorder} rounded-lg text-xs font-semibold hover:border-purple-600 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-white'}`}>
+                  📚 Algorithm Library
+                </Link>
+              ) : null}
+
+              {!user ? (
+                <>
+                  <button 
+                    onClick={() => openAuthModal('Log in to save your custom algorithms!')} 
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    Log In
+                  </button>
+                  <button 
+                    onClick={() => openAuthModal('Sign up to track your progress and save code!')} 
+                    className="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg transition-all shadow-md shadow-purple-900/30"
+                  >
+                    Sign Up
+                  </button>
+                </>
+              ) : (
+                <>
+                  {algoMetadata.id && (
+                    <button 
+                      onClick={handleMarkComplete} 
+                      disabled={isCompleting || isCompleted}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${metallicBorder} ${
+                        isCompleted 
+                          ? (isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-600/60' : 'bg-emerald-100 text-emerald-700 border-emerald-300')
+                          : `hover:border-emerald-500 hover:text-emerald-500 ${isDark ? 'bg-slate-900/60' : 'bg-white'}`
+                      }`}
+                    >
+                      {isCompleting ? '⏳ Saving...' : isCompleted ? '✅ Completed' : '🏆 Mark Complete'}
+                    </button>
                   )}
-                </button>
-                <button 
-                  onClick={handleNextStep} 
-                  disabled={steps.length === 0 || currentStepIndex === steps.length - 1} 
-                  className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all ${metallicBorder} border-transparent hover:border-slate-900`}
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
-                </button>
-                <button 
-                  onClick={handleLastStep} 
-                  disabled={steps.length === 0 || currentStepIndex === steps.length - 1} 
-                  className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all ${metallicBorder} border-transparent hover:border-slate-900`}
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-                </button>
+                  
+                  <button onClick={handleSaveCode} className={`px-3 py-1.5 ${metallicBorder} rounded-lg text-xs font-semibold hover:border-blue-600 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-white'}`}>
+                    💾 Save Code
+                  </button>
+                </>
+              )}
+              
+              <button onClick={handleExecuteTrace} disabled={isLoading} className={`px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${metallicBorder}`}>
+                <span>▷</span>
+                <span>{isLoading ? "Tracing..." : "Execute Trace"}</span>
+              </button>
+            </div>
+          </header>
+
+          <div className="flex-1 flex overflow-hidden relative">
+            <aside className={`relative flex-shrink-0 ${metallicBorder} border-y-0 border-l-0 ${bgPanel} transition-all duration-300 flex flex-col justify-between overflow-hidden ${
+              isDescriptionOpen ? "w-64 p-5" : "w-10 p-2 items-center"
+            }`}>
+              <button 
+                onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
+                className={`absolute top-3 right-2 z-20 w-6 h-6 rounded-full ${metallicBorder} ${bgNav} hover:border-purple-500 text-purple-600 flex items-center justify-center text-xs transition-colors`}
+                title={isDescriptionOpen ? "Collapse Description" : "Expand Description"}
+              >
+                {isDescriptionOpen ? "◀" : "▶"}
+              </button>
+
+              {!isDescriptionOpen ? (
+                <div className="flex flex-col items-center gap-6 mt-12 cursor-pointer" onClick={() => setIsDescriptionOpen(true)}>
+                  <span className={`text-[10px] font-bold uppercase font-mono tracking-widest ${textSecondary} [writing-mode:vertical-lr] rotate-180`}>
+                    DESCRIPTION
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-5 overflow-y-auto pr-2">
+                  <div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>CURRENT ALGORITHM</span>
+                    <h2 className="text-lg font-bold mt-1 tracking-tight">{algoMetadata.algorithmTitle}</h2>
+                    <span className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-semibold border shadow-sm ${isDark ? 'bg-purple-950 text-purple-300 border-purple-800/60' : 'bg-purple-100 text-purple-700 border-purple-300'}`}>
+                      {algoMetadata.strategy || 'Standard'}
+                    </span>
+                    <p className={`text-xs ${textSecondary} mt-3 leading-relaxed`}>
+                      {algoMetadata.description}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>LANGUAGE</span>
+                    <div className={`mt-1 ${metallicBorder} rounded-lg p-2 text-xs font-medium flex items-center gap-2 ${isDark ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
+                      <span>🐍</span> {algoMetadata.language || 'Python 3'}
+                    </div>
+                  </div>
+
+                  {algoMetadata.exampleInput && (
+                    <div>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>EXAMPLE INPUT</span>
+                      <pre className={`mt-1 p-2 rounded-lg ${metallicBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-slate-100 text-slate-800'}`}>{algoMetadata.exampleInput}</pre>
+                    </div>
+                  )}
+
+                  {algoMetadata.exampleOutput && (
+                    <div>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>EXAMPLE OUTPUT</span>
+                      <pre className={`mt-1 p-2 rounded-lg ${metallicBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-slate-100 text-slate-800'}`}>{algoMetadata.exampleOutput}</pre>
+                    </div>
+                  )}
+                </div>
+              )}
+            </aside>
+
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 flex overflow-hidden relative">
+                <Editor 
+                  code={code} 
+                  setCode={setCode} 
+                  isEditing={isEditing}
+                  setIsEditing={setIsEditing}
+                  user={user} 
+                  openAuthModal={openAuthModal}
+                  activeLineNumber={activeLineNumber} 
+                  handleSaveCode={handleSaveCode} 
+                  handleExecuteTrace={handleExecuteTrace} 
+                  isLoading={isLoading} 
+                  isDark={isDark}
+                  isEditorOpen={isEditorOpen}
+                  setIsEditorOpen={setIsEditorOpen}
+                />
+
+                <Visualizer 
+                  steps={steps} 
+                  currentStepIndex={currentStepIndex} 
+                  errorMessage={errorMessage} 
+                  isDark={isDark}
+                />
               </div>
 
-              <div className={`font-mono text-xs ${textSecondary} flex items-center gap-3`}>
-                <div className={`w-32 h-1.5 rounded-full overflow-hidden ${metallicBorder} bg-slate-200 dark:bg-slate-900`}>
-                  <div 
-                    className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all duration-300 rounded-full"
-                    style={{ width: `${steps.length > 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0}%` }}
-                  ></div>
+              <footer className={`h-16 ${metallicBorder} border-x-0 border-b-0 ${bgNav} flex items-center justify-between px-8 z-10`}>
+                <div className={`font-mono text-xs ${textSecondary} flex items-center gap-2 max-w-xs truncate`}>
+                  <span className="text-purple-600 font-bold">OUTPUT:</span>
+                  <span className="text-emerald-500 font-semibold truncate">
+                    {consoleOutput.trim() ? consoleOutput : '> Stream empty...'}
+                  </span>
                 </div>
-                <span>STEP <span className={textPrimary}>{steps.length > 0 ? currentStepIndex + 1 : 0}</span> / {steps.length}</span>
-              </div>
-            </footer>
+
+                <div className={`flex items-center gap-2 p-1.5 rounded-2xl ${metallicBorder} ${isDark ? 'bg-slate-950/80 shadow-inner' : 'bg-slate-200/50 shadow-sm'}`}>
+                  <button 
+                    onClick={handleFirstStep} 
+                    disabled={steps.length === 0 || currentStepIndex === 0} 
+                    className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all ${metallicBorder} border-transparent hover:border-slate-900`}
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                  </button>
+                  <button 
+                    onClick={handlePrevStep} 
+                    disabled={steps.length === 0 || currentStepIndex === 0} 
+                    className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all ${metallicBorder} border-transparent hover:border-slate-900`}
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
+                  </button>
+                  <button 
+                    onClick={handleTogglePlay} 
+                    disabled={steps.length === 0} 
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center text-white transition-all ${metallicBorder} ${
+                      isPlaying 
+                        ? 'bg-amber-600 hover:bg-amber-500' 
+                        : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500'
+                    } disabled:opacity-40`}
+                  >
+                    {isPlaying ? (
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                    ) : (
+                      <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    )}
+                  </button>
+                  <button 
+                    onClick={handleNextStep} 
+                    disabled={steps.length === 0 || currentStepIndex === steps.length - 1} 
+                    className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all ${metallicBorder} border-transparent hover:border-slate-900`}
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+                  </button>
+                  <button 
+                    onClick={handleLastStep} 
+                    disabled={steps.length === 0 || currentStepIndex === steps.length - 1} 
+                    className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all ${metallicBorder} border-transparent hover:border-slate-900`}
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                  </button>
+                </div>
+
+                <div className={`font-mono text-xs ${textSecondary} flex items-center gap-3`}>
+                  <div className={`w-32 h-1.5 rounded-full overflow-hidden ${metallicBorder} bg-slate-200 dark:bg-slate-900`}>
+                    <div 
+                      className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all duration-300 rounded-full"
+                      style={{ width: `${steps.length > 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+                  <span>STEP <span className={textPrimary}>{steps.length > 0 ? currentStepIndex + 1 : 0}</span> / {steps.length}</span>
+                </div>
+              </footer>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
