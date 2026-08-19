@@ -34,7 +34,7 @@ FORBIDDEN_CALLS = {
 app = FastAPI(
     title="CodeToAnim Trace Engine",
     description="Backend execution engine to capture step-by-step code execution states.",
-    version="1.1.0"
+    version="1.1.1"
 )
 
 # CORS configuration
@@ -119,7 +119,7 @@ def make_json_safe(val, depth=0):
     if isinstance(val, (list, tuple, set)):
         return [make_json_safe(item, depth + 1) for item in list(val)[:100]]
     if isinstance(val, dict):
-        return {str(k): make_json_safe(v, depth + 1) for k, v in list(val.items())[:100]}
+        return {str(k): make_json_safe(v, depth + 1) for k, v in list(val.items()[:100])}
     if isinstance(val, type) or callable(val):
         return str(val)
 
@@ -261,14 +261,12 @@ def run_trace_worker(code_string: str) -> dict:
                 steps[-1]["output"] = stdout_buffer.getvalue()
             return {"success": True, "steps": steps}
         except Exception as e:
-            # Catch runtime errors and "print" them to the user
+            # Catch runtime errors and format them for the console output
             error_msg = f"❌ Runtime Error ({type(e).__name__}): {str(e)}"
             
             if steps:
-                # Append the error to the console output of the final recorded step
                 steps[-1]["output"] = stdout_buffer.getvalue() + f"\n{error_msg}"
             else:
-                # If it failed before any steps were recorded, create a mock step
                 steps.append({
                     "step": 1,
                     "line": 1,
@@ -283,14 +281,17 @@ def run_trace_worker(code_string: str) -> dict:
 
 
 # --- API Endpoints ---
-# Reusable executor pool
 executor_pool = ThreadPoolExecutor(max_workers=4)
+
+@app.get("/")
+def read_root():
+    """Health-check endpoint to prevent 404 Not Found on the root URL."""
+    return {"status": "online", "message": "CodeToAnim Trace Engine is running safely."}
 
 @app.post("/api/trace", response_model=TraceResponse)
 def execute_code_trace(request: CodeExecutionRequest):
     code = request.code.strip()
     
-    # Helper to generate a visual error message step
     def create_error_response(message: str) -> TraceResponse:
         mock_step = TraceStep(
             step=1, 
@@ -308,7 +309,6 @@ def execute_code_trace(request: CodeExecutionRequest):
     try:
         validate_code_security(code)
     except ValueError as val_err:
-        # User entered malicious code or exceeded limits
         return create_error_response(f"🛡️ Security Block: {str(val_err)}")
 
     # 2. Execute within ThreadPool with safety timeout
@@ -316,13 +316,11 @@ def execute_code_trace(request: CodeExecutionRequest):
         future = executor_pool.submit(run_trace_worker, code)
         result = future.result(timeout=EXECUTION_TIMEOUT_SECONDS)
     except TimeoutError:
-        # User created an infinite loop or heavy computation
-        return create_error_response(f"⏳ Timeout Error: Code execution took too long (Limit: {EXECUTION_TIMEOUT_SECONDS}s). Check for infinite loops!")
+        return create_error_response(f"⏳ Timeout Error: Code execution took too long (Limit: {EXECUTION_TIMEOUT_SECONDS}s safety limit exceeded). Check for infinite loops!")
     except Exception as e:
         return create_error_response(f"⚙️ System Error: {str(e)}")
 
     if not result.get("success"):
-        # Returns the step data that contains the Runtime Error formatted by the worker
         return TraceResponse(success=False, steps=result.get("steps", []), error=result.get("error"))
 
     return TraceResponse(success=True, steps=result["steps"])
