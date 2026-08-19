@@ -5,3 +5,25 @@
     overflow-x: hidden;
   }
 }
+/* Custom Scrollbar for Webkit Browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+/* The track (background of the scrollbar) */
+::-webkit-scrollbar-track {
+  background: #030014; /* Matches your main bg-[#030014] color */
+}
+
+/* The draggable thumb */
+::-webkit-scrollbar-thumb {
+  background: color( rgb(49, 45, 45));
+  border-radius: 10px;
+  /* Adding a border that matches the track background creates a nice "padded" illusion */
+  border: 3px solid #030014; 
+}
+
+/* Hover effect on the draggable thumb */
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #c084fc7e, #67e8f979, #f472b567);
+}
