@@ -30,7 +30,7 @@ class TraceStep(BaseModel):
     line: int
     variables: Dict[str, Any]
     output: Optional[str] = "" 
-    visual_layout: Dict[str, Any] = {} # NEW: Pre-calculated layout blueprint
+    visual_layout: Dict[str, Any] = {} # Pre-calculated layout blueprint
 
 class TraceResponse(BaseModel):
     success: bool
@@ -59,8 +59,7 @@ def make_json_safe(val, depth=0):
 
     return str(val)
 
-# --- NEW: Abstracted Blueprint Generator ---
-# This runs securely on your server, hiding your parsing secrets from the browser
+# --- Abstracted Blueprint Generator ---
 def generate_visual_layout(clean_vars: dict) -> dict:
     
     # 1. Binary Tree Check
@@ -155,7 +154,6 @@ def run_trace_worker(code_string: str) -> dict:
                     except Exception as e:
                         clean_vars[k] = f"Error: {str(e)}"
 
-            # GENERATE THE BLUEPRINT SECURELY ON THE BACKEND
             layout_blueprint = generate_visual_layout(clean_vars)
 
             steps.append({
@@ -163,7 +161,7 @@ def run_trace_worker(code_string: str) -> dict:
                 "line": frame.f_lineno,
                 "variables": clean_vars,
                 "output": stdout_buffer.getvalue(),
-                "visual_layout": layout_blueprint # Attach blueprint to response
+                "visual_layout": layout_blueprint
             })
         return trace_func
 
@@ -181,6 +179,13 @@ def run_trace_worker(code_string: str) -> dict:
         sys.stdout = old_stdout
 
 # --- API Endpoints ---
+
+# 1. Health check endpoint to prevent 404 when visiting the base URL
+@app.get("/")
+def read_root():
+    return {"status": "online", "message": "CodeToAnim Trace Engine is running successfully!"}
+
+# 2. Main execution trace endpoint
 @app.post("/api/trace", response_model=TraceResponse)
 def execute_code_trace(request: CodeExecutionRequest):
     if not request.code.strip():
@@ -196,4 +201,3 @@ def execute_code_trace(request: CodeExecutionRequest):
 
     if not result["success"]: return TraceResponse(success=False, steps=[], error=result["error"])
     return TraceResponse(success=True, steps=result["steps"])
-# hello
