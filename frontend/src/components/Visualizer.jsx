@@ -58,14 +58,15 @@ export default function Visualizer({
         {/* --- TAB: VISUALIZATION (Dashboard View) --- */}
         {activeTab === 'VISUALIZATION' && (
           <>
-            <div className={`p-6 rounded-2xl ${metallicBorder} flex flex-col items-center min-h-[220px] ${isDark ? 'bg-slate-950/60 shadow-inner' : 'bg-slate-50 shadow-sm'}`}>
-              <div className="w-full flex justify-between items-center mb-4 text-xs font-mono font-bold">
+            <div className={`p-6 rounded-2xl ${metallicBorder} flex flex-col items-center min-h-[280px] relative overflow-hidden ${isDark ? 'bg-slate-950/60 shadow-inner' : 'bg-slate-50 shadow-sm'}`}>
+              <div className="w-full flex justify-between items-center mb-4 text-xs font-mono font-bold z-10">
                 <span className="text-purple-600 uppercase tracking-wider">{layout.type !== 'none' ? `${layout.type}: ${layout.key || ''}` : 'Canvas'}</span>
                 <span className={textSecondary}>STEP {steps.length > 0 ? currentStepIndex + 1 : 0} / {steps.length}</span>
               </div>
 
-              {layout.type === 'array' ? (
-                <div className="flex gap-3 items-end py-6 overflow-x-auto max-w-full">
+              {/* 1. ARRAY LAYOUT RENDERER */}
+              {layout.type === 'array' && (
+                <div className="flex gap-3 items-end py-6 overflow-x-auto max-w-full my-auto">
                   <AnimatePresence mode="popLayout">
                     {layout.data.map((val, idx) => {
                       const pointingKeys = layout.pointers.filter(p => p.index === idx).map(p => p.key);
@@ -91,7 +92,83 @@ export default function Visualizer({
                     })}
                   </AnimatePresence>
                 </div>
-              ) : (
+              )}
+
+              {/* 2. TREE LAYOUT RENDERER */}
+              {layout.type === 'tree' && (
+                <div className="relative w-full h-64 flex items-center justify-center my-auto">
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                    {layout.edges?.map((edge, idx) => (
+                      <line 
+                        key={`edge-${idx}`} 
+                        x1={edge.x1} y1={edge.y1} 
+                        x2={edge.x2} y2={edge.y2} 
+                        stroke={isDark ? '#6366f1' : '#818cf8'} 
+                        strokeWidth="2" 
+                      />
+                    ))}
+                  </svg>
+                  {layout.nodes?.map((node, idx) => (
+                    <div 
+                      key={`node-${idx}`}
+                      className={`absolute w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${metallicBorder} ${
+                        isDark ? 'bg-purple-900 text-white border-purple-500' : 'bg-purple-600 text-white border-purple-400'
+                      }`}
+                      style={{ left: `${node.x}px`, top: `${node.y}px` }}
+                    >
+                      {node.val}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 3. LINKED LIST LAYOUT RENDERER */}
+              {layout.type === 'linked_list' && (
+                <div className="flex items-center gap-4 overflow-x-auto p-6 my-auto max-w-full">
+                  {layout.nodes?.map((node, idx) => (
+                    <div key={`ll-${idx}`} className="flex items-center gap-4 flex-shrink-0">
+                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-base shadow-md font-mono ${metallicBorder} ${
+                        isDark ? 'bg-indigo-950 text-indigo-200 border-indigo-500' : 'bg-indigo-600 text-white border-indigo-400'
+                      }`}>
+                        {node.val}
+                      </div>
+                      {idx < layout.nodes.length - 1 && (
+                        <span className="text-purple-500 font-bold text-xl">→</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 4. DICTIONARY / HASHMAP LAYOUT RENDERER */}
+              {layout.type === 'dict' && (
+                <div className="flex flex-wrap gap-2 items-center justify-center py-4 my-auto">
+                  {layout.entries?.map((entry, idx) => (
+                    <div key={`dict-${idx}`} className={`px-3 py-2 rounded-xl flex items-center gap-2 font-mono text-xs ${metallicBorder} ${isDark ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-800'}`}>
+                      <span className="text-purple-400 font-bold">{entry.key}:</span>
+                      <span>{entry.val}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 5. GRAPH LAYOUT RENDERER */}
+              {layout.type === 'graph' && (
+                <div className="flex flex-wrap gap-4 items-center justify-center p-4 my-auto w-full">
+                  {layout.nodes?.map((node, idx) => (
+                    <div key={`graph-node-${idx}`} className={`p-3 rounded-xl flex flex-col items-center gap-2 ${metallicBorder} ${isDark ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-900'}`}>
+                      <span className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center text-xs shadow-md">
+                        {node.id}
+                      </span>
+                      <span className="text-[10px] font-mono opacity-70">
+                        → [{node.neighbors.join(', ')}]
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {layout.type === 'none' && (
                 <div className={`my-auto text-xs font-mono font-semibold ${textSecondary}`}>Execute a trace to render visual state.</div>
               )}
             </div>
