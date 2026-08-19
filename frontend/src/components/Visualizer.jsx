@@ -151,27 +151,147 @@ export default function Visualizer({
                   ))}
                 </div>
               )}
+              
 
-              {/* 5. GRAPH LAYOUT RENDERER */}
+{/* 5. GRAPH LAYOUT RENDERER (Animated) */}
               {layout.type === 'graph' && (
                 <div className="flex flex-wrap gap-4 items-center justify-center p-4 my-auto w-full">
-                  {layout.nodes?.map((node, idx) => (
-                    <div key={`graph-node-${idx}`} className={`p-3 rounded-xl flex flex-col items-center gap-2 ${metallicBorder} ${isDark ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-900'}`}>
-                      <span className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center text-xs shadow-md">
-                        {node.id}
-                      </span>
-                      <span className="text-[10px] font-mono opacity-70">
-                        → [{node.neighbors.join(', ')}]
-                      </span>
-                    </div>
-                  ))}
+                  {layout.nodes?.map((node, idx) => {
+                    // Check our variables dynamically to see what state this node is in!
+                    const isCurrent = variables.current_node === node.id || variables.node === node.id;
+                    const isVisited = Array.isArray(variables.visited) && variables.visited.includes(node.id);
+                    const inQueue = Array.isArray(variables.queue) && variables.queue.includes(node.id);
+
+                    // Determine the color based on its algorithmic state
+                    let bgColor = isDark ? "bg-purple-900 border-purple-500" : "bg-purple-600 border-purple-400";
+                    let extraStyles = "";
+
+                    if (isCurrent) {
+                      bgColor = "bg-amber-500 border-amber-300"; // Active node being processed
+                      extraStyles = "ring-4 ring-amber-500/50 scale-110 z-10";
+                    } else if (isVisited) {
+                      bgColor = "bg-emerald-600 border-emerald-400"; // Completely processed
+                      extraStyles = "opacity-90";
+                    } else if (inQueue) {
+                      bgColor = "bg-blue-500 border-blue-400"; // Waiting in line
+                      extraStyles = "ring-2 ring-blue-400 border-dashed";
+                    }
+
+                    return (
+                      <div key={`graph-node-${idx}`} className={`p-3 rounded-xl flex flex-col items-center gap-2 ${metallicBorder} ${isDark ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-900'} transition-all duration-300`}>
+                        <span className={`w-10 h-10 rounded-full border-2 text-white font-bold flex items-center justify-center text-xs shadow-md transition-all duration-300 ${bgColor} ${extraStyles}`}>
+                          {node.id}
+                        </span>
+                        <span className="text-[10px] font-mono opacity-70">
+                          → [{node.neighbors.join(', ')}]
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
+              {/* 6. VERTICAL STACK LAYOUT RENDERER */}
+              {layout.type === 'stack' && (
+                <div className="flex flex-col-reverse items-center justify-end h-full w-full pt-4 pb-2 relative z-0">
+                  
+                  {/* The solid base of the stack */}
+                  <div className={`w-40 h-2 rounded-full mt-2 shadow-md shrink-0 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}></div>
 
+                  <div className="flex flex-col-reverse gap-2 items-center w-full overflow-y-auto px-4 pb-1">
+                    <AnimatePresence mode="popLayout">
+                      {layout.data.map((val, idx) => {
+                        const pointingKeys = layout.pointers?.filter(p => p.index === idx).map(p => p.key) || [];
+                        return (
+                          <motion.div 
+                            key={`stack-${idx}`} 
+                            layout 
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            className="relative flex justify-center w-full"
+                          >
+                            {/* Main Stack Block */}
+                            <div className={`w-32 h-12 rounded-xl flex items-center justify-center text-sm font-bold font-mono shadow-md border-b-4 shrink-0 ${metallicBorder} transition-all ${
+                              idx === layout.data.length - 1 
+                                ? (isDark ? 'bg-purple-600 border-purple-800 text-white' : 'bg-purple-500 border-purple-700 text-white') 
+                                : (isDark ? 'bg-slate-800 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-900')
+                            }`}>
+                              {val}
+                            </div>
+                            
+                            {/* Pointers fixed to the right (Absolute position prevents breaking the center alignment!) */}
+                            {pointingKeys.length > 0 && (
+                              <div className="absolute left-[calc(50%+4.5rem)] top-1/2 -translate-y-1/2 flex items-center z-10">
+                                <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md whitespace-nowrap ${metallicBorder} ${isDark ? 'bg-amber-600 text-white' : 'bg-amber-200 text-amber-900'}`}>
+                                  ← {pointingKeys.join(', ')}
+                                </span>
+                              </div>
+                            )}
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              )}
               {layout.type === 'none' && (
                 <div className={`my-auto text-xs font-mono font-semibold ${textSecondary}`}>Execute a trace to render visual state.</div>
               )}
             </div>
+              {/* 7. HORIZONTAL QUEUE (TUNNEL) LAYOUT RENDERER */}
+              {layout.type === 'queue' && (
+                <div className="relative w-full flex justify-center mb-auto min-h-[160px]">
+                  
+                  {/* The Tunnel Container */}
+                  <div className="relative w-[90%] max-w-2xl h-24 flex items-center px-4">
+                    
+                    {/* Straight, Equal Tunnel Top and Bottom Lines */}
+                    <div className={`absolute inset-0 w-full h-full border-t-4 border-b-4 pointer-events-none rounded-sm ${isDark ? 'border-slate-600' : 'border-slate-400'}`}></div>
+
+                    {/* Queue Items Container */}
+                    <div className="relative w-full h-full flex items-center gap-4 overflow-x-auto no-scrollbar z-10 px-2 py-4">
+                      <AnimatePresence mode="popLayout">
+                        {layout.data.map((val, idx) => {
+                          const pointingKeys = layout.pointers?.filter(p => p.index === idx).map(p => p.key) || [];
+                          return (
+                            <motion.div 
+                              key={`queue-${val}-${idx}`} 
+                              layout 
+                              initial={{ opacity: 0, x: 50, scale: 0.8 }}
+                              animate={{ opacity: 1, x: 0, scale: 1 }}
+                              exit={{ opacity: 0, x: -50, scale: 0.8 }}
+                              className="relative flex justify-center items-center shrink-0 w-14 h-14"
+                            >
+                              {/* Pointers above the queue items */}
+                              {pointingKeys.length > 0 && (
+                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center justify-center whitespace-nowrap z-20">
+                                  <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md ${metallicBorder} ${isDark ? 'bg-amber-600 text-white' : 'bg-amber-200 text-amber-900'}`}>
+                                    ↓ {pointingKeys.join(', ')}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Queue Item Block */}
+                              <div className={`w-full h-full rounded-xl flex items-center justify-center text-sm font-bold font-mono shadow-md border-b-4 ${metallicBorder} transition-all ${
+                                idx === 0 
+                                  ? (isDark ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-emerald-500 border-emerald-700 text-white') // Highlight front of queue
+                                  : (isDark ? 'bg-slate-800 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-900')
+                              }`}>
+                                {val}
+                              </div>
+                              
+                              {/* Index indicator */}
+                              <span className={`absolute -bottom-7 left-1/2 -translate-x-1/2 text-[10px] font-mono font-bold ${textSecondary}`}>
+                                [{idx}]
+                              </span>
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </div>
+              )}
 
             <div className="grid grid-cols-3 gap-4">
               <div className={`p-4 rounded-2xl ${metallicBorder} ${isDark ? 'bg-slate-950/40' : 'bg-white shadow-sm'}`}>

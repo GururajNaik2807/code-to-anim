@@ -1,6 +1,7 @@
 import sys
 import copy
 import io
+import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,11 +40,19 @@ class TraceResponse(BaseModel):
 
 
 # --- Helper: Safe JSON Serialization ---
+# --- Helper: Safe JSON Serialization ---
 def make_json_safe(val, depth=0):
     if depth > 15: return "..."
     if isinstance(val, (int, float, str, bool, type(None))): return val
-    if isinstance(val, (list, tuple, set)): 
+    
+    # FIX: Handle sets and deques by converting them to lists first!
+    if type(val).__name__ == 'deque':
+        return [make_json_safe(item, depth + 1) for item in list(val)[:50]]
+    if isinstance(val, set): 
+        return [make_json_safe(item, depth + 1) for item in list(val)[:50]]
+    if isinstance(val, (list, tuple)): 
         return [make_json_safe(item, depth + 1) for item in val[:50]]
+        
     if isinstance(val, dict): 
         return {str(k): make_json_safe(v, depth + 1) for i, (k, v) in enumerate(val.items()) if i < 50}
     if isinstance(val, type) or callable(val): return str(val)
@@ -61,7 +70,10 @@ def make_json_safe(val, depth=0):
     return str(val)
 
 # --- Expanded Abstracted Blueprint Generator ---
+# --- Advanced Abstracted Blueprint Generator (Scoring Engine) ---
 def generate_visual_layout(clean_vars: dict) -> dict:
+    candidates = []
+
     def is_tree(obj):
         return isinstance(obj, dict) and ('left' in obj or 'right' in obj)
 
@@ -69,19 +81,19 @@ def generate_visual_layout(clean_vars: dict) -> dict:
         return isinstance(obj, dict) and 'next' in obj
 
     def is_graph(obj):
-        # Checks if dict maps keys to lists of neighbors (e.g., {'A': ['B', 'C'], ...})
         if not isinstance(obj, dict) or len(obj) == 0: return False
-        sample_val = next(iter(obj.values()), None)
-        return isinstance(sample_val, list)
-
-    # 1. CHECK FOR TREES FIRST
-    for key, val in clean_vars.items():
-        root = None
-        if is_tree(val):
-            root = val
-        elif isinstance(val, dict) and is_tree(val.get('root')):
-            root = val.get('root')
+        
+        # FIX: Prevent custom Stack/Queue/Array wrappers from being misclassified as Graphs
+        wrapper_keys = {'stack', 'queue', 'q', 'arr', 'array', 'list', 'items', 'data', 'elements'}
+        if len(obj) == 1 and list(obj.keys())[0].lower() in wrapper_keys:
+            return False
             
+        sample = next(iter(obj.values()), None)
+        return isinstance(sample, list)
+
+    for key, val in clean_vars.items():
+        # 1. TREE SCORING
+        root = val if is_tree(val) else (val.get('root') if isinstance(val, dict) and is_tree(val.get('root')) else None)
         if root:
             nodes, edges = [], []
             def traverse(node, x, y, h_spacing, path_id):
@@ -90,118 +102,194 @@ def generate_visual_layout(clean_vars: dict) -> dict:
                 nodes.append({"val": val_str, "x": x, "y": y, "id": path_id})
                 
                 if isinstance(node.get('left'), dict):
-                    cx, cy = x - h_spacing, y + 60
-                    edges.append({"x1": x, "y1": y, "x2": cx, "y2": cy})
-                    traverse(node['left'], cx, cy, h_spacing / 1.8, path_id + 'L')
+                    edges.append({"x1": x, "y1": y, "x2": x - h_spacing, "y2": y + 60})
+                    traverse(node['left'], x - h_spacing, y + 60, h_spacing / 1.8, path_id + 'L')
                 
                 if isinstance(node.get('right'), dict):
-                    cx, cy = x + h_spacing, y + 60
-                    edges.append({"x1": x, "y1": y, "x2": cx, "y2": cy})
-                    traverse(node['right'], cx, cy, h_spacing / 1.8, path_id + 'R')
+                    edges.append({"x1": x, "y1": y, "x2": x + h_spacing, "y2": y + 60})
+                    traverse(node['right'], x + h_spacing, y + 60, h_spacing / 1.8, path_id + 'R')
             
             traverse(root, 250, 30, 100, 'root')
-            return {"type": "tree", "key": key, "nodes": nodes, "edges": edges}
+            # Base score 100 + size. Boost for names like 'root' or 'tree'
+            score = 100 + len(nodes) + (20 if key in ['root', 'tree'] else 0)
+            candidates.append({"type": "tree", "key": key, "nodes": nodes, "edges": edges, "score": score})
+            continue
 
-    # 2. CHECK FOR LINKED LISTS
-    for key, val in clean_vars.items():
-        head = None
-        if is_ll(val):
-            head = val
-        elif isinstance(val, dict) and is_ll(val.get('head')):
-            head = val.get('head')
-            
+        # 2. LINKED LIST SCORING
+        head = val if is_ll(val) else (val.get('head') if isinstance(val, dict) and is_ll(val.get('head')) else None)
         if head:
             nodes, curr, safe_count = [], head, 0
             while isinstance(curr, dict) and safe_count < 30:
                 nodes.append({"val": str(curr.get('val', curr.get('data', curr.get('value', '?'))))})
                 curr = curr.get('next')
                 safe_count += 1
-            return {"type": "linked_list", "key": key, "nodes": nodes}
+            # Base score 90 + size. Massive boost for active pointers being built
+            score = 90 + len(nodes) + (30 if key in ['prev', 'curr', 'tail'] else 0)
+            candidates.append({"type": "linked_list", "key": key, "nodes": nodes, "score": score})
+            continue
 
-    # 3. CHECK FOR GRAPHS (Adjacency Lists)
-    for key, val in clean_vars.items():
+        # 3. GRAPH SCORING
+        graph_data = None
         if is_graph(val):
-            nodes = [{"id": k, "neighbors": v} for k, v in val.items()]
-            return {"type": "graph", "key": key, "nodes": nodes}
+            graph_data = val
+        # Check if the graph is wrapped inside a custom class object (like self.graph or self.adj)
+        elif isinstance(val, dict):
+            if is_graph(val.get('graph')):
+                graph_data = val.get('graph')
+            elif is_graph(val.get('adj')):
+                graph_data = val.get('adj')
 
-    # 4. CHECK FOR STANDARD DICTIONARIES / HASH MAPS
-    for key, val in clean_vars.items():
-        if isinstance(val, dict) and len(val) > 0:
-            first_val = next(iter(val.values()), None)
-            if not is_tree(first_val) and not is_ll(first_val):
-                entries = [{"key": str(k), "val": str(v)} for i, (k, v) in enumerate(val.items()) if i < 25]
-                return {"type": "dict", "key": key, "entries": entries}
+        if graph_data:
+            nodes = [{"id": k, "neighbors": v} for k, v in graph_data.items()]
+            # Massive score boost so it beats the temporary arrays inside your loops
+            score = 95 + len(nodes) + (30 if key in ['graph', 'adj', 'my_network', 'self'] else 0)
+            candidates.append({"type": "graph", "key": key, "nodes": nodes, "score": score})
+            continue
 
-    # 5. CHECK FOR ARRAYS / STRINGS LAST
-    for key, val in clean_vars.items():
-        is_valid_array = isinstance(val, list)
-        is_valid_string = isinstance(val, str) and not val.startswith("<")
+        # 4. ARRAY / STACK / QUEUE SCORING
+        array_data = None
+        is_stack_intent = False
+        is_queue_intent = False
         
-        if is_valid_array or is_valid_string:
-            arr_data = [str(v) for v in val[:40]] if is_valid_array else list(val[:40])
-            pointers = []
-            for p_key, p_val in clean_vars.items():
-                if isinstance(p_val, int) and 0 <= p_val < len(val):
-                    pointers.append({"key": p_key, "index": p_val})
-            return {"type": "array", "key": key, "data": arr_data, "pointers": pointers}
+        if isinstance(val, list):
+            array_data = val
+            if 'stack' in key.lower():
+                is_stack_intent = True
+            elif 'queue' in key.lower() or key.lower() == 'q' or 'deque' in key.lower():
+                is_queue_intent = True
+        elif isinstance(val, dict):
+            # Unwrap custom class objects containing arrays
+            for attr in ['stack', 'queue', 'q', 'arr', 'array', 'list', 'items', 'data', 'elements']:
+                if isinstance(val.get(attr), list):
+                    array_data = val.get(attr)
+                    if 'stack' in attr.lower() or 'stack' in key.lower():
+                        is_stack_intent = True
+                    elif 'queue' in attr.lower() or 'queue' in key.lower() or key.lower() == 'q':
+                        is_queue_intent = True
+                    break
+        
+        if array_data is not None:
+            arr_data = [str(v) for v in array_data[:40]]
+            pointers = [{"key": pk, "index": pv} for pk, pv in clean_vars.items() if isinstance(pv, int) and 0 <= pv < len(array_data)]
+            
+            score = 70 + len(arr_data) + (10 * len(pointers)) + (30 if key in ['res', 'arr', 'nums', 'stack', 'queue', 'q', 'self', 's'] else 0)
+            
+            # Label it specifically based on the detected intent
+            layout_type = "stack" if is_stack_intent else ("queue" if is_queue_intent else "array") #Disabled For Now
+            # Temporarily disable queue rendering by forcing it to "array"
+            layout_type = "stack" if is_stack_intent else "array"
+            candidates.append({"type": layout_type, "key": key, "data": arr_data, "pointers": pointers, "score": score})
+            continue
 
+        # 5. HASH MAP / DICT SCORING
+        if isinstance(val, dict) and len(val) > 0:
+            entries = [{"key": str(k), "val": str(v)} for i, (k, v) in enumerate(val.items()) if i < 25]
+            score = 60 + len(entries) + (15 if key in ['seen', 'visited', 'memo', 'freq', 'hashmap'] else 0)
+            candidates.append({"type": "dict", "key": key, "entries": entries, "score": score})
+
+    # Pick the absolute best candidate based on highest score
+    if candidates:
+        best_candidate = max(candidates, key=lambda x: x['score'])
+        del best_candidate['score'] # Clean up before sending to frontend
+        return best_candidate
+
+    # Fallback if literally nothing complex is found
     return {"type": "none"}
 
 # --- Standalone Worker Function ---
-def run_trace_worker(code_string: str) -> dict:
+def run_trace_worker(code_string):
     steps = []
     step_counter = 0
-    MAX_STEPS = 300  
-
-    stdout_buffer = io.StringIO()
     old_stdout = sys.stdout
+    stdout_buffer = io.StringIO()
     sys.stdout = stdout_buffer
 
-    IGNORED_SYSTEM_KEYS = {'file', 'sep', 'end', 'flush', 'args', 'func', '__builtins__'}
+    # --- RESOURCE LIMITS ---
+    MAX_STEPS = 1000
+    MAX_TIME = 2.0  # seconds
+    MAX_OUTPUT_LEN = 2000 # characters
+    start_time = time.time()
 
     def trace_func(frame, event, arg):
         nonlocal step_counter
-        if frame.f_code.co_filename != "<string>": return None
+        
+        # 1. Stop Infinite Loops
+        if step_counter >= MAX_STEPS:
+            raise RuntimeError(f"Execution stopped: Exceeded {MAX_STEPS} steps.")
+        
+        # 2. Stop Frozen Code
+        if time.time() - start_time > MAX_TIME:
+            raise TimeoutError("Execution stopped: Exceeded 2.0 seconds.")
 
         if event == 'line':
             step_counter += 1
-            if step_counter > MAX_STEPS:
-                sys.settrace(None)
-                return None
-
-            combined_vars = {**frame.f_globals, **frame.f_locals}
             clean_vars = {}
-            for k, v in combined_vars.items():
-                if not k.startswith('__') and k not in IGNORED_SYSTEM_KEYS and not callable(v):
+            for k, v in frame.f_locals.items():
+                if not k.startswith('__') and k not in ['sys', 'time'] and not callable(v):
                     try:
                         clean_vars[k] = make_json_safe(v)
-                    except Exception as e:
-                        clean_vars[k] = f"Error: {str(e)}"
+                    except Exception:
+                        clean_vars[k] = "Un-serializable object"
 
             layout_blueprint = generate_visual_layout(clean_vars)
+            
+            # 3. Cap Output Size
+            current_output = stdout_buffer.getvalue()
+            if len(current_output) > MAX_OUTPUT_LEN:
+                current_output = current_output[:MAX_OUTPUT_LEN] + "\n...[Output Truncated]"
 
             steps.append({
                 "step": step_counter,
                 "line": frame.f_lineno,
                 "variables": clean_vars,
-                "output": stdout_buffer.getvalue(),
+                "output": current_output,
                 "visual_layout": layout_blueprint
             })
         return trace_func
 
-    execution_scope = {}
-    sys.settrace(trace_func)
+    # --- SECURITY: RESTRICTED BUILT-INS ---
+    # Only allow safe functions. Blocks `__import__`, `open`, `eval`, etc.
+    safe_builtins = {
+        'print': print, 'range': range, 'len': len, 'int': int, 'str': str,
+        'list': list, 'dict': dict, 'set': set, 'tuple': tuple, 'bool': bool,
+        'float': float, 'enumerate': enumerate, 'zip': zip, 'min': min, 'max': max,
+        'sum': sum, 'abs': abs, 'round': round, 'Exception': Exception,
+        'ValueError': ValueError, 'TypeError': TypeError, 'IndexError': IndexError,
+        '__build_class__': __build_class__ # Required to let users define custom classes
+    }
+    
+    execution_scope = {"__builtins__": safe_builtins}
+
     try:
+        sys.settrace(trace_func)
         exec(code_string, execution_scope)
-        if steps and steps[-1]["output"] != stdout_buffer.getvalue():
-            steps[-1]["output"] = stdout_buffer.getvalue()
+        sys.settrace(None)
+        
+        # ONE EXTRA STEP FOR FINAL STATE
+        step_counter += 1
+        clean_vars = {}
+        for k, v in execution_scope.items():
+            if not k.startswith('__') and not callable(v):
+                try:
+                    clean_vars[k] = make_json_safe(v)
+                except Exception:
+                    pass
+
+        steps.append({
+            "step": step_counter,
+            "line": steps[-1]["line"] if steps else 1,
+            "variables": clean_vars,
+            "output": stdout_buffer.getvalue()[:MAX_OUTPUT_LEN],
+            "visual_layout": generate_visual_layout(clean_vars)
+        })
+        
         return {"success": True, "steps": steps}
+        
     except Exception as e:
-        return {"success": (False), "error": f"{type(e).__name__}: {str(e)}"}
+        return {"success": False, "error": f"{type(e).__name__}: {str(e)}"}
     finally:
         sys.settrace(None)
         sys.stdout = old_stdout
-
 @app.get("/")
 def read_root():
     return {"status": "online", "message": "CodeToAnim Trace Engine is running successfully!"}
