@@ -102,12 +102,24 @@ const LandingPage = () => {
         )}
       </AnimatePresence>
 
-      {/* Header - Semantic & SEO Friendly */}
+{/* Header - Semantic & SEO Friendly */}
       <header className="w-full px-6 py-4 flex justify-between items-center max-w-7xl mx-auto border-b border-white/5 bg-black/20 backdrop-blur-md sticky top-0 z-50">
-        <Link to="/" className="text-2xl font-extrabold tracking-tighter text-white flex items-center gap-2 z-10 group">
-          CodeTo<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 group-hover:from-blue-400 group-hover:to-purple-500 transition-all duration-500">Anim</span> 
+        
+        <Link to="/" className="text-2xl font-extrabold tracking-tighter text-white flex items-center gap-3 z-10 group">
+          {/* Your SVG Logo */}
+          <img 
+            src="/favicon.svg" 
+            alt="CodeToAnim Logo" 
+            className="w-8 h-8 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" 
+          />
+          
+          <div>
+            CodeTo<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 group-hover:from-blue-400 group-hover:to-purple-500 transition-all duration-500">Anim</span> 
+          </div>
+          
           <motion.span animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}>🚀</motion.span>
         </Link>
+
         <nav className="flex items-center gap-4 sm:gap-6 z-10" aria-label="Main Navigation">
           <Link 
             to="/auth" 
@@ -124,7 +136,6 @@ const LandingPage = () => {
           </Link>
         </nav>
       </header>
-
       <main className="flex-grow flex flex-col items-center w-full z-10">
         
         {/* Hero Section */}
