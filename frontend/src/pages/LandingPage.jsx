@@ -116,8 +116,6 @@ const LandingPage = () => {
           <div>
             CodeTo<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 group-hover:from-blue-400 group-hover:to-purple-500 transition-all duration-500">Anim</span> 
           </div>
-          
-          <motion.span animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}>🚀</motion.span>
         </Link>
 
         <nav className="flex items-center gap-4 sm:gap-6 z-10" aria-label="Main Navigation">
@@ -265,7 +263,7 @@ const LandingPage = () => {
             {[
               { q: "What programming languages are supported?", a: "CodeToAnim currently specializes in Python. We instantly translate standard coding structures directly from your code logic." },
               { q: "Do I need to install anything?", a: "No installation is required. Runs entirely in your browser, allowing you to write, test, and watch code animate instantly." },
-              { q: "Is CodeToAnim free to use?", a: "Yes! Completely free for individual learning. Creating an account simply unlocks the ability to save your workspace history." }
+              { q: "Is CodeToAnim free to use?", a: "Yes! Completely free for individual learning for now. Creating an account simply unlocks the ability to save your workspace history." }
             ].map((faq, index) => (
               <motion.article 
                 key={index} variants={fadeUpVariant}
