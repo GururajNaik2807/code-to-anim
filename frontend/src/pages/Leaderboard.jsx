@@ -2,8 +2,50 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useTheme } from '../context/ThemeContext';
+import { motion } from 'framer-motion';
 
-// --- Level System Definitions (Reused for consistent rendering) ---
+// --- Animated Particle Component ---
+const FloatingParticles = ({ isMobile }) => {
+  const particleCount = isMobile ? 40 : 175; 
+  const particleColors = ["#A855F7", "#22D3EE", "#EC4899"];
+  
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      {[...Array(particleCount)].map((_, i) => {
+        const size = Math.random() * (isMobile ? 3 : 6) + 2;
+        const color = particleColors[i % particleColors.length];
+        
+        return (
+          <motion.div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: size,
+              height: size,
+              backgroundColor: color,
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              y: [0, Math.random() * -300 - 100],
+              x: [0, Math.random() * 100 - 50],
+              opacity: [0, Math.random() * 0.5 + 0.2, 0],
+              scale: [0, 1.5, 0],
+            }}
+            transition={{
+              duration: Math.random() * 5 + (isMobile ? 8 : 5),
+              repeat: Infinity,
+              ease: "linear",
+              delay: Math.random() * 5,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+// --- Level System Definitions ---
 const HONORS = [
   "Novice", "Beginner", "Apprentice", "Coder", "Scripter", 
   "Programmer", "Developer", "Engineer", "Architect", "Master", 
@@ -31,10 +73,26 @@ export default function Leaderboard() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  // Responsive States
+  const [isMobile, setIsMobile] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const navigate = useNavigate();
   const { currentTheme, changeTheme } = useTheme(); 
   const isDark = currentTheme === 'dark';
+
+  // Detect Mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) setIsSidebarOpen(false);
+    };
+    checkMobile(); 
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     fetchLeaderboardData();
@@ -82,7 +140,6 @@ export default function Leaderboard() {
   const textPrimary = isDark ? 'text-slate-100' : 'text-slate-800';
   const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
   
-  // Refined Borders with Soft Shadows & Reflections
   const metallicBorder = isDark 
     ? 'border border-slate-800/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_2px_4px_rgba(0,0,0,0.3)]' 
     : 'border border-slate-200/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_1px_3px_rgba(0,0,0,0.05)]';
@@ -111,8 +168,8 @@ export default function Leaderboard() {
   if (loading) {
     return (
       <div className={`h-screen w-screen flex flex-col items-center justify-center font-mono gap-4 ${bgMain} ${textPrimary}`}>
-        <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-sm tracking-widest text-amber-500 uppercase font-bold animate-pulse">Loading Rankings...</p>
+        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-sm tracking-widest text-indigo-400 uppercase font-bold animate-pulse">Loading Rankings...</p>
       </div>
     );
   }
@@ -147,8 +204,7 @@ export default function Leaderboard() {
     }
 
     return (
-      <div className={`flex flex-col items-center p-6 rounded-3xl ${metallicBorder} ${bgPanel} ${glow} relative overflow-hidden flex-1 max-w-[280px] hover:-translate-y-2 transition-transform duration-300 ${rank === 1 ? 'md:-mt-8 z-10 scale-105' : 'opacity-90'}`}>
-        {/* Subtle background glow */}
+      <div className={`podium-card flex flex-col items-center p-6 rounded-3xl ${metallicBorder} ${bgPanel}/90 backdrop-blur-md ${glow} relative overflow-hidden flex-1 max-w-[280px] hover:-translate-y-2 transition-transform duration-300 ${rank === 1 ? 'md:-mt-8 z-10 scale-105' : 'opacity-95'}`}>
         <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${rankColors} rounded-full blur-3xl opacity-20 pointer-events-none`}></div>
         
         <div className="absolute top-4 right-4 text-2xl drop-shadow-md">{badge}</div>
@@ -170,59 +226,131 @@ export default function Leaderboard() {
   };
 
   return (
-    <div className={`flex h-screen w-screen font-sans ${bgMain} ${textPrimary} overflow-hidden`}>
+    <div className={`flex h-screen w-screen font-sans ${bgMain} ${textPrimary} overflow-hidden relative`}>
       
-      {/* Sidebar (Matches ProfilePage) */}
-      <aside className={`w-64 flex-shrink-0 ${metallicBorder} border-y-0 border-l-0 ${bgPanel} flex flex-col justify-between overflow-y-auto ${scrollbarStyles} z-20`}>
-        <div>
-          <div className="h-16 flex items-center px-6 font-extrabold text-xl tracking-tight border-b border-transparent">
-            <span className={isDark ? 'text-white' : 'text-slate-900'}>&lt;/&gt; CodeTo</span>
-            <span className="text-indigo-500 ml-1">Anim</span>
-          </div>
-          <div className="px-4 py-4">
-            <Link to="/profile" className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${hoverBg}`}>
-              <span className="opacity-80">🏠</span> Dashboard
-            </Link>
-          </div>
-          <div className="px-4 pb-6">
-            {navLinks.map((group, idx) => (
-              <div key={idx} className="mt-6">
-                <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-3 px-4 ${textSecondary}`}>{group.section}</h4>
-                <div className="space-y-1">
-                  {group.links.map((link, lIdx) => (
-                    <Link key={lIdx} to={link.path} className={`flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all ${link.active ? (isDark ? 'text-white bg-slate-800/40 shadow-inner border border-slate-700/50' : 'text-slate-900 bg-slate-100 shadow-sm border border-slate-200') : `${textSecondary} ${hoverBg}`}`}>
-                      <span className="opacity-80">{link.icon}</span>{link.name}
-                      {link.tag && (
-                        <span className={`ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${link.tagColor}`}>
-                          {link.tag}
-                        </span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className={`p-4 ${metallicBorder} border-x-0 border-b-0`}>
-          <button onClick={toggleTheme} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl ${metallicBorder} ${hoverBg} transition-colors shadow-sm`}>
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
-              <span>{isDark ? '🌙' : '☀️'}</span>
-              <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Theme</span>
+      {/* Dynamic Background Particles */}
+      <FloatingParticles isMobile={isMobile} />
+
+      {/* MOBILE-ONLY CSS OVERRIDES: Guarantees PC View Remains Untouched */}
+      <style>{`
+        @media (max-width: 768px) {
+          .sidebar-container {
+            position: absolute !important;
+            height: 100% !important;
+            z-index: 50 !important;
+            box-shadow: 5px 0 20px rgba(0,0,0,0.5) !important;
+          }
+          
+          .mobile-header {
+            height: auto !important;
+            padding: 12px 16px !important;
+          }
+          
+          .podium-container {
+            flex-direction: column !important;
+            gap: 20px !important;
+            align-items: center !important;
+            padding-bottom: 24px !important;
+          }
+          
+          .podium-card {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-top: 0 !important;
+            transform: none !important;
+          }
+
+          .table-container {
+            padding: 12px !important;
+            border-radius: 16px !important;
+          }
+        }
+      `}</style>
+
+      {isLoggingOut && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+          <div className={`relative w-full max-w-sm rounded-3xl p-8 flex flex-col items-center text-center transform transition-all ${metallicBorder} ${isDark ? 'bg-[#10141D] text-white' : 'bg-white text-slate-900'}`}>
+            <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center text-3xl mb-4 border border-emerald-500/30 shadow-inner">👋</div>
+            <h2 className="text-2xl font-black mb-2 tracking-tight">Successfully Logged Out</h2>
+            <p className={`text-sm leading-relaxed mb-6 ${textSecondary}`}>Redirecting you to home...</p>
+            <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'} ${metallicBorder} shadow-none`}>
+              <div className="h-full bg-emerald-500 w-full animate-[pulse_1s_ease-in-out_infinite]"></div>
             </div>
-            <span className={`text-xs font-medium ${textSecondary}`}>{isDark ? 'Dark' : 'Light'}</span>
-          </button>
+          </div>
         </div>
-      </aside>
+      )}
+
+      {/* Sidebar (Matches ProfilePage) */}
+      <div className={`sidebar-container transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden relative z-20 ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
+        <aside className={`w-64 h-full ${metallicBorder} border-y-0 border-l-0 ${bgPanel}/95 backdrop-blur-md flex flex-col justify-between overflow-y-auto ${scrollbarStyles}`}>
+          <div>
+            <div className="h-16 flex items-center px-6 font-extrabold text-xl tracking-tight border-b border-transparent">
+              <img src="/favicon.svg" alt="CodeToAnim Logo" className="w-7 h-7 mr-2 rounded-md object-contain" />
+              <span className={isDark ? 'text-white' : 'text-slate-900'}>CodeTo</span>
+              <span className="text-indigo-500 ml-1">Anim</span>
+            </div>
+            <div className="px-4 py-4">
+              <Link to="/profile" className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${hoverBg}`}>
+                <span className="opacity-80">🏠</span> Dashboard
+              </Link>
+            </div>
+            <div className="px-4 pb-6">
+              {navLinks.map((group, idx) => (
+                <div key={idx} className="mt-6">
+                  <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-3 px-4 ${textSecondary}`}>{group.section}</h4>
+                  <div className="space-y-1">
+                    {group.links.map((link, lIdx) => (
+                      <Link key={lIdx} to={link.path} className={`flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all ${link.active ? (isDark ? 'text-white bg-slate-800/40 shadow-inner border border-slate-700/50' : 'text-slate-900 bg-slate-100 shadow-sm border border-slate-200') : `${textSecondary} ${hoverBg}`}`}>
+                        <span className="opacity-80">{link.icon}</span>{link.name}
+                        {link.tag && (
+                          <span className={`ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${link.tagColor}`}>
+                            {link.tag}
+                          </span>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className={`p-4 ${metallicBorder} border-x-0 border-b-0`}>
+            <button onClick={toggleTheme} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl ${metallicBorder} ${hoverBg} transition-colors shadow-sm`}>
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+                <span>{isDark ? '🌙' : '☀️'}</span>
+                <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Theme</span>
+              </div>
+              <span className={`text-xs font-medium ${textSecondary}`}>{isDark ? 'Dark' : 'Light'}</span>
+            </button>
+          </div>
+        </aside>
+      </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         
         {/* Top Header */}
-        <header className={`h-16 flex-shrink-0 ${metallicBorder} border-x-0 border-t-0 ${bgPanel} flex items-center justify-end px-8 z-10`}>
+        <header className={`h-16 flex-shrink-0 ${metallicBorder} border-x-0 border-t-0 ${bgPanel}/80 backdrop-blur-md flex items-center justify-between px-8 z-10 transition-all mobile-header`}>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className={`p-2 rounded-xl ${metallicBorder} ${hoverBg} transition-all duration-300 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50 shadow-sm group`}
+              aria-label="Toggle Sidebar"
+            >
+              <svg 
+                className={`w-5 h-5 ${textSecondary} group-hover:text-indigo-500 transition-transform duration-300 ${isSidebarOpen ? '' : 'rotate-180'}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h8m-8 6h16" />
+              </svg>
+            </button>
+          </div>
+
           <div className="flex items-center gap-5">
-            <Link to="/workspace" className={`flex items-center gap-2 px-4 py-1.5 ${metallicBorder} rounded-xl text-sm font-bold shadow-sm hover:border-indigo-500 hover:text-indigo-500 transition-colors ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
-              ⚡ Workspace
+            <Link to="/workspace" className={`flex items-center gap-2 px-4 py-1.5 ${metallicBorder} rounded-xl text-sm font-bold shadow-sm hover:border-indigo-500 hover:text-indigo-500 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-white'}`}>
+              ⚡ <span className="hidden sm:inline">Workspace</span>
             </Link>
             <div className={`flex items-center gap-3 cursor-pointer pl-4 border-l ${isDark ? 'border-slate-800' : 'border-slate-200'}`} onClick={handleLogout}>
               <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm ${metallicBorder} shadow-md`}>
@@ -233,18 +361,18 @@ export default function Leaderboard() {
         </header>
 
         {/* Dashboard Content */}
-        <main className={`flex-1 overflow-y-auto p-8 ${scrollbarStyles}`}>
+        <main className={`flex-1 overflow-y-auto p-4 md:p-8 ${scrollbarStyles}`}>
           <div className="max-w-5xl mx-auto space-y-12 pb-10">
             
             {/* Header Title */}
-            <div className="text-center space-y-3">
-              <h1 className="text-4xl font-black tracking-tight">Global Rankings</h1>
+            <div className="text-center space-y-3 mt-4">
+              <h1 className="text-4xl font-black tracking-tight drop-shadow-md">Global Rankings</h1>
               <p className={`text-sm font-medium ${textSecondary}`}>Top 50 developers by total XP across CodeToAnim.</p>
             </div>
 
             {/* Podium Section (Top 3) */}
             {top3.length > 0 && (
-              <div className="flex flex-col md:flex-row justify-center items-end gap-6 pt-4 pb-8">
+              <div className="podium-container flex flex-col md:flex-row justify-center items-end gap-6 pt-4 pb-8">
                 {/* 2nd Place */}
                 {top3.length > 1 && renderPodiumCard(top3[1], 2)}
                 
@@ -258,9 +386,9 @@ export default function Leaderboard() {
 
             {/* Leaderboard List (Rank 4+) */}
             {restOfLeaderboard.length > 0 && (
-              <div className={`${bgPanel} ${metallicBorder} rounded-3xl p-6 shadow-sm`}>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
+              <div className={`table-container ${bgPanel}/90 backdrop-blur-md ${metallicBorder} rounded-3xl p-6 shadow-sm`}>
+                <div className="overflow-x-auto scrollbar-thin">
+                  <table className="w-full text-left border-collapse min-w-[500px]">
                     <thead>
                       <tr className={`border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                         <th className={`py-4 px-6 text-[10px] font-black uppercase tracking-widest ${textSecondary}`}>Rank</th>

@@ -8,9 +8,8 @@ import LoginModal from '../components/LoginModal';
 import Editor from '../components/Editor';
 import Visualizer from '../components/Visualizer';
 
-// --- NEW IMPORTS FOR SEO ---
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
-import { Helmet } from 'react-helmet-async'; // Make sure to npm install react-helmet-async
+import { Helmet } from 'react-helmet-async'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
 
@@ -18,7 +17,6 @@ export default function WorkspacePage({ isEmbedded = false }) {
   const location = useLocation();
   const navigate = useNavigate(); 
   
-  // NEW: Grab the ?algo= parameter from the URL
   const [searchParams] = useSearchParams();
   const algoQueryId = searchParams.get('algo');
 
@@ -63,7 +61,8 @@ print("Final Sorted Array:", arr)`;
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1000);
 
-  const [isDescriptionOpen, setIsDescriptionOpen] = useState(true);
+  // Default to closed on mobile for better UX, open on PC
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(window.innerWidth > 768);
   const [isEditorOpen, setIsEditorOpen] = useState(true);
 
   const [isCompleted, setIsCompleted] = useState(false);
@@ -74,11 +73,8 @@ print("Final Sorted Array:", arr)`;
 
   const autoPlayRef = useRef(null);
 
-  // --- NEW: INTELLIGENT ROUTING LOGIC ---
   useEffect(() => {
-    // Priority 1: Check if there is a URL parameter (SEO Public Link)
     if (algoQueryId) {
-      // Find matching algo by ID (converting both to strings to be safe)
       const targetAlgo = ALGORITHMS_DATABASE.find(a => String(a.id) === String(algoQueryId));
       if (targetAlgo) {
         setCode(targetAlgo.code);
@@ -94,21 +90,18 @@ print("Final Sorted Array:", arr)`;
           exampleInput: null,
           exampleOutput: null
         });
-        return; // Exit early if we found it in the DB
+        return; 
       }
     }
 
-    // Priority 2: Check if state was passed (Embedded Profile Link)
     if (location.state?.presetCode) {
       setCode(location.state.presetCode);
       if (location.state?.metadata) setAlgoMetadata(location.state.metadata);
-      return; // Exit early if state was provided
+      return; 
     }
 
-    // Priority 3: No URL Param, No State -> Load default Sandbox
     setCode(DEFAULT_CODE);
     setAlgoMetadata(DEFAULT_METADATA);
-
   }, [algoQueryId, location.state]);
 
   useEffect(() => {
@@ -335,8 +328,6 @@ print("Final Sorted Array:", arr)`;
     setErrorMessage(null);
     setIsCompleted(false);
     setIsPlaying(false);
-    
-    // Clear URL param AND state simultaneously
     navigate('/workspace', { replace: true, state: {} });
   };
 
@@ -362,14 +353,132 @@ print("Final Sorted Array:", arr)`;
 
   return (
     <>
-      {/* 
-        NEW: Helmet conditionally renders SEO titles/descriptions 
-        depending on what algorithm is loaded!
-      */}
       <Helmet>
         <title>{algoMetadata.algorithmTitle} | CodeToAnim Visualization</title>
         <meta name="description" content={algoMetadata.description} />
       </Helmet>
+
+      {/* ISOLATED OVERRIDE STYLES: 'ws-' prefix prevents collision with ProfilePage CSS */}
+      <style>{`
+        @media (max-width: 768px) {
+          .ws-mobile-hide { display: none !important; }
+
+          .ws-mobile-header {
+            height: auto !important;
+            flex-direction: column !important;
+            padding: 8px 12px !important;
+            gap: 8px !important;
+          }
+          .ws-mobile-header > div {
+            width: 100% !important;
+            justify-content: space-between !important;
+          }
+          .ws-mobile-header .header-actions {
+            justify-content: center !important;
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+          }
+          .ws-mobile-header button, .ws-mobile-header a {
+            padding-top: 4px !important;
+            padding-bottom: 4px !important;
+            font-size: 11px !important;
+          }
+
+          .ws-mobile-main-row {
+            flex-direction: column !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+          }
+
+          .ws-mobile-desc-panel {
+            width: 100% !important;
+            height: auto !important;
+            min-height: 32px !important;
+            border-right: none !important;
+            border-bottom: 1px solid rgba(100,100,100,0.3) !important;
+            flex: none !important;
+            z-index: 20 !important;
+          }
+
+          .ws-mobile-closed {
+            height: 36px !important;
+            padding: 0 12px !important;
+            flex-direction: row !important;
+            align-items: center !important;
+          }
+          
+          .ws-mobile-closed .closed-desc-inner {
+            flex-direction: row !important;
+            margin-top: 0 !important;
+            height: 100% !important;
+            width: 100% !important;
+            justify-content: flex-start !important;
+            align-items: center !important;
+          }
+          
+          .ws-mobile-closed .closed-text {
+            writing-mode: horizontal-tb !important;
+            transform: none !important;
+            margin-top: 0 !important;
+            margin-left: 10px !important;
+          }
+
+          .ws-mobile-workspace-col {
+            overflow: visible !important;
+            flex: none !important;
+          }
+
+          .ws-mobile-editor-row {
+            flex-direction: column !important;
+            overflow: visible !important;
+            flex: none !important;
+          }
+
+          .ws-mobile-editor-row > * {
+            width: 100% !important;
+            height: 60vh !important;
+            min-height: 450px !important;
+            flex: none !important;
+            border-right: none !important;
+            border-bottom: 1px solid rgba(100,100,100,0.3) !important;
+          }
+
+          .ws-mobile-footer {
+            position: sticky !important;
+            bottom: 0 !important;
+            height: auto !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+            padding: 8px 12px !important;
+            z-index: 50 !important;
+            box-shadow: 0 -10px 20px rgba(0,0,0,0.5) !important;
+          }
+          
+          .ws-mobile-footer > div {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+
+          .ws-mobile-footer .gap-2 {
+             gap: 4px !important;
+          }
+          .ws-mobile-footer button {
+             padding: 4px !important;
+          }
+          .ws-mobile-footer button.w-11 {
+             width: 32px !important;
+             height: 30px !important;
+             min-height: 32px !important;
+          }
+          .ws-mobile-footer button.w-11 svg {
+             width: 16px !important;
+             height: 16px !important;
+          }
+          .ws-mobile-footer > div:last-child {
+             margin-top: 2px !important;
+          }
+        }
+      `}</style>
 
       <div className={`${isEmbedded ? 'h-full w-full' : 'h-screen w-screen'} flex font-sans overflow-hidden ${bgMain} ${textPrimary}`}>
         <LoginModal />
@@ -395,7 +504,7 @@ print("Final Sorted Array:", arr)`;
         )}
 
         {!isEmbedded && (
-          <aside className={`w-16 flex-shrink-0 ${metallicBorder} ${bgNav} flex flex-col items-center justify-between py-4 z-20`}>
+          <aside className={`hidden md:flex w-16 flex-shrink-0 ${metallicBorder} ${bgNav} flex-col items-center justify-between py-4 z-20 ws-mobile-hide`}>
             <div className="flex flex-col items-center gap-6">
               <Link to="/" className={`w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600/20 to-indigo-600/20 flex items-center justify-center p-2 hover:scale-105 transition-transform ${metallicBorder}`}>
                 <img src="/favicon.svg" alt="CodeAnim Logo" className="w-full h-full object-contain" />
@@ -419,7 +528,7 @@ print("Final Sorted Array:", arr)`;
         )}
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          <header className={`h-14 ${metallicBorder} border-x-0 border-t-0 ${bgNav} flex items-center justify-between px-6 z-10`}>
+          <header className={`h-14 ${metallicBorder} border-x-0 border-t-0 ${bgNav} flex items-center justify-between px-6 z-10 ws-mobile-header`}>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <img src="/favicon.svg" alt="Logo" className="w-5 h-5 object-contain" />
@@ -434,7 +543,7 @@ print("Final Sorted Array:", arr)`;
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 header-actions">
               {algoMetadata.type !== 'sandbox' && (
                  <button 
                   onClick={handleResetSandbox} 
@@ -499,21 +608,21 @@ print("Final Sorted Array:", arr)`;
             </div>
           </header>
 
-          <div className="flex-1 flex overflow-hidden relative">
-            <aside className={`relative flex-shrink-0 ${metallicBorder} border-y-0 border-l-0 ${bgPanel} transition-all duration-300 flex flex-col justify-between overflow-hidden ${
-              isDescriptionOpen ? "w-64 p-5" : "w-10 p-2 items-center"
+          <div className="flex-1 flex overflow-hidden relative ws-mobile-main-row">
+            <aside className={`relative flex-shrink-0 ${metallicBorder} border-y-0 border-l-0 ${bgPanel} transition-all duration-300 flex flex-col justify-between overflow-hidden ws-mobile-desc-panel ${
+              isDescriptionOpen ? "w-64 p-5" : "w-10 p-2 items-center ws-mobile-closed"
             }`}>
-              <button 
-                onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
-                className={`absolute top-3 right-2 z-20 w-6 h-6 rounded-full ${metallicBorder} ${bgNav} hover:border-purple-500 text-purple-600 flex items-center justify-center text-xs transition-colors`}
-                title={isDescriptionOpen ? "Collapse Description" : "Expand Description"}
-              >
-                {isDescriptionOpen ? "◀" : "▶"}
-              </button>
+             <button 
+              onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
+              className={`absolute top-3 right-2 z-20 w-6 h-6 rounded-full ${metallicBorder} ${bgNav} hover:border-purple-500 text-purple-600 items-center justify-center text-xs transition-colors hidden md:flex`}
+              title={isDescriptionOpen ? "Collapse Description" : "Expand Description"}
+             >
+              {isDescriptionOpen ? "◀" : "▶"}
+            </button>
 
               {!isDescriptionOpen ? (
-                <div className="flex flex-col items-center gap-6 mt-12 cursor-pointer" onClick={() => setIsDescriptionOpen(true)}>
-                  <span className={`text-[10px] font-bold uppercase font-mono tracking-widest ${textSecondary} [writing-mode:vertical-lr] rotate-180`}>
+                <div className="flex flex-col items-center gap-6 mt-12 cursor-pointer closed-desc-inner" onClick={() => setIsDescriptionOpen(true)}>
+                  <span className={`text-[10px] font-bold uppercase font-mono tracking-widest ${textSecondary} [writing-mode:vertical-lr] rotate-180 closed-text`}>
                     DESCRIPTION
                   </span>
                 </div>
@@ -554,8 +663,8 @@ print("Final Sorted Array:", arr)`;
               )}
             </aside>
 
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="flex-1 flex overflow-hidden relative">
+            <div className="flex-1 flex flex-col overflow-hidden ws-mobile-workspace-col">
+              <div className="flex-1 flex overflow-hidden relative ws-mobile-editor-row">
                 <Editor 
                   code={code} 
                   setCode={setCode} 
@@ -580,7 +689,7 @@ print("Final Sorted Array:", arr)`;
                 />
               </div>
 
-              <footer className={`h-16 ${metallicBorder} border-x-0 border-b-0 ${bgNav} flex items-center justify-between px-8 z-10`}>
+              <footer className={`h-16 ${metallicBorder} border-x-0 border-b-0 ${bgNav} flex items-center justify-between px-8 z-10 ws-mobile-footer`}>
                 <div className={`font-mono text-xs ${textSecondary} flex items-center gap-2 max-w-xs truncate`}>
                   <span className="text-purple-600 font-bold">OUTPUT:</span>
                   <span className="text-emerald-500 font-semibold truncate">

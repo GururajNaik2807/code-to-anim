@@ -3,11 +3,53 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { motion } from 'framer-motion';
 
 // 1. IMPORT YOUR FULL ALGORITHM DATABASE HERE:
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 // 2. IMPORT THE WORKSPACE COMPONENT
 import WorkspacePage from './WorkspacePage';
+
+// --- Animated Particle Component ---
+const FloatingParticles = ({ isMobile }) => {
+  const particleCount = isMobile ? 40 : 175; 
+  const particleColors = ["#A855F7", "#22D3EE", "#EC4899"];
+  
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      {[...Array(particleCount)].map((_, i) => {
+        const size = Math.random() * (isMobile ? 3 : 6) + 2;
+        const color = particleColors[i % particleColors.length];
+        
+        return (
+          <motion.div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: size,
+              height: size,
+              backgroundColor: color,
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              y: [0, Math.random() * -300 - 100],
+              x: [0, Math.random() * 100 - 50],
+              opacity: [0, Math.random() * 0.5 + 0.2, 0],
+              scale: [0, 1.5, 0],
+            }}
+            transition={{
+              duration: Math.random() * 5 + (isMobile ? 8 : 5),
+              repeat: Infinity,
+              ease: "linear",
+              delay: Math.random() * 5,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
 
 // --- Level System Definitions ---
 const HONORS = [
@@ -66,11 +108,20 @@ export default function ProfilePage() {
   const [editName, setEditName] = useState('');
   const [shareText, setShareText] = useState('Share Profile');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const navigate = useNavigate();
   const { currentTheme, changeTheme } = useTheme(); 
   const { openAuthModal } = useAuth();
   const isDark = currentTheme === 'dark';
+
+  // Detect Mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile(); 
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     fetchProfileData();
@@ -181,7 +232,6 @@ export default function ProfilePage() {
   }, [libSearchTerm, libCategory, libDifficulty]);
 
   const handleOpenInTracer = (algo) => {
-    // Navigating to profile rather than standalone workspace to keep the embedded view
     navigate('/profile', { 
       state: { 
         presetCode: algo.code,
@@ -200,24 +250,10 @@ export default function ProfilePage() {
       } 
     });
     setCurrentView('workspace');
+    if(isMobile) setIsSidebarOpen(false); // Auto close sidebar on mobile when navigating
   };
 
   // --- DASHBOARD HELPERS ---
-  const getTimeAgo = (dateString) => {
-    const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " years ago";
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " months ago";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " days ago";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " hours ago";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " minutes ago";
-    return Math.floor(seconds) + " seconds ago";
-  };
-
   const generateHeatmap = () => {
     const today = new Date();
     return Array.from({ length: 84 }).map((_, i) => {
@@ -232,17 +268,6 @@ export default function ProfilePage() {
       if (count > 5) bgClass = 'bg-indigo-500';
       return <div key={i} className={`w-full aspect-square rounded-[2px] ${bgClass} transition-colors`} title={`${dateStr}: ${count} executions`}></div>;
     });
-  };
-
-  const getActivityFormatting = (type, details) => {
-    switch (type) {
-      case 'EXECUTE': return { icon: '▶️', action: `Executed ${details}` };
-      case 'CREATE': return { icon: '➕', action: `Created "${details}"` };
-      case 'FAVORITE': return { icon: '❤️', action: `Favorited ${details}` };
-      case 'ACHIEVEMENT': return { icon: '🏆', action: `Earned "${details}" achievement` };
-      case 'STREAK': return { icon: '🔥', action: `Reached ${details} streak` };
-      default: return { icon: '📝', action: details };
-    }
   };
 
   const calculateCategoryProgress = (categoryName) => {
@@ -294,7 +319,6 @@ export default function ProfilePage() {
   const displayName = profile?.display_name || user?.email?.split('@')[0] || 'User';
   const userHandle = `@${displayName.toLowerCase().replace(/\s/g, '')}`;
   const userInitial = displayName.charAt(0).toUpperCase();
-  const joinDate = new Date(profile?.created_at || Date.now()).toLocaleDateString('en-US', {month:'short', year:'numeric'});
   const learningSeconds = profile?.learning_time_seconds || 0;
   const hours = Math.floor(learningSeconds / 3600);
   const minutes = Math.floor((learningSeconds % 3600) / 60);
@@ -311,14 +335,19 @@ export default function ProfilePage() {
     { label: 'Longest Streak', val: `${streakCount} ${streakCount === 1 ? 'day' : 'days'}`, icon: '🔥', trend: 'Best Record', color: 'text-red-500' }
   ];
 
+  const handleNavClick = (view) => {
+    setCurrentView(view);
+    if(isMobile) setIsSidebarOpen(false);
+  }
+
   const navLinks = [
-    { section: 'WORKSPACE', links: [{ name: 'Workspace', action: () => setCurrentView('workspace'), icon: '⚡', isActive: currentView === 'workspace' }] },
+    { section: 'WORKSPACE', links: [{ name: 'Workspace', action: () => handleNavClick('workspace'), icon: '⚡', isActive: currentView === 'workspace' }] },
     { section: 'LEARNING', links: [
       { name: 'Learning Path', path: '#', icon: '🎓', tag: 'Building', tagColor: isDark ? 'bg-amber-900/40 text-amber-400 border-amber-500/30' : 'bg-amber-100 text-amber-700 border-amber-300' }, 
-      { name: 'Algorithm Library', action: () => setCurrentView('library'), icon: '📚', isActive: currentView === 'library' }
+      { name: 'Algorithm Library', action: () => handleNavClick('library'), icon: '📚', isActive: currentView === 'library' }
     ] },
     { section: 'COMMUNITY', links: [
-      { name: 'Leaderboard', action: () => setCurrentView('leaderboard'), icon: '🏆', isActive: currentView === 'leaderboard' },
+      { name: 'Leaderboard', action: () => handleNavClick('leaderboard'), icon: '🏆', isActive: currentView === 'leaderboard' },
     ] }
   ];
 
@@ -341,7 +370,7 @@ export default function ProfilePage() {
     }
 
     return (
-      <div className={`flex flex-col items-center p-6 rounded-3xl ${metallicBorder} ${bgPanel} ${glow} relative overflow-hidden flex-1 max-w-[280px] hover:-translate-y-2 transition-transform duration-300 ${rank === 1 ? 'md:-mt-8 z-10 scale-105' : 'opacity-90'}`}>
+      <div className={`flex flex-col items-center p-6 rounded-3xl ${metallicBorder} ${bgPanel} ${glow} relative overflow-hidden flex-1 max-w-[280px] hover:-translate-y-2 transition-transform duration-300 podium-card ${rank === 1 ? 'md:-mt-8 z-10 scale-105' : 'opacity-90'}`}>
         <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${rankColors} rounded-full blur-3xl opacity-20 pointer-events-none`}></div>
         <div className="absolute top-4 right-4 text-2xl drop-shadow-md">{badge}</div>
         <div className="absolute top-4 left-4 text-xs font-black text-slate-400">#{rank}</div>
@@ -357,7 +386,114 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className={`flex h-screen w-screen font-sans ${bgMain} ${textPrimary} overflow-hidden`}>
+    <div className={`flex h-screen w-screen font-sans ${bgMain} ${textPrimary} overflow-hidden relative`}>
+      
+      {/* Dynamic Background Particles */}
+      <FloatingParticles isMobile={isMobile} />
+
+      {/* MOBILE-ONLY CSS OVERRIDES: Guarantees PC View Remains Untouched */}
+      <style>{`
+        @media (max-width: 768px) {
+          /* Make Sidebar act as an overlay on mobile */
+          .sidebar-container {
+            position: absolute !important;
+            height: 100% !important;
+            z-index: 50 !important;
+            box-shadow: 5px 0 20px rgba(0,0,0,0.5) !important;
+          }
+          
+          /* Compact Header */
+          .mobile-header {
+            height: auto !important;
+            flex-direction: row !important;
+            padding: 10px 16px !important;
+            gap: 10px !important;
+            align-items: center !important;
+          }
+          .mobile-header > div:first-child {
+            flex: 1 !important;
+            width: auto !important;
+          }
+          .mobile-header input {
+            width: 100% !important;
+          }
+
+          /* --- FIXED PROFILE HERO CARD --- */
+          .profile-card {
+            flex-direction: column !important;
+            text-align: center !important;
+            padding: 20px 16px !important;
+            gap: 16px !important;
+          }
+          .profile-user-info {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            width: 100% !important;
+            gap: 12px !important;
+          }
+          .profile-card-stats {
+            width: 100% !important;
+            margin-top: 4px !important;
+            align-items: center !important;
+          }
+          .profile-badges-row {
+            justify-content: center !important;
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+          }
+          .profile-edit-actions {
+            width: 100% !important;
+            justify-content: center !important;
+            gap: 8px !important;
+          }
+          .profile-edit-actions button {
+            flex: 1 !important;
+            min-width: 0 !important;
+            padding-left: 8px !important;
+            padding-right: 8px !important;
+            font-size: 13px !important;
+          }
+
+          /* Dashboard Grids */
+          .quick-stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+          }
+          .dashboard-panels-grid,
+          .dashboard-bottom-grid {
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 16px !important;
+          }
+
+          /* Leaderboard Podium */
+          .podium-container {
+            flex-direction: column !important;
+            gap: 20px !important;
+            align-items: center !important;
+            padding-bottom: 24px !important;
+          }
+          .podium-card {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-top: 0 !important;
+            transform: none !important;
+          }
+
+          /* Library Filters */
+          .library-filters {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .library-filters > div {
+            width: 100% !important;
+          }
+          .library-filters button {
+            flex: 1 1 40% !important;
+          }
+        }
+      `}</style>
+
       {isLoggingOut && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
           <div className={`relative w-full max-w-sm rounded-3xl p-8 flex flex-col items-center text-center transform transition-all ${metallicBorder} ${isDark ? 'bg-[#10141D] text-white' : 'bg-white text-slate-900'}`}>
@@ -371,19 +507,18 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Sidebar Container with Animation */}
-      <div className={`transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
-        <aside className={`w-64 h-full ${metallicBorder} border-y-0 border-l-0 ${bgPanel} flex flex-col justify-between overflow-y-auto ${scrollbarStyles} z-20`}>
+      {/* Sidebar Container - Now uses .sidebar-container class for mobile isolation */}
+      <div className={`sidebar-container transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden relative z-20 ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
+        <aside className={`w-64 h-full ${metallicBorder} border-y-0 border-l-0 ${bgPanel}/95 backdrop-blur-md flex flex-col justify-between overflow-y-auto ${scrollbarStyles}`}>
           <div>
             <div className="h-16 flex items-center px-6 font-extrabold text-xl tracking-tight border-b border-transparent">
-              {/* Replaced </> with Logo */}
               <img src="/favicon.svg" alt="CodeToAnim Logo" className="w-7 h-7 mr-2 rounded-md object-contain" />
               <span className={isDark ? 'text-white' : 'text-slate-900'}>CodeTo</span>
               <span className="text-indigo-500 ml-1">Anim</span>
             </div>
             <div className="px-4 py-4">
               <button 
-                onClick={() => setCurrentView('dashboard')}
+                onClick={() => handleNavClick('dashboard')}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   currentView === 'dashboard' ? (isDark ? 'text-white bg-slate-800/80 shadow-inner border border-slate-700/50' : 'text-slate-900 bg-slate-100 shadow-sm border border-slate-200') : `${textSecondary} ${hoverBg}`
                 }`}
@@ -429,11 +564,10 @@ export default function ProfilePage() {
         </aside>
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className={`h-16 flex-shrink-0 ${metallicBorder} border-x-0 border-t-0 ${bgPanel} flex items-center justify-between px-8 z-10 transition-all`}>
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
+        <header className={`h-16 flex-shrink-0 ${metallicBorder} border-x-0 border-t-0 ${bgPanel}/80 backdrop-blur-md flex items-center justify-between px-8 z-10 transition-all mobile-header`}>
           
           <div className="flex items-center gap-4">
-            {/* Sidebar Toggle Button */}
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className={`p-2 rounded-xl ${metallicBorder} ${hoverBg} transition-all duration-300 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50 shadow-sm group`}
@@ -449,7 +583,6 @@ export default function ProfilePage() {
               </svg>
             </button>
 
-            {/* Search Bar */}
             <div className={`flex items-center w-80 lg:w-96 ${metallicBorder} rounded-xl px-3 py-1.5 transition-shadow focus-within:ring-2 focus-within:ring-indigo-500/30 ${isDark ? 'bg-[#0A0D14]' : 'bg-slate-50'}`}>
               <span className="text-slate-400 text-sm">🔍</span>
               <input type="text" placeholder="Search algorithms, topics, users..." className={`bg-transparent border-none outline-none text-sm font-medium w-full ml-2 placeholder-slate-400/70 ${textPrimary}`} />
@@ -457,9 +590,6 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex items-center gap-5">
-            {/* <button onClick={() => setCurrentView('workspace')} className={`flex items-center gap-2 px-4 py-1.5 ${metallicBorder} rounded-xl text-sm font-bold shadow-sm hover:border-indigo-500 hover:text-indigo-500 transition-colors ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
-              ⚡ Workspace
-            </button> */}
             <div className={`flex items-center gap-3 cursor-pointer pl-4 border-l ${isDark ? 'border-slate-800' : 'border-slate-200'}`} onClick={handleLogout}>
               <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm ${metallicBorder} shadow-md`}>{userInitial}</div>
               <div className="flex flex-col hidden sm:flex">
@@ -471,60 +601,95 @@ export default function ProfilePage() {
         </header>
 
         {/* Dynamic Main Container Area */}
-        <main className={`flex-1 ${currentView === 'workspace' ? 'overflow-hidden flex flex-col' : `overflow-y-auto p-8 ${scrollbarStyles}`}`}>
+        <main className={`flex-1 ${currentView === 'workspace' ? 'overflow-hidden flex flex-col' : `overflow-y-auto p-4 md:p-8 ${scrollbarStyles}`}`}>
           
           {/* ===================== */}
           {/*    DASHBOARD VIEW     */}
           {/* ===================== */}
           {currentView === 'dashboard' && (
             <div className="max-w-7xl mx-auto space-y-6">
-              <div className={`${bgPanel} ${metallicBorder} rounded-3xl p-8 flex flex-col md:flex-row justify-between items-center shadow-sm relative overflow-hidden`}>
+              
+              {/* Profile Hero Card */}
+              <div className={`profile-card ${bgPanel}/90 backdrop-blur-md ${metallicBorder} rounded-3xl p-8 flex flex-col md:flex-row justify-between items-center shadow-sm relative overflow-hidden`}>
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                <div className="flex items-center gap-6 relative z-10 w-full md:w-auto">
-                  <div className="relative group">
-                    <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-800 ${metallicBorder} border-4 border-transparent flex items-center justify-center text-4xl text-white font-black shadow-xl group-hover:scale-105 transition-transform`}>{userInitial}</div>
-                    <button className="absolute bottom-0 right-0 p-1.5 bg-slate-800 rounded-full border-2 border-slate-900 text-xs shadow-md hover:bg-slate-700 transition-colors">✏️</button>
+                
+                {/* User Avatar + Details */}
+                <div className="profile-user-info flex items-center gap-6 relative z-10 w-full md:w-auto">
+                  <div className="relative group flex-shrink-0">
+                    <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-800 ${metallicBorder} border-4 border-transparent flex items-center justify-center text-3xl md:text-4xl text-white font-black shadow-xl group-hover:scale-105 transition-transform`}>
+                      {userInitial}
+                    </div>
+                    <button className="absolute bottom-0 right-0 p-1.5 bg-slate-800 rounded-full border-2 border-slate-900 text-xs shadow-md hover:bg-slate-700 transition-colors">
+                      ✏️
+                    </button>
                   </div>
-                  <div className="flex-1">
+
+                  <div className="flex-1 min-w-0 max-w-full">
                     {isEditing ? (
-                      <div className="flex items-center gap-3 mb-1">
-                        <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className={`text-2xl font-black bg-transparent border-b-2 border-indigo-500 w-48 ${focusBorder} ${textPrimary}`} autoFocus />
-                        <button onClick={handleSaveProfile} className="text-xs font-bold bg-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-md hover:bg-indigo-500 transition-colors">Save</button>
-                        <button onClick={() => setIsEditing(false)} className={`text-xs font-bold px-3 py-1.5 rounded-lg ${metallicBorder} ${hoverBg} transition-colors`}>Cancel</button>
+                      <div className="flex items-center gap-2 mb-1 justify-center md:justify-start flex-wrap">
+                        <input 
+                          type="text" 
+                          value={editName} 
+                          onChange={(e) => setEditName(e.target.value)} 
+                          className={`text-xl md:text-2xl font-black bg-transparent border-b-2 border-indigo-500 w-40 ${focusBorder} ${textPrimary}`} 
+                          autoFocus 
+                        />
+                        <button onClick={handleSaveProfile} className="text-xs font-bold bg-indigo-600 text-white px-3 py-1 rounded-lg shadow-md hover:bg-indigo-500 transition-colors">Save</button>
+                        <button onClick={() => setIsEditing(false)} className={`text-xs font-bold px-3 py-1 rounded-lg ${metallicBorder} ${hoverBg} transition-colors`}>Cancel</button>
                       </div>
                     ) : (
-                      <h1 className="text-3xl font-black tracking-tight">{displayName}</h1>
+                      <h1 className="text-2xl md:text-3xl font-black tracking-tight truncate max-w-full">
+                        {displayName}
+                      </h1>
                     )}
-                    <p className={`text-sm font-medium ${textSecondary}`}>{userHandle}</p>
-                    <div className="flex items-center gap-3 mt-3">
-                      <span className={`text-xs px-2.5 py-1 rounded-md ${isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'} ${metallicBorder} font-bold shadow-sm flex items-center gap-1.5`}>
-                        <span className="text-[10px] uppercase text-slate-500">Lv. {levelInfo.level}</span>{levelInfo.honor}
+
+                    <p className={`text-xs md:text-sm font-medium ${textSecondary} truncate`}>
+                      {userHandle}
+                    </p>
+
+                    <div className="profile-badges-row flex items-center gap-2 mt-3 flex-wrap justify-center md:justify-start">
+                      <span className={`text-[11px] md:text-xs px-2.5 py-1 rounded-md ${isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'} ${metallicBorder} font-bold shadow-sm flex items-center gap-1.5`}>
+                        <span className="text-[9px] uppercase text-slate-500">Lv. {levelInfo.level}</span> {levelInfo.honor}
                       </span>
-                      <span className={`text-xs px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 font-bold shadow-sm`}>Algorithm Explorer</span>
+                      <span className="text-[11px] md:text-xs px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 font-bold shadow-sm">
+                        Algorithm Explorer
+                      </span>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-5 mt-6 md:mt-0 w-full md:w-1/3 relative z-10">
+
+                {/* Progress Bar & Actions */}
+                <div className="profile-card-stats flex flex-col items-end gap-4 mt-4 md:mt-0 w-full md:w-1/3 relative z-10">
                   <div className="w-full bg-slate-900/5 dark:bg-black/20 p-4 rounded-2xl border border-slate-500/10">
-                    <div className="flex justify-between text-sm font-bold mb-2">
+                    <div className="flex justify-between text-xs md:text-sm font-bold mb-2">
                       <span className="text-indigo-500">Level {levelInfo.level}</span>
-                      <span className={textSecondary}>{levelInfo.totalXP.toLocaleString()} <span className="opacity-50">/ {levelInfo.nextLevelXP.toLocaleString()} XP</span></span>
+                      <span className={textSecondary}>
+                        {levelInfo.totalXP.toLocaleString()} <span className="opacity-50">/ {levelInfo.nextLevelXP.toLocaleString()} XP</span>
+                      </span>
                     </div>
                     <div className={`w-full h-2 rounded-full ${metallicBorder} ${isDark ? 'bg-slate-800/80' : 'bg-slate-200/80'} overflow-hidden shadow-inner`}>
                       <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${levelInfo.progressPercent}%` }}></div>
                     </div>
-                    <p className="text-xs font-semibold text-slate-500 mt-2 text-right">{levelInfo.isMax ? "Max Level Reached!" : `${levelInfo.xpRemaining.toLocaleString()} XP to level up`}</p>
+                    <p className="text-[11px] font-semibold text-slate-500 mt-2 text-center md:text-right">
+                      {levelInfo.isMax ? "Max Level Reached!" : `${levelInfo.xpRemaining.toLocaleString()} XP to level up`}
+                    </p>
                   </div>
-                  <div className="flex gap-3 w-full justify-end">
-                    <button onClick={handleEditClick} className={`px-4 py-2 text-sm font-bold rounded-xl shadow-sm ${metallicBorder} ${hoverBg} transition-colors flex-1 md:flex-none`}>Edit Profile</button>
-                    <button onClick={handleShareProfile} className="px-5 py-2 text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl shadow-md shadow-emerald-900/20 transition-all flex items-center justify-center gap-2 flex-1 md:flex-none w-36">{shareText}</button>
+
+                  <div className="profile-edit-actions flex gap-3 w-full justify-end">
+                    <button onClick={handleEditClick} className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl shadow-sm ${metallicBorder} ${hoverBg} transition-colors`}>
+                      Edit Profile
+                    </button>
+                    <button onClick={handleShareProfile} className="px-4 py-2 text-xs md:text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl shadow-md shadow-emerald-900/20 transition-all flex items-center justify-center gap-1.5 md:w-36">
+                      {shareText}
+                    </button>
                   </div>
                 </div>
+
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 quick-stats-grid">
                 {quickStats.map((stat, i) => (
-                  <div key={i} className={`${bgPanel} ${metallicBorder} p-5 rounded-2xl shadow-sm flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 group`}>
+                  <div key={i} className={`${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-5 rounded-2xl shadow-sm flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 group`}>
                     <div className="flex justify-between items-start mb-3">
                       <div className={`p-2.5 rounded-xl shadow-inner ${metallicBorder} ${isDark ? 'bg-slate-800/50' : 'bg-slate-50'} ${stat.color} group-hover:scale-110 transition-transform`}>{stat.icon}</div>
                     </div>
@@ -537,9 +702,9 @@ export default function ProfilePage() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 dashboard-panels-grid">
                 
-                <div className={`lg:col-span-1 ${bgPanel} ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
+                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-lg">Learning Activity</h3>
                     <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${metallicBorder} ${isDark ? 'bg-slate-800' : 'bg-slate-100'} ${textSecondary}`}>12 Weeks</span>
@@ -547,7 +712,7 @@ export default function ProfilePage() {
                   <div className="grid grid-cols-12 gap-1.5 mb-6 flex-1 items-center">{generateHeatmap()}</div>
                 </div>
 
-                <div className={`lg:col-span-1 ${bgPanel} ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col justify-between relative overflow-hidden`}>
+                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col justify-between relative overflow-hidden`}>
                   <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl"></div>
                   <div>
                     <h3 className="font-bold text-lg mb-1">Continue Learning</h3>
@@ -569,7 +734,7 @@ export default function ProfilePage() {
                   <button onClick={() => setCurrentView('library')} className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-bold rounded-xl shadow-md transition-all mt-6">Explore Library</button>
                 </div>
 
-                <div className={`lg:col-span-1 ${bgPanel} ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
+                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
                   <h3 className="font-bold text-lg mb-1">Topic Mastery</h3>
                   <p className={`text-xs font-medium ${textSecondary} mb-6`}>Progress across categories</p>
                   <div className="space-y-5 flex-1">
@@ -591,9 +756,9 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 dashboard-bottom-grid">
                 
-                <div className={`lg:col-span-2 ${bgPanel} ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
+                <div className={`lg:col-span-2 ${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
                   <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-3">
                       <h3 className="font-bold text-lg">Saved Algorithms</h3>
@@ -635,7 +800,7 @@ export default function ProfilePage() {
                 <div className="space-y-6">
                   
                   {/* --- MINI LEADERBOARD INSTALLED HERE --- */}
-                  <div className={`${bgPanel} ${metallicBorder} p-6 rounded-3xl shadow-sm`}>
+                  <div className={`${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm`}>
                     <div className="flex justify-between items-center mb-6">
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-lg">Top Ranked</h3>
@@ -687,11 +852,11 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Badges/Achievements */}
-                  <div className={`${bgPanel} ${metallicBorder} p-6 rounded-3xl shadow-sm`}>
+                  <div className={`${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm`}>
                     <div className="flex justify-between items-center mb-6">
                       <h3 className="font-bold text-lg">Badges</h3>
                     </div>
-                    <div className="flex justify-between items-center gap-2">
+                    <div className="flex justify-between items-center gap-2 flex-wrap">
                       <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-pointer">👾</div>
                       <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-pointer">🏅</div>
                       <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-pointer">🎓</div>
@@ -709,14 +874,14 @@ export default function ProfilePage() {
           {/* ======================= */}
           {currentView === 'leaderboard' && (
             <div className="max-w-5xl mx-auto space-y-12 pb-10">
-              <div className="text-center space-y-3">
+              <div className="text-center space-y-3 mt-4">
                 <h1 className="text-4xl font-black tracking-tight">Global Rankings</h1>
                 <p className={`text-sm font-medium ${textSecondary}`}>Top 50 developers by total XP across CodeAnim.</p>
               </div>
 
               {/* Podium Section */}
               {top3.length > 0 && (
-                <div className="flex flex-col md:flex-row justify-center items-end gap-6 pt-4 pb-8">
+                <div className="podium-container flex flex-col md:flex-row justify-center items-end gap-6 pt-4 pb-8">
                   {top3.length > 1 && renderPodiumCard(top3[1], 2)}
                   {renderPodiumCard(top3[0], 1)}
                   {top3.length > 2 && renderPodiumCard(top3[2], 3)}
@@ -725,9 +890,9 @@ export default function ProfilePage() {
 
               {/* Leaderboard Table */}
               {restOfLeaderboard.length > 0 && (
-                <div className={`${bgPanel} ${metallicBorder} rounded-3xl p-6 shadow-sm`}>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                <div className={`${bgPanel}/90 backdrop-blur-md ${metallicBorder} rounded-3xl p-6 shadow-sm`}>
+                  <div className="overflow-x-auto scrollbar-thin">
+                    <table className="w-full text-left border-collapse min-w-[500px]">
                       <thead>
                         <tr className={`border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                           <th className={`py-4 px-6 text-[10px] font-black uppercase tracking-widest ${textSecondary}`}>Rank</th>
@@ -796,7 +961,7 @@ export default function ProfilePage() {
                 <p className={`text-sm font-medium ${textSecondary}`}>Explore and visualize {ALGORITHMS_DATABASE.length} computer science algorithms step-by-step.</p>
               </div>
 
-              <div className={`flex flex-col gap-5 p-6 rounded-3xl ${metallicBorder} ${bgPanel} shadow-sm mb-8`}>
+              <div className={`library-filters flex flex-col gap-5 p-6 rounded-3xl ${metallicBorder} ${bgPanel}/90 backdrop-blur-md shadow-sm mb-8`}>
                 <div className="flex flex-col lg:flex-row gap-5 items-center justify-between">
                   <div className="relative w-full lg:w-96">
                     <span className={`absolute left-4 top-3 text-sm ${textSecondary}`}>🔍</span>
@@ -809,7 +974,7 @@ export default function ProfilePage() {
                     />
                   </div>
 
-                  <div className={`flex border rounded-xl p-1.5 w-full lg:w-auto ${isDark ? 'bg-[#0A0D14] border-slate-800' : 'bg-slate-50 border-slate-200'} shadow-inner`}>
+                  <div className={`flex flex-wrap border rounded-xl p-1.5 w-full lg:w-auto ${isDark ? 'bg-[#0A0D14] border-slate-800' : 'bg-slate-50 border-slate-200'} shadow-inner`}>
                     {libDifficulties.map((diff) => (
                       <button
                         key={diff}
@@ -856,7 +1021,7 @@ export default function ProfilePage() {
                   return (
                     <div 
                       key={algo.id}
-                      className={`border hover:border-indigo-500/50 rounded-3xl p-6 flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-900/10 group ${metallicBorder} ${bgPanel}`}
+                      className={`border hover:border-indigo-500/50 rounded-3xl p-6 flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-900/10 group ${metallicBorder} ${bgPanel}/90 backdrop-blur-md`}
                     >
                       <div>
                         <div className="flex justify-between items-start mb-5">
