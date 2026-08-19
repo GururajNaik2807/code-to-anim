@@ -15,6 +15,7 @@ import PublicProfileCard from './pages/PublicProfileCard';
 import CommunityPage from './pages/CommunityPage';
 import Leaderboard from './pages/Leaderboard'; 
 import LoginModal from './components/LoginModal';
+import ResetPassword from './pages/ResetPassword';
 
 import { useLearningTracker } from './hooks/useLearningTracker'; 
 
@@ -105,7 +106,7 @@ export default function App() {
             <Route path="/p/:userId" element={<PublicProfileCard />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/auth" element={<AuthRedirect />} />
-            
+            <Route path="/reset-password" element={<ResetPassword />} />
             {/* Private Profile (Hosts the Embedded Workspace) */}
             <Route path="/profile" element={session ? <ProfilePage /> : <Navigate to="/" />} />
             
