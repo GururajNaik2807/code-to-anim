@@ -274,21 +274,33 @@ print("Final Sorted Array:", arr)`;
     } 
     else {
       try {
-        const today = new Date().toISOString().split('T')[0];
-        const { data: dailyActivity } = await supabase
-          .from('daily_activity')
-          .select('execution_count')
-          .eq('user_id', user.id)
-          .eq('activity_date', today)
+        // 1. Check if the user is a premium user from the profiles table
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('is_premium')
+          .eq('id', user.id)
           .maybeSingle();
-          
-        if (dailyActivity && dailyActivity.execution_count >= 10) {
-          setLimitMessage("You've hit your limit of 10 executions for today! You're making great progress. Come back tomorrow to continue your learning journey.");
-          setShowLimitModal(true);
-          return; 
+
+        const isPremium = profileData?.is_premium || false;
+
+        // 2. If NOT premium, enforce the 10-execution daily cap
+        if (!isPremium) {
+          const today = new Date().toISOString().split('T')[0];
+          const { data: dailyActivity } = await supabase
+            .from('daily_activity')
+            .select('execution_count')
+            .eq('user_id', user.id)
+            .eq('activity_date', today)
+            .maybeSingle();
+            
+          if (dailyActivity && dailyActivity.execution_count >= 10) {
+            setLimitMessage("You've hit your limit of 10 executions for today! You're making great progress. Come back tomorrow or upgrade to premium for unlimited runs.");
+            setShowLimitModal(true);
+            return; 
+          }
         }
       } catch (err) {
-        console.error("Error checking daily limit:", err);
+        console.error("Error checking premium status or daily limit:", err);
       }
     }
 
