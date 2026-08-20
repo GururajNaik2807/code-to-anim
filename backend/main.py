@@ -2,11 +2,16 @@ import sys
 import copy
 import io
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
+import collections
+import heapq
+import builtins
+
+# --- CRITICAL FIX: Save the real import function before we override it ---
+_original_import = builtins.__import__
 
 app = FastAPI(
     title="CodeToAnim Trace Engine",
@@ -40,13 +45,16 @@ class TraceResponse(BaseModel):
 
 
 # --- Helper: Safe JSON Serialization ---
-# --- Helper: Safe JSON Serialization ---
 def make_json_safe(val, depth=0):
     if depth > 15: return "..."
+    
+    # --- FIX: Prevent module scanning crashes ---
+    if type(val).__name__ == 'module': return str(val)
+    
     if isinstance(val, (int, float, str, bool, type(None))): return val
     
     # FIX: Handle sets and deques by converting them to lists first!
-    if type(val).__name__ == 'deque':
+    if type(val).__name__ == 'deque' or isinstance(val, collections.deque):
         return [make_json_safe(item, depth + 1) for item in list(val)[:50]]
     if isinstance(val, set): 
         return [make_json_safe(item, depth + 1) for item in list(val)[:50]]
@@ -69,7 +77,6 @@ def make_json_safe(val, depth=0):
 
     return str(val)
 
-# --- Expanded Abstracted Blueprint Generator ---
 # --- Advanced Abstracted Blueprint Generator (Scoring Engine) ---
 def generate_visual_layout(clean_vars: dict) -> dict:
     candidates = []
@@ -83,7 +90,6 @@ def generate_visual_layout(clean_vars: dict) -> dict:
     def is_graph(obj):
         if not isinstance(obj, dict) or len(obj) == 0: return False
         
-        # FIX: Prevent custom Stack/Queue/Array wrappers from being misclassified as Graphs
         wrapper_keys = {'stack', 'queue', 'q', 'arr', 'array', 'list', 'items', 'data', 'elements'}
         if len(obj) == 1 and list(obj.keys())[0].lower() in wrapper_keys:
             return False
@@ -110,7 +116,6 @@ def generate_visual_layout(clean_vars: dict) -> dict:
                     traverse(node['right'], x + h_spacing, y + 60, h_spacing / 1.8, path_id + 'R')
             
             traverse(root, 250, 30, 100, 'root')
-            # Base score 100 + size. Boost for names like 'root' or 'tree'
             score = 100 + len(nodes) + (20 if key in ['root', 'tree'] else 0)
             candidates.append({"type": "tree", "key": key, "nodes": nodes, "edges": edges, "score": score})
             continue
@@ -123,7 +128,6 @@ def generate_visual_layout(clean_vars: dict) -> dict:
                 nodes.append({"val": str(curr.get('val', curr.get('data', curr.get('value', '?'))))})
                 curr = curr.get('next')
                 safe_count += 1
-            # Base score 90 + size. Massive boost for active pointers being built
             score = 90 + len(nodes) + (30 if key in ['prev', 'curr', 'tail'] else 0)
             candidates.append({"type": "linked_list", "key": key, "nodes": nodes, "score": score})
             continue
@@ -132,7 +136,6 @@ def generate_visual_layout(clean_vars: dict) -> dict:
         graph_data = None
         if is_graph(val):
             graph_data = val
-        # Check if the graph is wrapped inside a custom class object (like self.graph or self.adj)
         elif isinstance(val, dict):
             if is_graph(val.get('graph')):
                 graph_data = val.get('graph')
@@ -141,7 +144,6 @@ def generate_visual_layout(clean_vars: dict) -> dict:
 
         if graph_data:
             nodes = [{"id": k, "neighbors": v} for k, v in graph_data.items()]
-            # Massive score boost so it beats the temporary arrays inside your loops
             score = 95 + len(nodes) + (30 if key in ['graph', 'adj', 'my_network', 'self'] else 0)
             candidates.append({"type": "graph", "key": key, "nodes": nodes, "score": score})
             continue
@@ -158,7 +160,6 @@ def generate_visual_layout(clean_vars: dict) -> dict:
             elif 'queue' in key.lower() or key.lower() == 'q' or 'deque' in key.lower():
                 is_queue_intent = True
         elif isinstance(val, dict):
-            # Unwrap custom class objects containing arrays
             for attr in ['stack', 'queue', 'q', 'arr', 'array', 'list', 'items', 'data', 'elements']:
                 if isinstance(val.get(attr), list):
                     array_data = val.get(attr)
@@ -174,9 +175,6 @@ def generate_visual_layout(clean_vars: dict) -> dict:
             
             score = 70 + len(arr_data) + (10 * len(pointers)) + (30 if key in ['res', 'arr', 'nums', 'stack', 'queue', 'q', 'self', 's'] else 0)
             
-            # Label it specifically based on the detected intent
-            layout_type = "stack" if is_stack_intent else ("queue" if is_queue_intent else "array") #Disabled For Now
-            # Temporarily disable queue rendering by forcing it to "array"
             layout_type = "stack" if is_stack_intent else "array"
             candidates.append({"type": layout_type, "key": key, "data": arr_data, "pointers": pointers, "score": score})
             continue
@@ -187,13 +185,11 @@ def generate_visual_layout(clean_vars: dict) -> dict:
             score = 60 + len(entries) + (15 if key in ['seen', 'visited', 'memo', 'freq', 'hashmap'] else 0)
             candidates.append({"type": "dict", "key": key, "entries": entries, "score": score})
 
-    # Pick the absolute best candidate based on highest score
     if candidates:
         best_candidate = max(candidates, key=lambda x: x['score'])
-        del best_candidate['score'] # Clean up before sending to frontend
+        del best_candidate['score'] 
         return best_candidate
 
-    # Fallback if literally nothing complex is found
     return {"type": "none"}
 
 # --- Standalone Worker Function ---
@@ -221,44 +217,58 @@ def run_trace_worker(code_string):
         if time.time() - start_time > MAX_TIME:
             raise TimeoutError("Execution stopped: Exceeded 2.0 seconds.")
 
-        if event == 'line':
-            step_counter += 1
-            clean_vars = {}
-            for k, v in frame.f_locals.items():
-                if not k.startswith('__') and k not in ['sys', 'time'] and not callable(v):
-                    try:
-                        clean_vars[k] = make_json_safe(v)
-                    except Exception:
-                        clean_vars[k] = "Un-serializable object"
+        # Ensure we trace into inner function scopes
+        if event == 'line' or event == 'call':
+            if event == 'line':
+                step_counter += 1
+                clean_vars = {}
+                for k, v in frame.f_locals.items():
+                    if not k.startswith('__') and k not in ['sys', 'time'] and not callable(v):
+                        try:
+                            clean_vars[k] = make_json_safe(v)
+                        except Exception:
+                            clean_vars[k] = "Un-serializable object"
 
-            layout_blueprint = generate_visual_layout(clean_vars)
-            
-            # 3. Cap Output Size
-            current_output = stdout_buffer.getvalue()
-            if len(current_output) > MAX_OUTPUT_LEN:
-                current_output = current_output[:MAX_OUTPUT_LEN] + "\n...[Output Truncated]"
+                layout_blueprint = generate_visual_layout(clean_vars)
+                
+                # 3. Cap Output Size
+                current_output = stdout_buffer.getvalue()
+                if len(current_output) > MAX_OUTPUT_LEN:
+                    current_output = current_output[:MAX_OUTPUT_LEN] + "\n...[Output Truncated]"
 
-            steps.append({
-                "step": step_counter,
-                "line": frame.f_lineno,
-                "variables": clean_vars,
-                "output": current_output,
-                "visual_layout": layout_blueprint
-            })
+                steps.append({
+                    "step": step_counter,
+                    "line": frame.f_lineno,
+                    "variables": clean_vars,
+                    "output": current_output,
+                    "visual_layout": layout_blueprint
+                })
         return trace_func
 
     # --- SECURITY: RESTRICTED BUILT-INS ---
-    # Only allow safe functions. Blocks `__import__`, `open`, `eval`, etc.
+    ALLOWED_MODULES = {'collections', 'heapq'}
+
+    def safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+        base_name = name.split('.')[0] 
+        if base_name in ALLOWED_MODULES:
+            return _original_import(name, globals, locals, fromlist, level)
+        raise ImportError(f"Importing module '{name}' is not allowed for security reasons.")
+
     safe_builtins = {
         'print': print, 'range': range, 'len': len, 'int': int, 'str': str,
         'list': list, 'dict': dict, 'set': set, 'tuple': tuple, 'bool': bool,
         'float': float, 'enumerate': enumerate, 'zip': zip, 'min': min, 'max': max,
         'sum': sum, 'abs': abs, 'round': round, 'Exception': Exception,
         'ValueError': ValueError, 'TypeError': TypeError, 'IndexError': IndexError,
-        '__build_class__': __build_class__ # Required to let users define custom classes
+        '__build_class__': __build_class__,
+        '__import__': safe_import,
     }
     
-    execution_scope = {"__builtins__": safe_builtins}
+    # --- FIX: Inject __name__ for standard script boilerplates ---
+    execution_scope = {
+        "__builtins__": safe_builtins,
+        "__name__": "__main__"
+    }
 
     try:
         sys.settrace(trace_func)
@@ -290,6 +300,7 @@ def run_trace_worker(code_string):
     finally:
         sys.settrace(None)
         sys.stdout = old_stdout
+
 @app.get("/")
 def read_root():
     return {"status": "online", "message": "CodeToAnim Trace Engine is running successfully!"}
@@ -297,17 +308,15 @@ def read_root():
 @app.post("/api/trace", response_model=TraceResponse)
 def execute_code_trace(request: CodeExecutionRequest):
     if not request.code.strip():
-        raise HTTPException(status_code=400, detail="Code string cannot be empty.")
+        return TraceResponse(success=False, steps=[], error="Code string cannot be empty.")
     
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(run_trace_worker, request.code)
-        try:
-            result = future.result(timeout=4.0)
-        except TimeoutError:
-            raise HTTPException(status_code=400, detail="Execution timed out.")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Engine execution error: {str(e)}")
+    # --- FIX: Removed ThreadPoolExecutor to prevent server deadlocks ---
+    try:
+        result = run_trace_worker(request.code)
+    except Exception as e:
+        return TraceResponse(success=False, steps=[], error=f"Server error: {str(e)}")
 
-    if not result["success"]: 
-        return TraceResponse(success=False, steps=[], error=result["error"])
+    if not result.get("success"): 
+        return TraceResponse(success=False, steps=[], error=result.get("error", "Unknown error"))
+        
     return TraceResponse(success=True, steps=result["steps"])
