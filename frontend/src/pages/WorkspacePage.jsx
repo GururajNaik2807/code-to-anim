@@ -11,8 +11,8 @@ import Visualizer from '../components/Visualizer';
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import { Helmet } from 'react-helmet-async'; 
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 export default function WorkspacePage({ isEmbedded = false }) {
   const location = useLocation();
@@ -327,7 +327,7 @@ print("Final Sorted Array:", arr)`;
         setErrorMessage(data.detail || data.error || "Execution trace failed.");
       }
     } catch (err) {
-      setErrorMessage(`Could not connect to backend server at ${API_BASE_URL}`);
+      setErrorMessage(`Could not connect to backend server`);
     } finally {
       setIsLoading(false);
     }
