@@ -12,6 +12,7 @@ import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import { Helmet } from 'react-helmet-async'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
+
 // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 export default function WorkspacePage({ isEmbedded = false }) {
@@ -43,7 +44,7 @@ print("Final Sorted Array:", arr)`;
     type: 'sandbox', 
     algorithmTitle: 'Sandbox Workspace',
     strategy: 'Custom Development',
-    description: 'Welcome to your personal algorithmic sandbox. This environment allows you to write custom scripts, test data structures, and visualize complex logic step-by-step. Start typing your Python code in the editor, and click "Execute Trace" to watch your logic come to life.',
+    description: 'Welcome to your personal algorithmic sandbox. This environment allows you to write custom scripts, test data structures, and visualize complex logic step-by-step.',
     language: 'Python 3',
     exampleInput: null, 
     exampleOutput: null 
@@ -62,7 +63,6 @@ print("Final Sorted Array:", arr)`;
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1000);
 
-  // Default to closed on mobile for better UX, open on PC
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(window.innerWidth > 768);
   const [isEditorOpen, setIsEditorOpen] = useState(true);
 
@@ -73,6 +73,7 @@ print("Final Sorted Array:", arr)`;
   const [limitMessage, setLimitMessage] = useState("");
 
   const autoPlayRef = useRef(null);
+  const completionCheckRef = useRef(null);
 
   useEffect(() => {
     if (algoQueryId) {
@@ -107,18 +108,22 @@ print("Final Sorted Array:", arr)`;
 
   useEffect(() => {
     const checkCompletion = async () => {
-      if (user && algoMetadata.id) {
-        const { data } = await supabase
-          .from('user_progress')
-          .select('progress_percent')
-          .eq('user_id', user.id)
-          .eq('algorithm_id', algoMetadata.id)
-          .maybeSingle();
-        if (data && data.progress_percent === 100) {
-          setIsCompleted(true);
-        } else {
-          setIsCompleted(false);
-        }
+      if (!user || !algoMetadata.id) return;
+      
+      if (completionCheckRef.current === algoMetadata.id) return;
+      completionCheckRef.current = algoMetadata.id;
+
+      const { data } = await supabase
+        .from('user_progress')
+        .select('progress_percent')
+        .eq('user_id', user.id)
+        .eq('algorithm_id', String(algoMetadata.id))
+        .maybeSingle();
+        
+      if (data && data.progress_percent === 100) {
+        setIsCompleted(true);
+      } else {
+        setIsCompleted(false);
       }
     };
     checkCompletion();
@@ -144,46 +149,14 @@ print("Final Sorted Array:", arr)`;
 
   const logCodeExecution = async (algorithmTitle = 'Custom Algorithm') => {
     if (!user) return; 
-    const userId = user.id;
     try {
-      await supabase.from('activity_logs').insert([{ user_id: userId, action_type: 'EXECUTE', action_details: algorithmTitle }]);
-
-      const { data: profile } = await supabase.from('profiles').select('total_executions').eq('id', userId).maybeSingle();
-      if (profile) await supabase.from('profiles').update({ total_executions: (profile.total_executions || 0) + 1 }).eq('id', userId);
-
-      const today = new Date().toISOString().split('T')[0];
-      const { data: dailyActivity } = await supabase.from('daily_activity').select('execution_count').eq('user_id', userId).eq('activity_date', today).maybeSingle();
-      
-      if (dailyActivity) {
-        await supabase.from('daily_activity').update({ execution_count: dailyActivity.execution_count + 1 }).eq('user_id', userId).eq('activity_date', today);
-      } else {
-        await supabase.from('daily_activity').insert([{ user_id: userId, activity_date: today, execution_count: 1 }]);
-      }
-
-      if (algoMetadata.id) {
-        const { data: existingProgress } = await supabase
-          .from('user_progress')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('algorithm_id', algoMetadata.id)
-          .maybeSingle();
-
-        if (existingProgress) {
-          await supabase.from('user_progress').update({
-            last_accessed: new Date().toISOString()
-          }).eq('id', existingProgress.id);
-        } else {
-          await supabase.from('user_progress').insert([{
-            user_id: userId,
-            algorithm_id: algoMetadata.id,
-            title: algoMetadata.algorithmTitle,
-            category: algoMetadata.category || 'General',
-            difficulty: algoMetadata.difficulty || 'Medium',
-            progress_percent: 50,
-            last_accessed: new Date().toISOString()
-          }]);
-        }
-      }
+      await supabase.rpc('log_user_execution', {
+        p_user_id: user.id,
+        p_algo_title: algorithmTitle,
+        p_algo_id: algoMetadata.id ? String(algoMetadata.id) : null,
+        p_category: algoMetadata.category || 'General',
+        p_difficulty: algoMetadata.difficulty || 'Medium'
+      });
     } catch (error) {
       console.error("Error logging execution:", error);
     }
@@ -195,41 +168,14 @@ print("Final Sorted Array:", arr)`;
 
     setIsCompleting(true);
     try {
-      const { data: existingProgress } = await supabase
-        .from('user_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('algorithm_id', algoMetadata.id)
-        .maybeSingle();
-
-      if (existingProgress) {
-        await supabase.from('user_progress').update({
-          progress_percent: 100,
-          last_accessed: new Date().toISOString()
-        }).eq('id', existingProgress.id);
-      } else {
-        await supabase.from('user_progress').insert([{
-          user_id: user.id,
-          algorithm_id: algoMetadata.id,
-          title: algoMetadata.algorithmTitle,
-          category: algoMetadata.category || 'General',
-          difficulty: algoMetadata.difficulty || 'Medium',
-          progress_percent: 100,
-          last_accessed: new Date().toISOString()
-        }]);
-      }
-
-      if (!existingProgress || existingProgress.progress_percent < 100) {
-        const { data: profile } = await supabase.from('profiles').select('algorithms_solved, topics_explored, current_xp').eq('id', user.id).maybeSingle();
-        let updates = { current_xp: (profile?.current_xp || 0) + 150 };
-        if (algoMetadata.type === 'lesson') {
-          updates.topics_explored = (profile?.topics_explored || 0) + 1;
-        } else {
-          updates.algorithms_solved = (profile?.algorithms_solved || 0) + 1;
-        }
-        await supabase.from('profiles').update(updates).eq('id', user.id);
-        await supabase.from('activity_logs').insert([{ user_id: user.id, action_type: 'ACHIEVEMENT', action_details: algoMetadata.algorithmTitle }]);
-      }
+      await supabase.rpc('mark_algorithm_complete', {
+        p_user_id: user.id,
+        p_algo_id: String(algoMetadata.id),
+        p_title: algoMetadata.algorithmTitle,
+        p_category: algoMetadata.category || 'General',
+        p_difficulty: algoMetadata.difficulty || 'Medium',
+        p_type: algoMetadata.type || 'algorithm'
+      });
       setIsCompleted(true);
     } catch (error) {
       setErrorMessage("Failed to mark complete: " + error.message);
@@ -245,9 +191,12 @@ print("Final Sorted Array:", arr)`;
     
     setIsLoading(true);
     try {
-      const { error } = await supabase.from('saved_algorithms').insert([{ user_id: user.id, title: algoName, code_content: code, list_name: 'Favorites' }]);
+      const { error } = await supabase.rpc('save_user_code', {
+        p_user_id: user.id,
+        p_title: algoName,
+        p_code: code
+      });
       if (error) throw error;
-      await supabase.from('activity_logs').insert([{ user_id: user.id, action_type: 'CREATE', action_details: algoName }]);
       alert(`"${algoName}" saved successfully to your profile!`);
     } catch (error) {
       setErrorMessage("Failed to save code: " + error.message);
@@ -275,30 +224,14 @@ print("Final Sorted Array:", arr)`;
     } 
     else {
       try {
-        // 1. Check if the user is a premium user from the profiles table
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('is_premium')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        const isPremium = profileData?.is_premium || false;
-
-        // 2. If NOT premium, enforce the 10-execution daily cap
-        if (!isPremium) {
-          const today = new Date().toISOString().split('T')[0];
-          const { data: dailyActivity } = await supabase
-            .from('daily_activity')
-            .select('execution_count')
-            .eq('user_id', user.id)
-            .eq('activity_date', today)
-            .maybeSingle();
-            
-          if (dailyActivity && dailyActivity.execution_count >= 10) {
-            setLimitMessage("You've hit your limit of 10 executions for today! You're making great progress. Come back tomorrow or upgrade to premium for unlimited runs.");
-            setShowLimitModal(true);
-            return; 
-          }
+        const { data: canExecute, error } = await supabase.rpc('can_user_execute', { p_user_id: user.id });
+        
+        if (error) throw error;
+        
+        if (!canExecute) {
+          setLimitMessage("You've hit your limit of 10 executions for today! You're making great progress. Come back tomorrow or upgrade to premium for unlimited runs.");
+          setShowLimitModal(true);
+          return; 
         }
       } catch (err) {
         console.error("Error checking premium status or daily limit:", err);
@@ -371,125 +304,28 @@ print("Final Sorted Array:", arr)`;
         <meta name="description" content={algoMetadata.description} />
       </Helmet>
 
-      {/* ISOLATED OVERRIDE STYLES: 'ws-' prefix prevents collision with ProfilePage CSS */}
       <style>{`
         @media (max-width: 768px) {
           .ws-mobile-hide { display: none !important; }
-
-          .ws-mobile-header {
-            height: auto !important;
-            flex-direction: column !important;
-            padding: 8px 12px !important;
-            gap: 8px !important;
-          }
-          .ws-mobile-header > div {
-            width: 100% !important;
-            justify-content: space-between !important;
-          }
-          .ws-mobile-header .header-actions {
-            justify-content: center !important;
-            flex-wrap: wrap !important;
-            gap: 6px !important;
-          }
-          .ws-mobile-header button, .ws-mobile-header a {
-            padding-top: 4px !important;
-            padding-bottom: 4px !important;
-            font-size: 11px !important;
-          }
-
-          .ws-mobile-main-row {
-            flex-direction: column !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-          }
-
-          .ws-mobile-desc-panel {
-            width: 100% !important;
-            height: auto !important;
-            min-height: 32px !important;
-            border-right: none !important;
-            border-bottom: 1px solid rgba(100,100,100,0.3) !important;
-            flex: none !important;
-            z-index: 20 !important;
-          }
-
-          .ws-mobile-closed {
-            height: 36px !important;
-            padding: 0 12px !important;
-            flex-direction: row !important;
-            align-items: center !important;
-          }
-          
-          .ws-mobile-closed .closed-desc-inner {
-            flex-direction: row !important;
-            margin-top: 0 !important;
-            height: 100% !important;
-            width: 100% !important;
-            justify-content: flex-start !important;
-            align-items: center !important;
-          }
-          
-          .ws-mobile-closed .closed-text {
-            writing-mode: horizontal-tb !important;
-            transform: none !important;
-            margin-top: 0 !important;
-            margin-left: 10px !important;
-          }
-
-          .ws-mobile-workspace-col {
-            overflow: visible !important;
-            flex: none !important;
-          }
-
-          .ws-mobile-editor-row {
-            flex-direction: column !important;
-            overflow: visible !important;
-            flex: none !important;
-          }
-
-          .ws-mobile-editor-row > * {
-            width: 100% !important;
-            height: 60vh !important;
-            min-height: 450px !important;
-            flex: none !important;
-            border-right: none !important;
-            border-bottom: 1px solid rgba(100,100,100,0.3) !important;
-          }
-
-          .ws-mobile-footer {
-            position: sticky !important;
-            bottom: 0 !important;
-            height: auto !important;
-            flex-direction: column !important;
-            gap: 6px !important;
-            padding: 8px 12px !important;
-            z-index: 50 !important;
-            box-shadow: 0 -10px 20px rgba(0,0,0,0.5) !important;
-          }
-          
-          .ws-mobile-footer > div {
-            width: 100% !important;
-            justify-content: center !important;
-          }
-
-          .ws-mobile-footer .gap-2 {
-             gap: 4px !important;
-          }
-          .ws-mobile-footer button {
-             padding: 4px !important;
-          }
-          .ws-mobile-footer button.w-11 {
-             width: 32px !important;
-             height: 30px !important;
-             min-height: 32px !important;
-          }
-          .ws-mobile-footer button.w-11 svg {
-             width: 16px !important;
-             height: 16px !important;
-          }
-          .ws-mobile-footer > div:last-child {
-             margin-top: 2px !important;
-          }
+          .ws-mobile-header { height: auto !important; flex-direction: column !important; padding: 8px 12px !important; gap: 8px !important; }
+          .ws-mobile-header > div { width: 100% !important; justify-content: space-between !important; }
+          .ws-mobile-header .header-actions { justify-content: center !important; flex-wrap: wrap !important; gap: 6px !important; }
+          .ws-mobile-header button, .ws-mobile-header a { padding-top: 4px !important; padding-bottom: 4px !important; font-size: 11px !important; }
+          .ws-mobile-main-row { flex-direction: column !important; overflow-y: auto !important; overflow-x: hidden !important; }
+          .ws-mobile-desc-panel { width: 100% !important; height: auto !important; min-height: 32px !important; border-right: none !important; border-bottom: 1px solid rgba(100,100,100,0.3) !important; flex: none !important; z-index: 20 !important; }
+          .ws-mobile-closed { height: 36px !important; padding: 0 12px !important; flex-direction: row !important; align-items: center !important; }
+          .ws-mobile-closed .closed-desc-inner { flex-direction: row !important; margin-top: 0 !important; height: 100% !important; width: 100% !important; justify-content: flex-start !important; align-items: center !important; }
+          .ws-mobile-closed .closed-text { writing-mode: horizontal-tb !important; transform: none !important; margin-top: 0 !important; margin-left: 10px !important; }
+          .ws-mobile-workspace-col { overflow: visible !important; flex: none !important; }
+          .ws-mobile-editor-row { flex-direction: column !important; overflow: visible !important; flex: none !important; }
+          .ws-mobile-editor-row > * { width: 100% !important; height: 60vh !important; min-height: 450px !important; flex: none !important; border-right: none !important; border-bottom: 1px solid rgba(100,100,100,0.3) !important; }
+          .ws-mobile-footer { position: sticky !important; bottom: 0 !important; height: auto !important; flex-direction: column !important; gap: 6px !important; padding: 8px 12px !important; z-index: 50 !important; box-shadow: 0 -10px 20px rgba(0,0,0,0.5) !important; }
+          .ws-mobile-footer > div { width: 100% !important; justify-content: center !important; }
+          .ws-mobile-footer .gap-2 { gap: 4px !important; }
+          .ws-mobile-footer button { padding: 4px !important; }
+          .ws-mobile-footer button.w-11 { width: 32px !important; height: 30px !important; min-height: 32px !important; }
+          .ws-mobile-footer button.w-11 svg { width: 16px !important; height: 16px !important; }
+          .ws-mobile-footer > div:last-child { margin-top: 2px !important; }
         }
       `}</style>
 
@@ -557,6 +393,27 @@ print("Final Sorted Array:", arr)`;
             </div>
 
             <div className="flex items-center gap-3 header-actions">
+              {/* --- NEW: LAYOUT CONTROLS --- */}
+              <div className={`hidden md:flex items-center p-1 rounded-lg ${metallicBorder} ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}>
+                <button
+                  onClick={() => setIsEditorOpen(true)}
+                  className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${isEditorOpen ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                  title="Show Code & Visualizer"
+                >
+                  Split
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditorOpen(false);
+                    setIsDescriptionOpen(false);
+                  }}
+                  className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${!isEditorOpen ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                  title="Maximize Visualizer Space"
+                >
+                  Visualize Only
+                </button>
+              </div>
+
               {algoMetadata.type !== 'sandbox' && (
                  <button 
                   onClick={handleResetSandbox} 
@@ -601,7 +458,7 @@ print("Final Sorted Array:", arr)`;
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${metallicBorder} ${
                         isCompleted 
                           ? (isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-600/60' : 'bg-emerald-100 text-emerald-700 border-emerald-300')
-                          : `hover:border-emerald-500 hover:text-emerald-500 ${isDark ? 'bg-slate-900/60' : 'bg-white'}`
+                          : `hover:border-emerald-50 hover:text-emerald-500 ${isDark ? 'bg-slate-900/60' : 'bg-white'}`
                       }`}
                     >
                       {isCompleting ? '⏳ Saving...' : isCompleted ? '✅ Completed' : '🏆 Mark Complete'}
@@ -677,29 +534,39 @@ print("Final Sorted Array:", arr)`;
             </aside>
 
             <div className="flex-1 flex flex-col overflow-hidden ws-mobile-workspace-col">
+              
+              {/* --- NEW: WORKSPACE SPLIT LAYOUT --- */}
               <div className="flex-1 flex overflow-hidden relative ws-mobile-editor-row">
-                <Editor 
-                  code={code} 
-                  setCode={setCode} 
-                  isEditing={isEditing}
-                  setIsEditing={setIsEditing}
-                  user={user} 
-                  openAuthModal={openAuthModal}
-                  activeLineNumber={activeLineNumber} 
-                  handleSaveCode={handleSaveCode} 
-                  handleExecuteTrace={handleExecuteTrace} 
-                  isLoading={isLoading} 
-                  isDark={isDark}
-                  isEditorOpen={isEditorOpen}
-                  setIsEditorOpen={setIsEditorOpen}
-                />
+                
+                {/* Editor Container */}
+                <div className={`${isEditorOpen ? 'w-full md:w-1/2 lg:w-[45%] flex-shrink-0 border-r border-slate-200 dark:border-slate-800' : 'hidden'} flex flex-col h-full overflow-hidden transition-all`}>
+                  <Editor 
+                    code={code} 
+                    setCode={setCode} 
+                    isEditing={isEditing}
+                    setIsEditing={setIsEditing}
+                    user={user} 
+                    openAuthModal={openAuthModal}
+                    activeLineNumber={activeLineNumber} 
+                    handleSaveCode={handleSaveCode} 
+                    handleExecuteTrace={handleExecuteTrace} 
+                    isLoading={isLoading} 
+                    isDark={isDark}
+                    isEditorOpen={isEditorOpen}
+                    setIsEditorOpen={setIsEditorOpen}
+                  />
+                </div>
 
-                <Visualizer 
-                  steps={steps} 
-                  currentStepIndex={currentStepIndex} 
-                  errorMessage={errorMessage} 
-                  isDark={isDark}
-                />
+                {/* Visualizer Container */}
+                <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative bg-black/5 dark:bg-black/20 shadow-inner">
+                  <Visualizer 
+                    steps={steps} 
+                    currentStepIndex={currentStepIndex} 
+                    errorMessage={errorMessage} 
+                    isDark={isDark}
+                  />
+                </div>
+                
               </div>
 
               <footer className={`h-16 ${metallicBorder} border-x-0 border-b-0 ${bgNav} flex items-center justify-between px-8 z-10 ws-mobile-footer`}>

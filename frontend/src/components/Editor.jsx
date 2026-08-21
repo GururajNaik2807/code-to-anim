@@ -45,6 +45,13 @@ export default function Editor({
 }) {
   const codeLines = code.split('\n');
   const textareaRef = useRef(null);
+  const activeLineRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const lineNumbersRef = useRef(null);
+
+  // --- NEW: Custom History Stack for Undo/Redo ---
+  const historyRef = useRef([code]);
+  const historyIndexRef = useRef(0);
 
   useEffect(() => {
     if (isEditing && textareaRef.current) {
@@ -52,16 +59,94 @@ export default function Editor({
     }
   }, [isEditing]);
   
-  const scrollbarStyles = `
-      [&::-webkit-scrollbar]:w-2
-      [&::-webkit-scrollbar]:h-2
-      [&::-webkit-scrollbar-track]:bg-transparent 
-      [&::-webkit-scrollbar-thumb]:rounded-full 
-      ${isDark 
-        ? '[&::-webkit-scrollbar-thumb]:bg-slate-700 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600' 
-        : '[&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400'}
-    `;
-    
+  // Cinematic auto-scroll for read-only trace mode
+  useEffect(() => {
+    if (!isEditing && activeLineRef.current && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const targetElement = activeLineRef.current;
+      const targetScroll = targetElement.offsetTop - (container.clientHeight / 2) + (targetElement.clientHeight / 2);
+      
+      const smoothScrollTo = (container, targetPosition, duration) => {
+        const startPosition = container.scrollTop;
+        const distance = targetPosition - startPosition;
+        let startTime = null;
+        const animation = (currentTime) => {
+          if (startTime === null) startTime = currentTime;
+          const timeElapsed = currentTime - startTime;
+          const progress = Math.min(timeElapsed / duration, 1);
+          const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+          container.scrollTop = startPosition + distance * ease;
+          if (timeElapsed < duration) requestAnimationFrame(animation);
+        };
+        requestAnimationFrame(animation);
+      };
+      
+      smoothScrollTo(container, targetScroll, 600);
+    }
+  }, [activeLineNumber, isEditing]);
+  
+  // --- NEW: Sync line numbers scroll with code scroll ---
+  const handleScroll = (e) => {
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = e.target.scrollTop;
+    }
+  };
+
+  // --- NEW: Manage History and State Changes ---
+  const handleCodeChange = (e) => {
+    const val = e.target.value;
+    setCode(val);
+
+    // Truncate future history if user types after an undo
+    const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
+    newHistory.push(val);
+    historyRef.current = newHistory;
+    historyIndexRef.current = newHistory.length - 1;
+  };
+
+  // --- NEW: Intercept Keyboard Shortcuts ---
+  const handleKeyDown = (e) => {
+    // 1. Undo (Ctrl + Z)
+    if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+      e.preventDefault();
+      if (historyIndexRef.current > 0) {
+        historyIndexRef.current -= 1;
+        setCode(historyRef.current[historyIndexRef.current]);
+      }
+    }
+    // 2. Redo (Ctrl + Y)
+    else if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+      e.preventDefault();
+      if (historyIndexRef.current < historyRef.current.length - 1) {
+        historyIndexRef.current += 1;
+        setCode(historyRef.current[historyIndexRef.current]);
+      }
+    }
+    // 3. Tab spacing (4 spaces)
+    else if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = e.target.selectionStart;
+      const end = e.target.selectionEnd;
+      const val = e.target.value;
+      const newValue = val.substring(0, start) + "    " + val.substring(end);
+      
+      setCode(newValue);
+      
+      // Push to history stack
+      const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
+      newHistory.push(newValue);
+      historyRef.current = newHistory;
+      historyIndexRef.current = newHistory.length - 1;
+
+      // Maintain cursor position after injecting spaces
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 4;
+        }
+      }, 0);
+    }
+  };
+
   const handleEditorClick = () => {
     if (!user) {
       openAuthModal('Log in to unlock direct code editing!');
@@ -72,19 +157,15 @@ export default function Editor({
     }
   };
 
-  // Professional color themes with metallic black borders
   const bgPanel = isDark ? 'bg-[#10141D]' : 'bg-[#FFFFFF]';
   const bgCodeArea = isDark ? 'bg-[#0A0D14]' : 'bg-[#FAFAFC]';
   const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
-  
-  // High-end metallic black border for both dark and light modes
   const metallicBorder = 'border border-slate-900 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_2px_5px_rgba(0,0,0,0.25)]';
 
   return (
-    <div className={`w-1/2 h-full flex flex-col ${metallicBorder} border-y-0 border-l-0 ${bgPanel}`}>
+    <div className={`w-full h-full flex flex-col ${metallicBorder} border-y-0 border-l-0 ${bgPanel}`}> 
       
-      {/* Editor Tab Header */}
-      <div className={`h-10 ${metallicBorder} border-x-0 border-t-0 flex items-center justify-between px-4 text-xs font-mono ${isDark ? 'bg-[#0E121B]' : 'bg-slate-100'}`}>
+      <div className={`h-10 ${metallicBorder} border-x-0 border-t-0 flex items-center justify-between px-4 text-xs font-mono ${isDark ? 'bg-[#0E121B]' : 'bg-slate-100'} z-10`}>
         <div className="flex items-center gap-2">
           <div className={`px-3 py-1 border-t-2 border-purple-600 font-bold flex items-center gap-2 ${metallicBorder} border-b-0 ${isDark ? 'bg-[#10141D] text-white' : 'bg-white text-slate-900'}`}>
             <span>🐍 main.py</span>
@@ -109,12 +190,14 @@ export default function Editor({
         </div>
       </div>
 
-      {/* Main Code Area with Click-to-Edit Functionality */}
-      <div 
-        onClick={handleEditorClick}
-        className={`flex-1 flex overflow-auto font-mono text-sm leading-6 ${bgCodeArea} cursor-text relative ${scrollbarStyles}`}
-      >
-        <div className={`select-none py-4 text-right pr-3 pl-3 ${textSecondary} font-mono text-xs min-w-[40px] border-r ${isDark ? 'border-slate-800/80' : 'border-slate-300'}`}>
+      {/* --- FIX: Outer container is now hidden. Only the inner components scroll. --- */}
+      <div className={`flex-1 flex overflow-hidden font-mono text-sm leading-6 ${bgCodeArea} cursor-text relative`}>
+        
+        {/* Synchronized Line Numbers */}
+        <div 
+          ref={lineNumbersRef}
+          className={`select-none py-4 text-right pr-3 pl-3 ${textSecondary} font-mono text-xs min-w-[40px] border-r ${isDark ? 'border-slate-800/80' : 'border-slate-300'} overflow-hidden`}
+        >
           {codeLines.map((_, idx) => {
             const lineNum = idx + 1;
             const isActive = lineNum === activeLineNumber;
@@ -128,23 +211,32 @@ export default function Editor({
         </div>
 
         {isEditing && user ? (
-          <div className="flex-1 py-4 px-3 flex flex-col relative">
+          <div className="flex-1 relative bg-transparent">
+            {/* The Textarea is now the sole scrollable element */}
             <textarea
               ref={textareaRef}
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={handleCodeChange}
+              onKeyDown={handleKeyDown}
+              onScroll={handleScroll}
               spellCheck={false}
-              className={`w-full h-full bg-transparent font-mono text-sm leading-6 resize-none outline-none ${isDark ? 'text-slate-100' : 'text-slate-900'} caret-purple-600 whitespace-pre ${scrollbarStyles}`}
+              className={`absolute inset-0 w-full h-full py-4 px-3 overflow-auto bg-transparent font-mono text-sm leading-6 resize-none outline-none ${isDark ? 'text-slate-100' : 'text-slate-900'} caret-purple-600 whitespace-pre`}
             />
           </div>
         ) : (
-          <div className="flex-1 py-4 px-3">
+          <div 
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            onClick={handleEditorClick}
+            className="flex-1 py-4 px-3 overflow-auto"
+          >
             {codeLines.map((lineStr, idx) => {
               const lineNum = idx + 1;
               const isActive = lineNum === activeLineNumber;
               return (
                 <div
                   key={idx}
+                  ref={isActive ? activeLineRef : null}
                   className={`h-6 px-2 rounded flex items-center whitespace-pre transition-colors ${
                     isActive
                       ? isDark 
@@ -161,8 +253,7 @@ export default function Editor({
         )}
       </div>
 
-      {/* Editor Bottom Status Bar */}
-      <div className={`h-7 ${metallicBorder} border-x-0 border-b-0 flex items-center justify-between px-4 text-[10px] font-mono ${textSecondary} ${isDark ? 'bg-[#0E121B]' : 'bg-slate-100'}`}>
+      <div className={`h-7 ${metallicBorder} border-x-0 border-b-0 flex items-center justify-between px-4 text-[10px] font-mono ${textSecondary} ${isDark ? 'bg-[#0E121B]' : 'bg-slate-100'} z-10`}>
         <div>
           Ln {activeLineNumber || 1}, Col 1 &nbsp; Spaces: 4 &nbsp; UTF-8 &nbsp; Python 3.10
         </div>

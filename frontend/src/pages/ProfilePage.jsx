@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, memo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useTheme } from '../context/ThemeContext';
@@ -10,8 +10,8 @@ import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 // 2. IMPORT THE WORKSPACE COMPONENT
 import WorkspacePage from './WorkspacePage';
 
-// --- Animated Particle Component ---
-const FloatingParticles = ({ isMobile }) => {
+// --- OPTIMIZATION: Memoized Particle Component to avoid heavy re-renders ---
+const FloatingParticles = memo(({ isMobile }) => {
   const particleCount = isMobile ? 40 : 175; 
   const particleColors = ["#A855F7", "#22D3EE", "#EC4899"];
   
@@ -49,7 +49,7 @@ const FloatingParticles = ({ isMobile }) => {
       })}
     </div>
   );
-};
+});
 
 // --- Level System Definitions ---
 const HONORS = [
@@ -123,45 +123,91 @@ export default function ProfilePage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // --- Streamlined Auth Listener ---
   useEffect(() => {
-    fetchProfileData();
+    let isMounted = true;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+
+      if (session) {
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+          fetchProfileData(session);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        navigate('/');
+      } else if (!session && event === 'INITIAL_SESSION') {
+         setTimeout(() => {
+            if (isMounted) navigate('/auth');
+         }, 500);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
   }, []);
 
-  const fetchProfileData = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate('/auth');
-      return;
-    }
+  // --- OPTIMIZED FETCH: Single RPC Call with Cache Fallback ---
+  const fetchProfileData = async (session) => {
     setUser(session.user);
 
+    const CACHE_KEY = `codeanim_dashboard_${session.user.id}`;
+    const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes cache
+
+    // 1. Check Session Cache First
+    const cachedString = sessionStorage.getItem(CACHE_KEY);
+    if (cachedString) {
+      try {
+        const { data, timestamp } = JSON.parse(cachedString);
+        if (Date.now() - timestamp < CACHE_EXPIRY) {
+          setProfile(data.profile || {});
+          setSavedCodes(data.savedCodes || []);
+          setProgressData(data.progressData || []);
+          setDailyActivity(data.dailyActivity || []);
+          setRecentActivities(data.recentActivities || []);
+          setLeaderboardData(data.leaderboardData || []);
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        sessionStorage.removeItem(CACHE_KEY);
+      }
+    }
+
+    // 2. Fetch via Consolidated RPC Procedure (1 Network Call)
     try {
-      const [
-        { data: profileData },
-        { data: codesData },
-        { data: progData },
-        { data: actData },
-        { data: logData },
-        { data: topPlayersData } 
-      ] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle(),
-        supabase.from('saved_algorithms').select('*').eq('user_id', session.user.id).order('updated_at', { ascending: false }).limit(20),
-        supabase.from('user_progress').select('*').eq('user_id', session.user.id).order('last_accessed', { ascending: false }).limit(200),
-        supabase.from('daily_activity').select('*').eq('user_id', session.user.id).order('activity_date', { ascending: false }).limit(84),
-        supabase.from('activity_logs').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(5),
-        supabase.from('profiles').select('id, display_name, current_xp').order('current_xp', { ascending: false }).limit(50)
-      ]);
+      const { data: payload, error } = await supabase.rpc('get_user_dashboard_payload', {
+        p_user_id: session.user.id
+      });
 
-      setProfile(profileData || {});
-      setSavedCodes(codesData || []);
-      setProgressData(progData || []);
-      setDailyActivity(actData || []);
-      setRecentActivities(logData || []);
-      setLeaderboardData(topPlayersData || []);
+      if (error) throw error;
 
+      const freshData = {
+        profile: payload.profile || {},
+        savedCodes: payload.savedCodes || [],
+        progressData: payload.progressData || [],
+        dailyActivity: payload.dailyActivity || [],
+        recentActivities: payload.recentActivities || [],
+        leaderboardData: payload.leaderboardData || []
+      };
+
+      setProfile(freshData.profile);
+      setSavedCodes(freshData.savedCodes);
+      setProgressData(freshData.progressData);
+      setDailyActivity(freshData.dailyActivity);
+      setRecentActivities(freshData.recentActivities);
+      setLeaderboardData(freshData.leaderboardData);
+
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+        data: freshData,
+        timestamp: Date.now()
+      }));
       sessionStorage.setItem('profile_loaded', 'true');
+
     } catch (err) {
-      console.error("Error fetching profile data:", err);
+      console.error("Error fetching dashboard payload:", err);
     } finally {
       setLoading(false);
     }
@@ -169,7 +215,9 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    sessionStorage.removeItem(`codeanim_dashboard_${user?.id}`);
     sessionStorage.removeItem('profile_loaded');
+    
     setTimeout(async () => {
       await supabase.auth.signOut();
       navigate('/');
@@ -195,6 +243,14 @@ export default function ProfilePage() {
     if (!error) {
       setProfile({ ...profile, display_name: editName });
       setIsEditing(false);
+      
+      const CACHE_KEY = `codeanim_dashboard_${user.id}`;
+      const cachedString = sessionStorage.getItem(CACHE_KEY);
+      if(cachedString) {
+        const parsedCache = JSON.parse(cachedString);
+        parsedCache.data.profile.display_name = editName;
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify(parsedCache));
+      }
     }
   };
 
@@ -250,7 +306,7 @@ export default function ProfilePage() {
       } 
     });
     setCurrentView('workspace');
-    if(isMobile) setIsSidebarOpen(false); // Auto close sidebar on mobile when navigating
+    if(isMobile) setIsSidebarOpen(false);
   };
 
   // --- DASHBOARD HELPERS ---
@@ -287,7 +343,7 @@ export default function ProfilePage() {
 
   const recentAlgo = progressData.find(algo => algo.progress_percent < 100) || null;
 
-  // Professional Theme Variables
+  // Theme Config
   const bgMain = isDark ? 'bg-[#0A0D14]' : 'bg-[#F4F6F8]';
   const bgPanel = isDark ? 'bg-[#10141D]' : 'bg-[#FFFFFF]';
   const textPrimary = isDark ? 'text-slate-100' : 'text-slate-800';
@@ -391,18 +447,15 @@ export default function ProfilePage() {
       {/* Dynamic Background Particles */}
       <FloatingParticles isMobile={isMobile} />
 
-      {/* MOBILE-ONLY CSS OVERRIDES: Guarantees PC View Remains Untouched */}
+      {/* MOBILE-ONLY CSS OVERRIDES */}
       <style>{`
         @media (max-width: 768px) {
-          /* Make Sidebar act as an overlay on mobile */
           .sidebar-container {
             position: absolute !important;
             height: 100% !important;
             z-index: 50 !important;
             box-shadow: 5px 0 20px rgba(0,0,0,0.5) !important;
           }
-          
-          /* Compact Header */
           .mobile-header {
             height: auto !important;
             flex-direction: row !important;
@@ -417,8 +470,6 @@ export default function ProfilePage() {
           .mobile-header input {
             width: 100% !important;
           }
-
-          /* --- FIXED PROFILE HERO CARD --- */
           .profile-card {
             flex-direction: column !important;
             text-align: center !important;
@@ -454,8 +505,6 @@ export default function ProfilePage() {
             padding-right: 8px !important;
             font-size: 13px !important;
           }
-
-          /* Dashboard Grids */
           .quick-stats-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
             gap: 10px !important;
@@ -465,8 +514,6 @@ export default function ProfilePage() {
             grid-template-columns: minmax(0, 1fr) !important;
             gap: 16px !important;
           }
-
-          /* Leaderboard Podium */
           .podium-container {
             flex-direction: column !important;
             gap: 20px !important;
@@ -479,8 +526,6 @@ export default function ProfilePage() {
             margin-top: 0 !important;
             transform: none !important;
           }
-
-          /* Library Filters */
           .library-filters {
             flex-direction: column !important;
             gap: 12px !important;
@@ -507,7 +552,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Sidebar Container - Now uses .sidebar-container class for mobile isolation */}
+      {/* Sidebar Container */}
       <div className={`sidebar-container transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden relative z-20 ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
         <aside className={`w-64 h-full ${metallicBorder} border-y-0 border-l-0 ${bgPanel}/95 backdrop-blur-md flex flex-col justify-between overflow-y-auto ${scrollbarStyles}`}>
           <div>
@@ -799,7 +844,7 @@ export default function ProfilePage() {
 
                 <div className="space-y-6">
                   
-                  {/* --- MINI LEADERBOARD INSTALLED HERE --- */}
+                  {/* --- MINI LEADERBOARD --- */}
                   <div className={`${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm`}>
                     <div className="flex justify-between items-center mb-6">
                       <div className="flex items-center gap-2">
@@ -879,7 +924,6 @@ export default function ProfilePage() {
                 <p className={`text-sm font-medium ${textSecondary}`}>Top 50 developers by total XP across CodeAnim.</p>
               </div>
 
-              {/* Podium Section */}
               {top3.length > 0 && (
                 <div className="podium-container flex flex-col md:flex-row justify-center items-end gap-6 pt-4 pb-8">
                   {top3.length > 1 && renderPodiumCard(top3[1], 2)}
@@ -888,7 +932,6 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* Leaderboard Table */}
               {restOfLeaderboard.length > 0 && (
                 <div className={`${bgPanel}/90 backdrop-blur-md ${metallicBorder} rounded-3xl p-6 shadow-sm`}>
                   <div className="overflow-x-auto scrollbar-thin">

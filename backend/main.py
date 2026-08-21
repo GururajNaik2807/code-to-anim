@@ -99,6 +99,7 @@ def generate_visual_layout(clean_vars: dict) -> dict:
 
     for key, val in clean_vars.items():
         # 1. TREE SCORING
+# 1. TREE SCORING
         root = val if is_tree(val) else (val.get('root') if isinstance(val, dict) and is_tree(val.get('root')) else None)
         if root:
             nodes, edges = [], []
@@ -116,8 +117,27 @@ def generate_visual_layout(clean_vars: dict) -> dict:
                     traverse(node['right'], x + h_spacing, y + 60, h_spacing / 1.8, path_id + 'R')
             
             traverse(root, 250, 30, 100, 'root')
+            
+            # --- NEW: FIND ACTIVE POINTERS (e.g., 'curr', 'node') ---
+            pointers = []
+            for pk, pv in clean_vars.items():
+                # Check if the variable is a node object but NOT the main root
+                if isinstance(pv, dict) and pk not in ['root', 'tree', 'self', key]:
+                    if 'val' in pv or 'data' in pv or 'value' in pv:
+                        ptr_val = str(pv.get('val', pv.get('data', pv.get('value', '?'))))
+                        pointers.append({"key": pk, "target_val": ptr_val})
+            
             score = 100 + len(nodes) + (20 if key in ['root', 'tree'] else 0)
-            candidates.append({"type": "tree", "key": key, "nodes": nodes, "edges": edges, "score": score})
+            
+            # --- NEW: Included "pointers" in the candidate output ---
+            candidates.append({
+                "type": "tree", 
+                "key": key, 
+                "nodes": nodes, 
+                "edges": edges, 
+                "pointers": pointers, 
+                "score": score
+            })
             continue
 
         # 2. LINKED LIST SCORING

@@ -26,7 +26,7 @@ export default function Visualizer({
   });
 
   return (
-    <div className={`w-1/2 h-full flex flex-col ${bgPanel}`}>
+    <div className={`w-full h-full flex flex-col ${bgPanel}`}>
       
       {/* Canvas Tab Header */}
       <div className={`h-10 ${metallicBorder} border-x-0 border-t-0 flex items-center justify-between px-4 text-xs font-bold ${isDark ? 'bg-[#0E121B]' : 'bg-slate-100'}`}>
@@ -108,20 +108,46 @@ export default function Visualizer({
                       />
                     ))}
                   </svg>
-                  {layout.nodes?.map((node, idx) => (
-                    <div 
-                      key={`node-${idx}`}
-                      className={`absolute w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${metallicBorder} ${
-                        isDark ? 'bg-purple-900 text-white border-purple-500' : 'bg-purple-600 text-white border-purple-400'
-                      }`}
-                      style={{ left: `${node.x}px`, top: `${node.y}px` }}
-                    >
-                      {node.val}
-                    </div>
-                  ))}
+                  
+                  {layout.nodes.map((node, idx) => {
+                    // Check if any pointer from the backend targets this specific node
+                    const activePointers = layout.pointers?.filter(p => p.target_val === node.val) || [];
+                    const isTargeted = activePointers.length > 0;
+
+                    return (
+                      <div 
+                        key={idx} 
+                        // --- FIX: Added translate(-50%, -50%) to perfectly center the nodes on the SVG lines ---
+                        style={{ position: 'absolute', left: node.x, top: node.y, transform: 'translate(-50%, -50%)' }}
+                      >
+                        
+                        {/* 1. The Glowing Node */}
+                        <div className={`
+                          flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300
+                          ${isTargeted 
+                            ? 'bg-purple-900 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.7)] text-white scale-110 z-10' 
+                            : isDark ? 'bg-slate-800 border-slate-600 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
+                          }
+                        `}>
+                          {node.val}
+                        </div>
+
+                        {/* 2. Show the variable name (e.g., "curr") floating under the node */}
+                        {isTargeted && (
+                          <div className="absolute top-14 left-1/2 -translate-x-1/2 flex flex-col gap-1 items-center z-20">
+                            {activePointers.map((ptr, i) => (
+                              <span key={i} className="px-2 py-0.5 text-[10px] font-bold text-purple-900 bg-purple-300 rounded-md shadow-sm">
+                                {ptr.key}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-
               {/* 3. LINKED LIST LAYOUT RENDERER */}
               {layout.type === 'linked_list' && (
                 <div className="flex items-center gap-4 overflow-x-auto p-6 my-auto max-w-full">

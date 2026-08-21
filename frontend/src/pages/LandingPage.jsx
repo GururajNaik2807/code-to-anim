@@ -71,6 +71,11 @@ const FloatingParticles = ({ isMobile }) => {
 const LandingPage = () => {
   const [isMobile, setIsMobile] = useState(false);
 
+  // Force scroll to top on page refresh/mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Detect screen size for performance-based animation rendering
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -80,6 +85,7 @@ const LandingPage = () => {
   }, []);
 
   return (
+    // ... rest of your existing JSX remains exactly the same ...
     <div className="min-h-screen bg-[#030014] flex flex-col font-sans text-gray-100 selection:bg-purple-500/50 selection:text-white overflow-hidden relative">
       
       {/* Dynamic Background Effects - Scaled based on device */}

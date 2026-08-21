@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'; 
@@ -52,12 +52,32 @@ function NotFoundPage() {
 
 export default function App() {
   const [session, setSession] = useState(null);
+  
+  // OPTIMIZATION: Ref guard to prevent double-firing in Strict Mode
+  const streakUpdatedRef = useRef(null);
+
+  // --- OPTIMIZED: Fire-and-forget RPC call with strict blocking ---
+  const triggerDailyStreak = async (userId) => {
+    // Block the request if there is no user, or if we already synced this user's streak
+    if (!userId || streakUpdatedRef.current === userId) return;
+    
+    // Lock the ref immediately to prevent race conditions
+    streakUpdatedRef.current = userId; 
+
+    try {
+      await supabase.rpc('update_user_streak', { user_id_param: userId });
+    } catch (err) {
+      console.error("Streak calculation failed:", err);
+      // Reset the lock if the network request actually failed, allowing a retry later
+      streakUpdatedRef.current = null; 
+    }
+  };
 
   useEffect(() => {
     // 1. Initial Session Check
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      triggerDailyStreak(session?.user?.id); // <-- Trigger on initial load
+      triggerDailyStreak(session?.user?.id); // Guard protects against double fetch
     });
 
     // 2. Auth State Listener (Catches logins and logouts)
@@ -66,22 +86,12 @@ export default function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (_event === 'SIGNED_IN') {
-        triggerDailyStreak(session?.user?.id); // <-- Trigger exactly on login
+        triggerDailyStreak(session?.user?.id); // Guard protects against double fetch
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
-
-  // --- NEW: Fire-and-forget RPC call to update streak ---
-  const triggerDailyStreak = async (userId) => {
-    if (!userId) return;
-    try {
-      await supabase.rpc('update_user_streak', { user_id_param: userId });
-    } catch (err) {
-      console.error("Streak calculation failed:", err);
-    }
-  };
 
   return (
   <HelmetProvider>
