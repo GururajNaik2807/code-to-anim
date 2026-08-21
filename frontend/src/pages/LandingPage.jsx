@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../supabaseClient'; 
 
 // Optimized animation variants
 const fadeUpVariant = {
@@ -16,36 +18,25 @@ const staggerContainer = {
   }
 };
 
-// Particle Background Component (Responsive)
 // Particle Background Component (Responsive) - 3 Color Palette
 const FloatingParticles = ({ isMobile }) => {
-  // Particles increased 5x (40 for mobile, 175 for desktop)
   const particleCount = isMobile ? 40 : 175; 
-
-  // Define a 3-color palette (purple, cyan, pink)
-  const particleColors = [
-    "#A855F7", // Purple
-    "#39FF14", // Cyan
-    "#EC4899"  // Pink
-  ];
+  const particleColors = ["#A855F7", "#39FF14", "#EC4899"];
   
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
       {[...Array(particleCount)].map((_, i) => {
         const size = Math.random() * (isMobile ? 3 : 6) + 2;
-        
-        // Pick a color from the 3-color palette for each particle
         const color = particleColors[i % particleColors.length];
 
         return (
           <motion.div
             key={i}
-            // Removed gradient class, color is applied in style
             className="absolute rounded-full"
             style={{
               width: size,
               height: size,
-              backgroundColor: color, // Applied the selected color
+              backgroundColor: color,
               top: `${Math.random() * 100}%`,
               left: `${Math.random() * 100}%`,
             }}
@@ -70,6 +61,11 @@ const FloatingParticles = ({ isMobile }) => {
 
 const LandingPage = () => {
   const [isMobile, setIsMobile] = useState(false);
+  const { user } = useAuth(); 
+  
+  // State & Ref for the Profile Dropdown
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   // Force scroll to top on page refresh/mount
   useEffect(() => {
@@ -84,8 +80,24 @@ const LandingPage = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle Logout
+  const handleLogout = async () => {
+    setIsProfileOpen(false);
+    await supabase.auth.signOut();
+  };
+
   return (
-    // ... rest of your existing JSX remains exactly the same ...
     <div className="min-h-screen bg-[#030014] flex flex-col font-sans text-gray-100 selection:bg-purple-500/50 selection:text-white overflow-hidden relative">
       
       {/* Dynamic Background Effects - Scaled based on device */}
@@ -108,36 +120,85 @@ const LandingPage = () => {
         )}
       </AnimatePresence>
 
-{/* Header - Semantic & SEO Friendly */}
+      {/* Header - Semantic & SEO Friendly */}
       <header className="w-full px-6 py-4 flex justify-between items-center max-w-7xl mx-auto border-b border-white/5 bg-black/20 backdrop-blur-md sticky top-0 z-50">
         
         <Link to="/" className="text-2xl font-extrabold tracking-tighter text-white flex items-center gap-3 z-10 group">
-          {/* Your SVG Logo */}
           <img 
             src="/favicon.svg" 
             alt="CodeToAnim Logo" 
             className="w-8 h-8 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" 
           />
-          
           <div>
             CodeTo<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 group-hover:from-blue-400 group-hover:to-purple-500 transition-all duration-500">Anim</span> 
           </div>
         </Link>
 
         <nav className="flex items-center gap-4 sm:gap-6 z-10" aria-label="Main Navigation">
-          <Link 
-            to="/auth" 
-            className="text-sm font-medium text-gray-400 hover:text-white transition-colors hidden sm:block"
-          >
-            Sign In
-          </Link>
-          <Link 
-            to="/workspace" 
-            className="relative group px-5 py-2.5 rounded-lg font-bold text-sm bg-white/10 text-white border border-white/10 overflow-hidden"
-          >
-            <span className="relative z-10">Open Workspace</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0" />
-          </Link>
+          
+          {/* Profile Dropdown Menu */}
+          {user ? (
+            <div className="relative" ref={dropdownRef}>
+              <button 
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm border border-white/20 shadow-md hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-purple-500"
+                title="Profile Menu"
+              >
+                {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
+              </button>
+
+              <AnimatePresence>
+                {isProfileOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 mt-3 w-56 rounded-2xl bg-[#0a001a]/95 border border-white/10 shadow-2xl overflow-hidden flex flex-col z-50 backdrop-blur-xl"
+                  >
+                    <div className="px-4 py-3 border-b border-white/10 bg-white/5">
+                      <p className="text-xs text-gray-400 font-medium mb-0.5">Signed in as</p>
+                      <p className="text-sm font-bold text-white truncate">{user.email}</p>
+                    </div>
+                    
+                    <div className="p-2 flex flex-col gap-1">
+                      <Link 
+                        to="/profile" 
+                        className="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors flex items-center gap-2"
+                      >
+                        <span className="opacity-80">🏠</span> Go to Dashboard
+                      </Link>
+                      
+                      <button 
+                        onClick={handleLogout}
+                        className="w-full text-left px-3 py-2 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors flex items-center gap-2"
+                      >
+                        <span className="opacity-80">🚪</span> Log Out
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <Link 
+              to="/auth" 
+              className="text-sm font-medium text-gray-400 hover:text-white transition-colors hidden sm:block"
+            >
+              Sign In
+            </Link>
+          )}
+
+          {/* Hide Open Workspace for logged-in users */}
+          {!user && (
+            <Link 
+              to="/workspace" 
+              className="relative group px-5 py-2.5 rounded-lg font-bold text-sm bg-white/10 text-white border border-white/10 overflow-hidden"
+            >
+              <span className="relative z-10">Open Workspace</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0" />
+            </Link>
+          )}
         </nav>
       </header>
       <main className="flex-grow flex flex-col items-center w-full z-10">
@@ -167,25 +228,40 @@ const LandingPage = () => {
             </motion.p>
 
             <motion.div variants={fadeUpVariant} className="flex flex-col sm:flex-row gap-5 justify-center w-full sm:w-auto px-4">
-              <Link to="/workspace" className="w-full sm:w-auto">
-                <motion.button 
-                  whileHover={{ scale: 1.05, boxShadow: "0px 0px 30px rgba(168,85,247,0.5)" }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-purple-600 text-white font-bold py-4 px-10 rounded-xl transition-all w-full flex items-center justify-center gap-3 text-lg"
-                >
-                  Start Visualizing
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                </motion.button>
-              </Link>
-              <Link to="/learn" className="w-full sm:w-auto">
-                <motion.button 
-                  whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-transparent backdrop-blur-sm text-white font-bold py-4 px-10 rounded-xl border border-white/20 transition-all w-full text-lg"
-                >
-                  Explore Presets 💡
-                </motion.button>
-              </Link>
+              {user ? (
+                <Link to="/profile" className="w-full sm:w-auto">
+                  <motion.button 
+                    whileHover={{ scale: 1.05, boxShadow: "0px 0px 30px rgba(168,85,247,0.5)" }}
+                    whileTap={{ scale: 0.95 }}
+                    className="bg-purple-600 text-white font-bold py-4 px-12 rounded-xl transition-all w-full flex items-center justify-center gap-3 text-lg"
+                  >
+                    Go to Dashboard
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </motion.button>
+                </Link>
+              ) : (
+                <>
+                  <Link to="/workspace" className="w-full sm:w-auto">
+                    <motion.button 
+                      whileHover={{ scale: 1.05, boxShadow: "0px 0px 30px rgba(168,85,247,0.5)" }}
+                      whileTap={{ scale: 0.95 }}
+                      className="bg-purple-600 text-white font-bold py-4 px-10 rounded-xl transition-all w-full flex items-center justify-center gap-3 text-lg"
+                    >
+                      Start Visualizing
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </motion.button>
+                  </Link>
+                  <Link to="/learn" className="w-full sm:w-auto">
+                    <motion.button 
+                      whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
+                      whileTap={{ scale: 0.95 }}
+                      className="bg-transparent backdrop-blur-sm text-white font-bold py-4 px-10 rounded-xl border border-white/20 transition-all w-full text-lg"
+                    >
+                      Explore Presets 💡
+                    </motion.button>
+                  </Link>
+                </>
+              )}
             </motion.div>
           </motion.div>
         </section>
@@ -241,12 +317,12 @@ const LandingPage = () => {
               <p className="text-gray-300 mb-10 text-xl max-w-2xl mx-auto font-light leading-relaxed">
                 Unlock your personal developer dashboard. Save custom logic, track history, and bookmark complex visualizations.
               </p>
-              <Link to="/auth">
+              <Link to={user ? "/profile" : "/auth"}>
                 <motion.button 
                   whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                   className="bg-white text-black hover:bg-gray-200 font-extrabold py-4 px-12 rounded-xl transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)] text-lg"
                 >
-                  Create Free Account
+                  {user ? "Go to Dashboard" : "Create Free Account"}
                 </motion.button>
               </Link>
             </motion.div>
@@ -301,7 +377,7 @@ const LandingPage = () => {
             <ul className="space-y-4 text-gray-500 font-light">
               <li><Link to="/workspace" className="hover:text-purple-400 transition-colors">Interactive Workspace</Link></li>
               <li><Link to="/algorithms" className="hover:text-purple-400 transition-colors">Algorithm Presets</Link></li>
-              <li><Link to="/auth" className="hover:text-purple-400 transition-colors">Developer Dashboard</Link></li>
+              <li><Link to={user ? "/profile" : "/auth"} className="hover:text-purple-400 transition-colors">Developer Dashboard</Link></li>
             </ul>
           </div>
 

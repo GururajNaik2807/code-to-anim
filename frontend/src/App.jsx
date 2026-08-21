@@ -52,6 +52,7 @@ function NotFoundPage() {
 
 export default function App() {
   const [session, setSession] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true); // <-- Added loading state[cite: 4]
   
   // OPTIMIZATION: Ref guard to prevent double-firing in Strict Mode
   const streakUpdatedRef = useRef(null);
@@ -78,6 +79,7 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       triggerDailyStreak(session?.user?.id); // Guard protects against double fetch
+      setIsAuthLoading(false); // <-- Mark loading as complete[cite: 4]
     });
 
     // 2. Auth State Listener (Catches logins and logouts)
@@ -85,6 +87,7 @@ export default function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      setIsAuthLoading(false); // <-- Mark loading as complete on change[cite: 4]
       if (_event === 'SIGNED_IN') {
         triggerDailyStreak(session?.user?.id); // Guard protects against double fetch
       }
@@ -117,8 +120,22 @@ export default function App() {
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/auth" element={<AuthRedirect />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            
             {/* Private Profile (Hosts the Embedded Workspace) */}
-            <Route path="/profile" element={session ? <ProfilePage /> : <Navigate to="/" />} />
+            <Route 
+              path="/profile" 
+              element={
+                isAuthLoading ? (
+                  <div className="min-h-screen bg-gray-950 flex justify-center items-center">
+                    {/* Optional: Add a spinner or loading text here */}
+                  </div>
+                ) : session ? (
+                  <ProfilePage />
+                ) : (
+                  <Navigate to="/" />
+                )
+              } 
+            /> {/* <-- Updated conditional rendering[cite: 4] */}
             
             <Route path="/community" element={<CommunityPage />} />
             <Route path="*" element={<NotFoundPage />} />

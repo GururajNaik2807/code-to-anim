@@ -4,6 +4,8 @@ import { supabase } from '../supabaseClient';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
+import TutorialModal from './TutorialModal'; // <-- 1. IMPORT ADDED HERE
+import TooltipTour from './TooltipTour'; // <-- Add import
 
 // 1. IMPORT YOUR FULL ALGORITHM DATABASE HERE:
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
@@ -83,6 +85,9 @@ const calculateLevelInfo = (totalXP) => {
 export default function ProfilePage() {
   const hasLoadedBefore = sessionStorage.getItem('profile_loaded') === 'true';
 
+  // --- 2. TUTORIAL STATE ADDED HERE ---
+  const [showTutorial, setShowTutorial] = useState(true);
+
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [savedCodes, setSavedCodes] = useState([]);
@@ -92,7 +97,9 @@ export default function ProfilePage() {
   const [leaderboardData, setLeaderboardData] = useState([]); 
   
   // View Toggle State: 'dashboard' | 'leaderboard' | 'library' | 'workspace'
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState(() => {
+    return localStorage.getItem('codeanim_current_view') || 'dashboard';
+  });
   
   // Sidebar Toggle State
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -426,8 +433,9 @@ export default function ProfilePage() {
 
   const handleNavClick = (view) => {
     setCurrentView(view);
-    if(isMobile) setIsSidebarOpen(false);
-  }
+    localStorage.setItem('codeanim_current_view', view);
+    if (isMobile) setIsSidebarOpen(false);
+  };
 
   const navLinks = [
     { section: 'WORKSPACE', links: [{ name: 'Workspace', action: () => handleNavClick('workspace'), icon: '⚡', isActive: currentView === 'workspace' }] },
@@ -590,11 +598,18 @@ export default function ProfilePage() {
       <div className={`sidebar-container transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden relative z-20 ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
         <aside className={`w-64 h-full ${metallicBorder} border-y-0 border-l-0 ${bgPanel}/95 backdrop-blur-md flex flex-col justify-between overflow-y-auto ${scrollbarStyles}`}>
           <div>
-            <div className="h-16 flex items-center px-6 font-extrabold text-xl tracking-tight border-b border-transparent">
-              <img src="/favicon.svg" alt="CodeToAnim Logo" className="w-7 h-7 mr-2 rounded-md object-contain" />
-              <span className={isDark ? 'text-white' : 'text-slate-900'}>CodeTo</span>
-              <span className="text-indigo-500 ml-1">Anim</span>
-            </div>
+            <Link 
+              to="/" 
+              className="h-16 flex items-center px-6 font-extrabold text-xl tracking-tight border-b border-transparent group transition-all"
+            >
+              <img 
+                src="/favicon.svg" 
+                alt="CodeToAnim Logo" 
+                className="w-7 h-7 mr-2 rounded-md object-contain group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" 
+              />
+              <span className={`${isDark ? 'text-white' : 'text-slate-900'} transition-colors`}>CodeTo</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-indigo-500 group-hover:from-indigo-400 group-hover:to-purple-500 ml-1 transition-all duration-500">Anim</span>
+            </Link>
             <div className="px-4 py-4">
               <button 
                 onClick={() => handleNavClick('dashboard')}
@@ -1285,6 +1300,23 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* --- 3. NEW TUTORIAL MODAL ADDED HERE --- */}
+      {/* <TutorialModal 
+        isOpen={showTutorial} 
+        onClose={() => {
+          setShowTutorial(false);
+          // UNCOMMENT THIS WHEN FINALIZED:
+          // localStorage.setItem('tutorialCompleted', 'true');
+        }} 
+      /> */}
+      {/* --- TOUR TOOLTIP POPUP ---
+      <TooltipTour 
+        isOpen={showTutorial} 
+        onClose={() => {
+          setShowTutorial(false);
+          // localStorage.setItem('tooltipTourCompleted', 'true');
+        }} 
+      /> */}
     </div>
   );
 }
