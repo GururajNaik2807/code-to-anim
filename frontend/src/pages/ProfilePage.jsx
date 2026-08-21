@@ -4,54 +4,74 @@ import { supabase } from '../supabaseClient';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
-import TutorialModal from './TutorialModal'; // <-- 1. IMPORT ADDED HERE
-import TooltipTour from './TooltipTour'; // <-- Add import
+import TutorialModal from './TutorialModal'; 
+import TooltipTour from './TooltipTour'; 
 
-// 1. IMPORT YOUR FULL ALGORITHM DATABASE HERE:
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
-// 2. IMPORT THE WORKSPACE COMPONENT
 import WorkspacePage from './WorkspacePage';
 
-// --- OPTIMIZATION: Memoized Particle Component to avoid heavy re-renders ---
-const FloatingParticles = memo(({ isMobile }) => {
-  const particleCount = isMobile ? 40 : 175; 
-  const particleColors = ["#A855F7", "#22D3EE", "#EC4899"];
-  
+// --- OPTIMIZATION: Ambient Neon Wave Background for Low-End Devices ---
+// --- Premium Ambient Wave Background (High Contrast) ---
+const AmbientBackground = memo(({ isDark }) => {
+  // High opacity in dark mode so the colors pop against the new black background
+  const indigoOpacity = isDark ? "0.25" : "0.12";
+  const purpleOpacity = isDark ? "0.25" : "0.12";
+  const tealOpacity = isDark ? "0.15" : "0.08";
+
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      {[...Array(particleCount)].map((_, i) => {
-        const size = Math.random() * (isMobile ? 3 : 6) + 2;
-        const color = particleColors[i % particleColors.length];
-        
-        return (
-          <motion.div
-            key={i}
-            className="absolute rounded-full"
-            style={{
-              width: size,
-              height: size,
-              backgroundColor: color,
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [0, Math.random() * -300 - 100],
-              x: [0, Math.random() * 100 - 50],
-              opacity: [0, Math.random() * 0.5 + 0.2, 0],
-              scale: [0, 1.5, 0],
-            }}
-            transition={{
-              duration: Math.random() * 5 + (isMobile ? 8 : 5),
-              repeat: Infinity,
-              ease: "linear",
-              delay: Math.random() * 5,
-            }}
-          />
-        );
-      })}
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      
+      {/* Deep Indigo Wave */}
+      <motion.div
+        className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full"
+        style={{ 
+          backgroundColor: `rgba(99, 102, 241, ${indigoOpacity})`, 
+          filter: "blur(120px)", 
+          willChange: "transform" 
+        }}
+        animate={{
+          x: [0, 60, 0],
+          y: [0, 40, 0],
+          scale: [1, 1.2, 1],
+        }}
+        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+      />
+      
+      {/* Soft Purple Wave */}
+      <motion.div
+        className="absolute top-[20%] right-[-10%] w-[50vw] h-[50vw] rounded-full"
+        style={{ 
+          backgroundColor: `rgba(168, 85, 247, ${purpleOpacity})`, 
+          filter: "blur(130px)", 
+          willChange: "transform" 
+        }}
+        animate={{
+          x: [0, -50, 0],
+          y: [0, 70, 0],
+          scale: [1, 1.3, 1],
+        }}
+        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+      />
+      
+      {/* Subtle Teal Wave */}
+      <motion.div
+        className="absolute bottom-[-20%] left-[20%] w-[70vw] h-[70vw] rounded-full"
+        style={{ 
+          backgroundColor: `rgba(45, 212, 191, ${tealOpacity})`, 
+          filter: "blur(140px)", 
+          willChange: "transform" 
+        }}
+        animate={{
+          x: [0, 40, 0],
+          y: [0, -60, 0],
+          scale: [1, 1.1, 1],
+        }}
+        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+      />
     </div>
   );
 });
+
 
 // --- Level System Definitions ---
 const HONORS = [
@@ -85,7 +105,6 @@ const calculateLevelInfo = (totalXP) => {
 export default function ProfilePage() {
   const hasLoadedBefore = sessionStorage.getItem('profile_loaded') === 'true';
 
-  // --- 2. TUTORIAL STATE ADDED HERE ---
   const [showTutorial, setShowTutorial] = useState(true);
 
   const [user, setUser] = useState(null);
@@ -96,20 +115,16 @@ export default function ProfilePage() {
   const [recentActivities, setRecentActivities] = useState([]);
   const [leaderboardData, setLeaderboardData] = useState([]); 
   
-  // View Toggle State: 'dashboard' | 'leaderboard' | 'library' | 'workspace'
   const [currentView, setCurrentView] = useState(() => {
     return localStorage.getItem('codeanim_current_view') || 'dashboard';
   });
   
-  // Sidebar Toggle State
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
-  // Library States
   const [libSearchTerm, setLibSearchTerm] = useState('');
   const [libCategory, setLibCategory] = useState('All');
   const [libDifficulty, setLibDifficulty] = useState('All');
 
-  // Dashboard Header Search Panel States
   const [headerSearchTerm, setHeaderSearchTerm] = useState('');
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const headerSearchRef = useRef(null);
@@ -128,7 +143,6 @@ export default function ProfilePage() {
   const { openAuthModal } = useAuth();
   const isDark = currentTheme === 'dark';
 
-  // Detect Mobile
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile(); 
@@ -136,7 +150,6 @@ export default function ProfilePage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Click Outside Listener for Header Search Dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (headerSearchRef.current && !headerSearchRef.current.contains(event.target)) {
@@ -147,7 +160,6 @@ export default function ProfilePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // --- OPTIMIZATION 1: Streamlined Auth Listener ---
   useEffect(() => {
     let isMounted = true;
 
@@ -173,12 +185,11 @@ export default function ProfilePage() {
     };
   }, []);
 
-  // --- OPTIMIZATION 2: SessionStorage Tab Cache ---
   const fetchProfileData = async (session) => {
     setUser(session.user);
 
     const CACHE_KEY = `codeanim_dashboard_${session.user.id}`;
-    const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes in milliseconds
+    const CACHE_EXPIRY = 5 * 60 * 1000; 
 
     const cachedString = sessionStorage.getItem(CACHE_KEY);
     if (cachedString) {
@@ -290,7 +301,6 @@ export default function ProfilePage() {
     });
   };
 
-  // --- HEADER SEARCH FILTER ---
   const headerSearchResults = useMemo(() => {
     if (!headerSearchTerm.trim()) return [];
     const query = headerSearchTerm.toLowerCase();
@@ -298,10 +308,9 @@ export default function ProfilePage() {
       algo.title.toLowerCase().includes(query) ||
       algo.category.toLowerCase().includes(query) ||
       algo.description.toLowerCase().includes(query)
-    ).slice(0, 8); // Top 8 results
+    ).slice(0, 8); 
   }, [headerSearchTerm]);
 
-  // --- LIBRARY LOGIC & MEMOIZATION ---
   const completedAlgos = useMemo(() => {
     return new Set(progressData.filter(p => p.progress_percent === 100).map(p => p.algorithm_id));
   }, [progressData]);
@@ -349,7 +358,6 @@ export default function ProfilePage() {
     if(isMobile) setIsSidebarOpen(false);
   };
 
-  // --- DASHBOARD HELPERS ---
   const generateHeatmap = () => {
     const today = new Date();
     return Array.from({ length: 84 }).map((_, i) => {
@@ -383,9 +391,7 @@ export default function ProfilePage() {
 
   const recentAlgo = progressData.find(algo => algo.progress_percent < 100) || null;
 
-  // Professional Theme Variables
-  const bgMain = isDark ? 'bg-[#0A0D14]' : 'bg-[#F4F6F8]';
-  const bgPanel = isDark ? 'bg-[#10141D]' : 'bg-[#FFFFFF]';
+  const bgMain = isDark ? 'bg-black' : 'bg-[#F4F6F8]';  const bgPanel = isDark ? 'bg-[#10141D]' : 'bg-[#FFFFFF]';
   const textPrimary = isDark ? 'text-slate-100' : 'text-slate-800';
   const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
   
@@ -448,7 +454,6 @@ export default function ProfilePage() {
     ] }
   ];
 
-  // --- LEADERBOARD HELPERS ---
   const top3 = leaderboardData.slice(0, 3);
   const restOfLeaderboard = leaderboardData.slice(3);
 
@@ -485,8 +490,8 @@ export default function ProfilePage() {
   return (
     <div className={`flex h-screen w-screen font-sans ${bgMain} ${textPrimary} overflow-hidden relative`}>
       
-      {/* Dynamic Background Particles */}
-      <FloatingParticles isMobile={isMobile} />
+      {/* Dynamic Background */}
+      <AmbientBackground />
 
       {/* MOBILE-ONLY CSS OVERRIDES */}
       <style>{`

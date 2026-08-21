@@ -7,43 +7,40 @@ import LoginModal from '../components/LoginModal';
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import { motion } from 'framer-motion';
 
-// --- Animated Particle Component ---
-const FloatingParticles = ({ isMobile }) => {
-  const particleCount = isMobile ? 40 : 175; 
-  const particleColors = ["#A855F7", "#22D3EE", "#EC4899"];
-  
+// --- Ambient Gemini-Style Wave Background ---
+const AmbientBackground = () => {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {[...Array(particleCount)].map((_, i) => {
-        const size = Math.random() * (isMobile ? 3 : 6) + 2;
-        const color = particleColors[i % particleColors.length];
-        
-        return (
-          <motion.div
-            key={i}
-            className="absolute rounded-full"
-            style={{
-              width: size,
-              height: size,
-              backgroundColor: color,
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [0, Math.random() * -300 - 100],
-              x: [0, Math.random() * 100 - 50],
-              opacity: [0, Math.random() * 0.5 + 0.2, 0],
-              scale: [0, 1.5, 0],
-            }}
-            transition={{
-              duration: Math.random() * 5 + (isMobile ? 8 : 5),
-              repeat: Infinity,
-              ease: "linear",
-              delay: Math.random() * 5,
-            }}
-          />
-        );
-      })}
+      {/* Top Left Wave/Glow */}
+      <motion.div
+        className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-purple-500/20"
+        style={{ filter: "blur(120px)", willChange: "transform" }}
+        animate={{
+          x: [0, 50, 0],
+          y: [0, 80, 0],
+          scale: [1, 1.2, 1],
+        }}
+        transition={{
+          duration: 15,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+      {/* Bottom Right Wave/Glow */}
+      <motion.div
+        className="absolute bottom-[-20%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-cyan-500/20"
+        style={{ filter: "blur(140px)", willChange: "transform" }}
+        animate={{
+          x: [0, -60, 0],
+          y: [0, -40, 0],
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          duration: 18,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
     </div>
   );
 };
@@ -57,15 +54,6 @@ export default function LearnPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Detect screen size for performance-based animation rendering
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile(); // Check on mount
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Track which algorithms the user has marked complete
   const [completedAlgos, setCompletedAlgos] = useState(new Set());
@@ -139,8 +127,8 @@ export default function LearnPage() {
   return (
     <div className={`min-h-screen relative overflow-x-hidden ${bgMain} ${textPrimary} font-sans selection:bg-purple-500 selection:text-white flex flex-col`}>
       
-      {/* Dynamic Background Particles */}
-      <FloatingParticles isMobile={isMobile} />
+      {/* Dynamic Background Waves */}
+      <AmbientBackground />
 
       {/* MOBILE-ONLY OVERRIDE STYLES: This guarantees the PC view stays untouched */}
       <style>{`
