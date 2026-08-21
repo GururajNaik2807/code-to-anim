@@ -209,7 +209,7 @@ export default function Visualizer({
                           {node.id}
                         </span>
                         <span className="text-[10px] font-mono opacity-70">
-                          → [{node.neighbors.join(', ')}]
+                          → [{Array.isArray(node.neighbors) ? node.neighbors.join(', ') : (node.neighbors ? Object.keys(node.neighbors).join(', ') : '')}]
                         </span>
                       </div>
                     );

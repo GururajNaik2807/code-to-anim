@@ -11,9 +11,9 @@ import Visualizer from '../components/Visualizer';
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import { Helmet } from 'react-helmet-async'; 
 
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
 
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 export default function WorkspacePage({ isEmbedded = false }) {
   const location = useLocation();
@@ -71,6 +71,11 @@ print("Final Sorted Array:", arr)`;
 
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [limitMessage, setLimitMessage] = useState("");
+  
+  // --- Save Modal & Acknowledgement Card State ---
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveFileName, setSaveFileName] = useState("");
+  const [savedToast, setSavedToast] = useState(null); // Holds name of successfully saved algorithm
 
   const autoPlayRef = useRef(null);
   const completionCheckRef = useRef(null);
@@ -184,20 +189,29 @@ print("Final Sorted Array:", arr)`;
     }
   };
 
-  const handleSaveCode = async () => {
+  const handleSaveCodeClick = () => {
     if (!user) return openAuthModal('Create a free account to save your custom algorithms!');
-    const algoName = prompt("Enter a name for this algorithm:", algoMetadata.algorithmTitle);
-    if (!algoName) return; 
+    setSaveFileName(algoMetadata.algorithmTitle || "My Custom Algorithm");
+    setShowSaveModal(true);
+  };
+
+  const confirmSaveCode = async () => {
+    if (!saveFileName.trim()) return; 
     
     setIsLoading(true);
+    setShowSaveModal(false);
     try {
       const { error } = await supabase.rpc('save_user_code', {
         p_user_id: user.id,
-        p_title: algoName,
+        p_title: saveFileName,
         p_code: code
       });
       if (error) throw error;
-      alert(`"${algoName}" saved successfully to your profile!`);
+      
+      // Trigger Acknowledgement Toast Card
+      setSavedToast(saveFileName);
+      setTimeout(() => setSavedToast(null), 4000); // Auto hide after 4 seconds
+
     } catch (error) {
       setErrorMessage("Failed to save code: " + error.message);
     } finally {
@@ -225,9 +239,7 @@ print("Final Sorted Array:", arr)`;
     else {
       try {
         const { data: canExecute, error } = await supabase.rpc('can_user_execute', { p_user_id: user.id });
-        
         if (error) throw error;
-        
         if (!canExecute) {
           setLimitMessage("You've hit your limit of 10 executions for today! You're making great progress. Come back tomorrow or upgrade to premium for unlimited runs.");
           setShowLimitModal(true);
@@ -289,13 +301,14 @@ print("Final Sorted Array:", arr)`;
   const activeLineNumber = currentStep?.line ?? null;
   const consoleOutput = currentStep?.output ?? "";
 
-  const bgMain = isDark ? 'bg-[#0A0D14]' : 'bg-[#FAFAFC]';
+  const bgMain = isDark ? 'bg-[#0A0D14]' : 'bg-[#F4F6F8]';
   const bgNav = isDark ? 'bg-[#10141D]' : 'bg-[#FFFFFF]';
   const bgPanel = isDark ? 'bg-[#131822]' : 'bg-[#FFFFFF]';
   const textPrimary = isDark ? 'text-slate-100' : 'text-slate-900';
   const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
   
-  const metallicBorder = 'border border-slate-900 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_2px_5px_rgba(0,0,0,0.25)]';
+  // Removed heavy borders completely for a clean look
+  const cleanBorder = isDark ? 'border border-slate-800/60' : 'border border-slate-200/60';
 
   return (
     <>
@@ -332,9 +345,55 @@ print("Final Sorted Array:", arr)`;
       <div className={`${isEmbedded ? 'h-full w-full' : 'h-screen w-screen'} flex font-sans overflow-hidden ${bgMain} ${textPrimary}`}>
         <LoginModal />
 
+        {/* --- SUCCESS ACKNOWLEDGEMENT TOAST CARD --- */}
+        {savedToast && (
+          <div className="fixed bottom-6 right-6 z-[300] flex items-center gap-3 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-xl animate-[bounce_0.5s_ease-in-out]">
+            <span className="text-xl">✅</span>
+            <div>
+              <h4 className="font-bold text-sm">Algorithm Saved!</h4>
+              <p className="text-xs text-emerald-100">"{savedToast}" successfully stored to profile.</p>
+            </div>
+          </div>
+        )}
+
+        {/* --- SAVE MODAL --- */}
+        {showSaveModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className={`w-full max-w-sm rounded-3xl p-8 flex flex-col gap-4 shadow-2xl transition-all ${isDark ? 'bg-[#131822] text-white border border-slate-800' : 'bg-white text-slate-900 border border-slate-200'}`}>
+              <div>
+                <h3 className="text-xl font-bold mb-1">Save Algorithm</h3>
+                <p className={`text-xs ${textSecondary}`}>Give your custom script a memorable name to easily find it in your profile library.</p>
+              </div>
+              <input 
+                type="text" 
+                value={saveFileName}
+                onChange={(e) => setSaveFileName(e.target.value)}
+                placeholder="e.g. Optimized Bubble Sort"
+                className={`w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all ${isDark ? 'bg-[#0A0D14] border border-slate-800 focus:border-indigo-500 text-white' : 'bg-slate-50 border border-slate-200 focus:border-indigo-500 text-slate-900'}`}
+                autoFocus
+              />
+              <div className="flex justify-end gap-3 mt-4">
+                <button 
+                  onClick={() => setShowSaveModal(false)} 
+                  className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${isDark ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-slate-100 text-slate-600'}`}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmSaveCode} 
+                  disabled={!saveFileName.trim()}
+                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Save to Profile
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showLimitModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-            <div className={`relative w-full max-w-md rounded-3xl p-8 flex flex-col items-center text-center transform transition-all ${metallicBorder} ${isDark ? 'bg-[#131822] text-white shadow-purple-950/40' : 'bg-white text-slate-900 shadow-xl'}`}>
+            <div className={`relative w-full max-w-md rounded-3xl p-8 flex flex-col items-center text-center transform transition-all ${cleanBorder} ${isDark ? 'bg-[#131822] text-white' : 'bg-white text-slate-900 shadow-xl'}`}>
               <div className="w-16 h-16 bg-purple-500/10 text-purple-600 rounded-full flex items-center justify-center text-3xl mb-4 border border-purple-500/30 shadow-inner">
                 ⏳
               </div>
@@ -353,14 +412,14 @@ print("Final Sorted Array:", arr)`;
         )}
 
         {!isEmbedded && (
-          <aside className={`hidden md:flex w-16 flex-shrink-0 ${metallicBorder} ${bgNav} flex-col items-center justify-between py-4 z-20 ws-mobile-hide`}>
+          <aside className={`hidden md:flex w-16 flex-shrink-0 ${cleanBorder} border-y-0 border-l-0 ${bgNav} flex-col items-center justify-between py-4 z-20 ws-mobile-hide`}>
             <div className="flex flex-col items-center gap-6">
-              <Link to="/" className={`w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600/20 to-indigo-600/20 flex items-center justify-center p-2 hover:scale-105 transition-transform ${metallicBorder}`}>
+              <Link to="/" className={`w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600/20 to-indigo-600/20 flex items-center justify-center p-2 hover:scale-105 transition-transform ${cleanBorder}`}>
                 <img src="/favicon.svg" alt="CodeAnim Logo" className="w-full h-full object-contain" />
               </Link>
 
               <nav className="flex flex-col gap-3">
-                <Link to="/profile" className={`w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold ${metallicBorder}`}>
+                <Link to="/profile" className={`w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold ${cleanBorder}`}>
                   {user?.email?.[0]?.toUpperCase() || 'U'}
                 </Link>
               </nav>
@@ -368,7 +427,7 @@ print("Final Sorted Array:", arr)`;
 
             <button 
               onClick={toggleTheme} 
-              className={`w-10 h-10 rounded-xl ${metallicBorder} flex items-center justify-center text-lg hover:bg-slate-800/10 transition-colors bg-white/5`}
+              className={`w-10 h-10 rounded-xl ${cleanBorder} flex items-center justify-center text-lg hover:bg-slate-800/10 transition-colors bg-black/5 dark:bg-white/5`}
               title={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
             >
               {isDark ? '🌙' : '☀️'}
@@ -377,27 +436,27 @@ print("Final Sorted Array:", arr)`;
         )}
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          <header className={`h-14 ${metallicBorder} border-x-0 border-t-0 ${bgNav} flex items-center justify-between px-6 z-10 ws-mobile-header`}>
+          <header className={`h-14 ${cleanBorder} border-x-0 border-t-0 ${bgNav} flex items-center justify-between px-6 z-10 ws-mobile-header`}>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <img src="/favicon.svg" alt="Logo" className="w-5 h-5 object-contain" />
                 <span className="font-extrabold text-sm tracking-tight text-purple-600">CodeToAnim <span className="text-[17px] text-slate-500 font-mono">Workspace</span></span>
               </div>
 
-              <div className={`flex items-center gap-2 ${metallicBorder} rounded-lg px-3 py-1 text-xs font-semibold ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}>
+              {/* Theme-Adaptive Header Badge */}
+              <div className={`flex items-center gap-2 ${cleanBorder} rounded-lg px-3 py-1 text-xs font-semibold ${isDark ? 'bg-slate-900/60 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
                 <span>{algoMetadata.algorithmTitle}</span>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] ${isDark ? 'bg-purple-950 text-purple-300 border border-purple-800/60' : 'bg-purple-100 text-purple-700 border border-purple-300'}`}>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] ${isDark ? 'bg-purple-950 text-purple-300 border border-purple-800/60' : 'bg-purple-100 text-purple-800 border border-purple-300'}`}>
                   {algoMetadata.strategy || 'Lesson'}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-3 header-actions">
-              {/* --- NEW: LAYOUT CONTROLS --- */}
-              <div className={`hidden md:flex items-center p-1 rounded-lg ${metallicBorder} ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}>
+              <div className={`hidden md:flex items-center p-1 rounded-lg ${cleanBorder} ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}>
                 <button
                   onClick={() => setIsEditorOpen(true)}
-                  className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${isEditorOpen ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                  className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${isEditorOpen ? (isDark ? 'bg-slate-700 text-white shadow-sm' : 'bg-white text-slate-900 shadow-sm border border-slate-200') : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                   title="Show Code & Visualizer"
                 >
                   Split
@@ -417,7 +476,7 @@ print("Final Sorted Array:", arr)`;
               {algoMetadata.type !== 'sandbox' && (
                  <button 
                   onClick={handleResetSandbox} 
-                  className={`px-3 py-1.5 ${metallicBorder} rounded-lg text-xs font-semibold hover:border-amber-500 hover:text-amber-500 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-white'}`}
+                  className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold hover:border-amber-500 hover:text-amber-500 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}
                   title="Clear workspace and return to Sandbox"
                 >
                   🔄 Reset Sandbox
@@ -425,11 +484,11 @@ print("Final Sorted Array:", arr)`;
               )}
 
               {incomingLessonUrl ? (
-                <Link to={incomingLessonUrl} className={`px-3 py-1.5 ${metallicBorder} rounded-lg text-xs font-semibold hover:border-purple-600 transition-colors text-purple-600 ${isDark ? 'bg-slate-900/60' : 'bg-white'}`}>
+                <Link to={incomingLessonUrl} className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold hover:border-purple-600 transition-colors text-purple-600 ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}>
                   ← Back to Lesson
                 </Link>
               ) : !isEmbedded ? (
-                <Link to="/algorithms" className={`px-3 py-1.5 ${metallicBorder} rounded-lg text-xs font-semibold hover:border-purple-600 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-white'}`}>
+                <Link to="/algorithms" className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold hover:border-purple-600 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}>
                   📚 Algorithm Library
                 </Link>
               ) : null}
@@ -455,23 +514,23 @@ print("Final Sorted Array:", arr)`;
                     <button 
                       onClick={handleMarkComplete} 
                       disabled={isCompleting || isCompleted}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${metallicBorder} ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${cleanBorder} ${
                         isCompleted 
-                          ? (isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-600/60' : 'bg-emerald-100 text-emerald-700 border-emerald-300')
-                          : `hover:border-emerald-50 hover:text-emerald-500 ${isDark ? 'bg-slate-900/60' : 'bg-white'}`
+                          ? (isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-600/60' : 'bg-emerald-50 text-emerald-700 border-emerald-300')
+                          : `hover:border-emerald-500 hover:text-emerald-500 ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`
                       }`}
                     >
                       {isCompleting ? '⏳ Saving...' : isCompleted ? '✅ Completed' : '🏆 Mark Complete'}
                     </button>
                   )}
                   
-                  <button onClick={handleSaveCode} className={`px-3 py-1.5 ${metallicBorder} rounded-lg text-xs font-semibold hover:border-blue-600 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-white'}`}>
+                  <button onClick={handleSaveCodeClick} className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold hover:border-blue-600 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}>
                     💾 Save Code
                   </button>
                 </>
               )}
               
-              <button onClick={handleExecuteTrace} disabled={isLoading} className={`px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${metallicBorder}`}>
+              <button onClick={handleExecuteTrace} disabled={isLoading} className={`px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${cleanBorder}`}>
                 <span>▷</span>
                 <span>{isLoading ? "Tracing..." : "Execute Trace"}</span>
               </button>
@@ -479,12 +538,12 @@ print("Final Sorted Array:", arr)`;
           </header>
 
           <div className="flex-1 flex overflow-hidden relative ws-mobile-main-row">
-            <aside className={`relative flex-shrink-0 ${metallicBorder} border-y-0 border-l-0 ${bgPanel} transition-all duration-300 flex flex-col justify-between overflow-hidden ws-mobile-desc-panel ${
+            <aside className={`relative flex-shrink-0 ${cleanBorder} border-y-0 border-l-0 ${bgPanel} transition-all duration-300 flex flex-col justify-between overflow-hidden ws-mobile-desc-panel ${
               isDescriptionOpen ? "w-64 p-5" : "w-10 p-2 items-center ws-mobile-closed"
             }`}>
              <button 
               onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
-              className={`absolute top-3 right-2 z-20 w-6 h-6 rounded-full ${metallicBorder} ${bgNav} hover:border-purple-500 text-purple-600 items-center justify-center text-xs transition-colors hidden md:flex`}
+              className={`absolute top-3 right-2 z-20 w-6 h-6 rounded-full ${cleanBorder} ${bgNav} hover:border-purple-500 text-purple-600 items-center justify-center text-xs transition-colors hidden md:flex`}
               title={isDescriptionOpen ? "Collapse Description" : "Expand Description"}
              >
               {isDescriptionOpen ? "◀" : "▶"}
@@ -501,7 +560,7 @@ print("Final Sorted Array:", arr)`;
                   <div>
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>CURRENT ALGORITHM</span>
                     <h2 className="text-lg font-bold mt-1 tracking-tight">{algoMetadata.algorithmTitle}</h2>
-                    <span className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-semibold border shadow-sm ${isDark ? 'bg-purple-950 text-purple-300 border-purple-800/60' : 'bg-purple-100 text-purple-700 border-purple-300'}`}>
+                    <span className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-semibold border shadow-sm ${isDark ? 'bg-purple-950 text-purple-300 border-purple-800/60' : 'bg-purple-100 text-purple-800 border border-purple-300'}`}>
                       {algoMetadata.strategy || 'Standard'}
                     </span>
                     <p className={`text-xs ${textSecondary} mt-3 leading-relaxed`}>
@@ -511,7 +570,7 @@ print("Final Sorted Array:", arr)`;
 
                   <div>
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>LANGUAGE</span>
-                    <div className={`mt-1 ${metallicBorder} rounded-lg p-2 text-xs font-medium flex items-center gap-2 ${isDark ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
+                    <div className={`mt-1 ${cleanBorder} rounded-lg p-2 text-xs font-medium flex items-center gap-2 ${isDark ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
                       <span>🐍</span> {algoMetadata.language || 'Python 3'}
                     </div>
                   </div>
@@ -519,14 +578,14 @@ print("Final Sorted Array:", arr)`;
                   {algoMetadata.exampleInput && (
                     <div>
                       <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>EXAMPLE INPUT</span>
-                      <pre className={`mt-1 p-2 rounded-lg ${metallicBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-slate-100 text-slate-800'}`}>{algoMetadata.exampleInput}</pre>
+                      <pre className={`mt-1 p-2 rounded-lg ${cleanBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-slate-100 text-slate-800'}`}>{algoMetadata.exampleInput}</pre>
                     </div>
                   )}
 
                   {algoMetadata.exampleOutput && (
                     <div>
                       <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>EXAMPLE OUTPUT</span>
-                      <pre className={`mt-1 p-2 rounded-lg ${metallicBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-slate-100 text-slate-800'}`}>{algoMetadata.exampleOutput}</pre>
+                      <pre className={`mt-1 p-2 rounded-lg ${cleanBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-slate-100 text-slate-800'}`}>{algoMetadata.exampleOutput}</pre>
                     </div>
                   )}
                 </div>
@@ -535,11 +594,9 @@ print("Final Sorted Array:", arr)`;
 
             <div className="flex-1 flex flex-col overflow-hidden ws-mobile-workspace-col">
               
-              {/* --- NEW: WORKSPACE SPLIT LAYOUT --- */}
               <div className="flex-1 flex overflow-hidden relative ws-mobile-editor-row">
                 
-                {/* Editor Container */}
-                <div className={`${isEditorOpen ? 'w-full md:w-1/2 lg:w-[45%] flex-shrink-0 border-r border-slate-200 dark:border-slate-800' : 'hidden'} flex flex-col h-full overflow-hidden transition-all`}>
+                <div className={`${isEditorOpen ? 'w-full md:w-1/2 lg:w-[45%] flex-shrink-0' : 'hidden'} flex flex-col h-full overflow-hidden transition-all`}>
                   <Editor 
                     code={code} 
                     setCode={setCode} 
@@ -548,7 +605,7 @@ print("Final Sorted Array:", arr)`;
                     user={user} 
                     openAuthModal={openAuthModal}
                     activeLineNumber={activeLineNumber} 
-                    handleSaveCode={handleSaveCode} 
+                    handleSaveCode={handleSaveCodeClick} 
                     handleExecuteTrace={handleExecuteTrace} 
                     isLoading={isLoading} 
                     isDark={isDark}
@@ -557,7 +614,6 @@ print("Final Sorted Array:", arr)`;
                   />
                 </div>
 
-                {/* Visualizer Container */}
                 <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative bg-black/5 dark:bg-black/20 shadow-inner">
                   <Visualizer 
                     steps={steps} 
@@ -569,7 +625,7 @@ print("Final Sorted Array:", arr)`;
                 
               </div>
 
-              <footer className={`h-16 ${metallicBorder} border-x-0 border-b-0 ${bgNav} flex items-center justify-between px-8 z-10 ws-mobile-footer`}>
+              <footer className={`h-16 ${cleanBorder} border-x-0 border-b-0 ${bgNav} flex items-center justify-between px-8 z-10 ws-mobile-footer`}>
                 <div className={`font-mono text-xs ${textSecondary} flex items-center gap-2 max-w-xs truncate`}>
                   <span className="text-purple-600 font-bold">OUTPUT:</span>
                   <span className="text-emerald-500 font-semibold truncate">
@@ -577,25 +633,25 @@ print("Final Sorted Array:", arr)`;
                   </span>
                 </div>
 
-                <div className={`flex items-center gap-2 p-1.5 rounded-2xl ${metallicBorder} ${isDark ? 'bg-slate-950/80 shadow-inner' : 'bg-slate-200/50 shadow-sm'}`}>
+                <div className={`flex items-center gap-2 p-1.5 rounded-2xl ${cleanBorder} ${isDark ? 'bg-slate-950/80 shadow-inner' : 'bg-slate-100 shadow-sm'}`}>
                   <button 
                     onClick={handleFirstStep} 
                     disabled={steps.length === 0 || currentStepIndex === 0} 
-                    className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all ${metallicBorder} border-transparent hover:border-slate-900`}
+                    className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all border-transparent`}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
                   </button>
                   <button 
                     onClick={handlePrevStep} 
                     disabled={steps.length === 0 || currentStepIndex === 0} 
-                    className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all ${metallicBorder} border-transparent hover:border-slate-900`}
+                    className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all border-transparent`}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
                   </button>
                   <button 
                     onClick={handleTogglePlay} 
                     disabled={steps.length === 0} 
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center text-white transition-all ${metallicBorder} ${
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center text-white transition-all ${
                       isPlaying 
                         ? 'bg-amber-600 hover:bg-amber-500' 
                         : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500'
@@ -610,21 +666,21 @@ print("Final Sorted Array:", arr)`;
                   <button 
                     onClick={handleNextStep} 
                     disabled={steps.length === 0 || currentStepIndex === steps.length - 1} 
-                    className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all ${metallicBorder} border-transparent hover:border-slate-900`}
+                    className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all border-transparent`}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
                   </button>
                   <button 
                     onClick={handleLastStep} 
                     disabled={steps.length === 0 || currentStepIndex === steps.length - 1} 
-                    className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all ${metallicBorder} border-transparent hover:border-slate-900`}
+                    className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all border-transparent`}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
                   </button>
                 </div>
 
                 <div className={`font-mono text-xs ${textSecondary} flex items-center gap-3`}>
-                  <div className={`w-32 h-1.5 rounded-full overflow-hidden ${metallicBorder} bg-slate-200 dark:bg-slate-900`}>
+                  <div className={`w-32 h-1.5 rounded-full overflow-hidden ${cleanBorder} bg-slate-200 dark:bg-slate-900`}>
                     <div 
                       className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all duration-300 rounded-full"
                       style={{ width: `${steps.length > 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0}%` }}

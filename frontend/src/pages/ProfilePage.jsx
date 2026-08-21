@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, memo } from 'react';
+import React, { useEffect, useState, useMemo, memo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useTheme } from '../context/ThemeContext';
@@ -102,12 +102,18 @@ export default function ProfilePage() {
   const [libCategory, setLibCategory] = useState('All');
   const [libDifficulty, setLibDifficulty] = useState('All');
 
+  // Dashboard Header Search Panel States
+  const [headerSearchTerm, setHeaderSearchTerm] = useState('');
+  const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
+  const headerSearchRef = useRef(null);
+
   const [loading, setLoading] = useState(!hasLoadedBefore);
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [shareText, setShareText] = useState('Share Profile');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   const navigate = useNavigate();
@@ -123,7 +129,18 @@ export default function ProfilePage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // --- Streamlined Auth Listener ---
+  // Click Outside Listener for Header Search Dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (headerSearchRef.current && !headerSearchRef.current.contains(event.target)) {
+        setIsHeaderSearchOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // --- OPTIMIZATION 1: Streamlined Auth Listener ---
   useEffect(() => {
     let isMounted = true;
 
@@ -149,34 +166,32 @@ export default function ProfilePage() {
     };
   }, []);
 
-  // --- OPTIMIZED FETCH: Single RPC Call with Cache Fallback ---
+  // --- OPTIMIZATION 2: SessionStorage Tab Cache ---
   const fetchProfileData = async (session) => {
     setUser(session.user);
 
     const CACHE_KEY = `codeanim_dashboard_${session.user.id}`;
-    const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes cache
+    const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-    // 1. Check Session Cache First
     const cachedString = sessionStorage.getItem(CACHE_KEY);
     if (cachedString) {
       try {
         const { data, timestamp } = JSON.parse(cachedString);
         if (Date.now() - timestamp < CACHE_EXPIRY) {
-          setProfile(data.profile || {});
-          setSavedCodes(data.savedCodes || []);
-          setProgressData(data.progressData || []);
-          setDailyActivity(data.dailyActivity || []);
-          setRecentActivities(data.recentActivities || []);
-          setLeaderboardData(data.leaderboardData || []);
+          setProfile(data.profile);
+          setSavedCodes(data.savedCodes);
+          setProgressData(data.progressData);
+          setDailyActivity(data.dailyActivity);
+          setRecentActivities(data.recentActivities);
+          setLeaderboardData(data.leaderboardData);
           setLoading(false);
           return;
         }
       } catch (e) {
-        sessionStorage.removeItem(CACHE_KEY);
+        console.warn("Cache corrupted, fetching fresh data...");
       }
     }
 
-    // 2. Fetch via Consolidated RPC Procedure (1 Network Call)
     try {
       const { data: payload, error } = await supabase.rpc('get_user_dashboard_payload', {
         p_user_id: session.user.id
@@ -207,13 +222,18 @@ export default function ProfilePage() {
       sessionStorage.setItem('profile_loaded', 'true');
 
     } catch (err) {
-      console.error("Error fetching dashboard payload:", err);
+      console.error("Error fetching profile data:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutConfirm(false);
     setIsLoggingOut(true);
     sessionStorage.removeItem(`codeanim_dashboard_${user?.id}`);
     sessionStorage.removeItem('profile_loaded');
@@ -221,7 +241,7 @@ export default function ProfilePage() {
     setTimeout(async () => {
       await supabase.auth.signOut();
       navigate('/');
-    }, 2000);
+    }, 1500);
   };
 
   const toggleTheme = async () => {
@@ -263,6 +283,17 @@ export default function ProfilePage() {
     });
   };
 
+  // --- HEADER SEARCH FILTER ---
+  const headerSearchResults = useMemo(() => {
+    if (!headerSearchTerm.trim()) return [];
+    const query = headerSearchTerm.toLowerCase();
+    return ALGORITHMS_DATABASE.filter(algo => 
+      algo.title.toLowerCase().includes(query) ||
+      algo.category.toLowerCase().includes(query) ||
+      algo.description.toLowerCase().includes(query)
+    ).slice(0, 8); // Top 8 results
+  }, [headerSearchTerm]);
+
   // --- LIBRARY LOGIC & MEMOIZATION ---
   const completedAlgos = useMemo(() => {
     return new Set(progressData.filter(p => p.progress_percent === 100).map(p => p.algorithm_id));
@@ -288,6 +319,8 @@ export default function ProfilePage() {
   }, [libSearchTerm, libCategory, libDifficulty]);
 
   const handleOpenInTracer = (algo) => {
+    setHeaderSearchTerm('');
+    setIsHeaderSearchOpen(false);
     navigate('/profile', { 
       state: { 
         presetCode: algo.code,
@@ -343,7 +376,7 @@ export default function ProfilePage() {
 
   const recentAlgo = progressData.find(algo => algo.progress_percent < 100) || null;
 
-  // Theme Config
+  // Professional Theme Variables
   const bgMain = isDark ? 'bg-[#0A0D14]' : 'bg-[#F4F6F8]';
   const bgPanel = isDark ? 'bg-[#10141D]' : 'bg-[#FFFFFF]';
   const textPrimary = isDark ? 'text-slate-100' : 'text-slate-800';
@@ -539,8 +572,9 @@ export default function ProfilePage() {
         }
       `}</style>
 
+      {/* --- LOGOUT LOADING SCREEN --- */}
       {isLoggingOut && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
           <div className={`relative w-full max-w-sm rounded-3xl p-8 flex flex-col items-center text-center transform transition-all ${metallicBorder} ${isDark ? 'bg-[#10141D] text-white' : 'bg-white text-slate-900'}`}>
             <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center text-3xl mb-4 border border-emerald-500/30 shadow-inner">👋</div>
             <h2 className="text-2xl font-black mb-2 tracking-tight">Successfully Logged Out</h2>
@@ -628,14 +662,80 @@ export default function ProfilePage() {
               </svg>
             </button>
 
-            <div className={`flex items-center w-80 lg:w-96 ${metallicBorder} rounded-xl px-3 py-1.5 transition-shadow focus-within:ring-2 focus-within:ring-indigo-500/30 ${isDark ? 'bg-[#0A0D14]' : 'bg-slate-50'}`}>
-              <span className="text-slate-400 text-sm">🔍</span>
-              <input type="text" placeholder="Search algorithms, topics, users..." className={`bg-transparent border-none outline-none text-sm font-medium w-full ml-2 placeholder-slate-400/70 ${textPrimary}`} />
+            {/* --- NEW: INTERACTIVE HEADER SEARCH BAR & DROPDOWN PANEL --- */}
+            <div ref={headerSearchRef} className="relative z-50">
+              <div className={`flex items-center w-80 lg:w-96 ${metallicBorder} rounded-xl px-3 py-1.5 transition-shadow focus-within:ring-2 focus-within:ring-indigo-500/30 ${isDark ? 'bg-[#0A0D14]' : 'bg-slate-50'}`}>
+                <span className="text-slate-400 text-sm">🔍</span>
+                <input 
+                  type="text" 
+                  value={headerSearchTerm}
+                  onChange={(e) => {
+                    setHeaderSearchTerm(e.target.value);
+                    setIsHeaderSearchOpen(true);
+                  }}
+                  onFocus={() => setIsHeaderSearchOpen(true)}
+                  placeholder="Search algorithms, topics, users..." 
+                  className={`bg-transparent border-none outline-none text-sm font-medium w-full ml-2 placeholder-slate-400/70 ${textPrimary}`} 
+                />
+                {headerSearchTerm && (
+                  <button onClick={() => setHeaderSearchTerm('')} className="text-slate-400 hover:text-slate-200 text-xs px-1">
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* SEARCH RESULTS PANEL */}
+              {isHeaderSearchOpen && headerSearchTerm.trim().length > 0 && (
+                <div className={`absolute top-full left-0 right-0 mt-2 rounded-2xl shadow-2xl border ${metallicBorder} ${bgPanel} overflow-hidden max-h-80 overflow-y-auto ${scrollbarStyles} z-50 transition-all`}>
+                  <div className="p-2 border-b border-slate-800/40 text-[10px] font-black uppercase tracking-wider text-indigo-400 px-4">
+                    Algorithm Results ({headerSearchResults.length})
+                  </div>
+                  
+                  {headerSearchResults.length > 0 ? (
+                    <div className="p-1 space-y-1">
+                      {headerSearchResults.map((algo) => (
+                        <div
+                          key={algo.id}
+                          onClick={() => handleOpenInTracer(algo)}
+                          className={`p-3 rounded-xl cursor-pointer transition-all flex items-center justify-between ${hoverBg} group`}
+                        >
+                          <div>
+                            <div className="font-bold text-sm text-indigo-400 group-hover:text-indigo-300 flex items-center gap-2">
+                              <span>{algo.title}</span>
+                            </div>
+                            <div className={`text-[11px] line-clamp-1 ${textSecondary} mt-0.5`}>
+                              {algo.description}
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
+                            <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                              {algo.category}
+                            </span>
+                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                              algo.difficulty === 'Easy' ? 'text-emerald-400 bg-emerald-500/10' :
+                              algo.difficulty === 'Medium' ? 'text-amber-400 bg-amber-500/10' :
+                              'text-rose-400 bg-rose-500/10'
+                            }`}>
+                              {algo.difficulty}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={`p-6 text-center text-xs ${textSecondary}`}>
+                      No matching algorithms found for "{headerSearchTerm}"
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
           </div>
 
           <div className="flex items-center gap-5">
-            <div className={`flex items-center gap-3 cursor-pointer pl-4 border-l ${isDark ? 'border-slate-800' : 'border-slate-200'}`} onClick={handleLogout}>
+            <div className={`flex items-center gap-3 cursor-pointer pl-4 border-l ${isDark ? 'border-slate-800' : 'border-slate-200'}`} onClick={handleLogoutClick}>
               <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm ${metallicBorder} shadow-md`}>{userInitial}</div>
               <div className="flex flex-col hidden sm:flex">
                 <span className="text-sm font-bold leading-tight">{displayName}</span>
@@ -844,7 +944,7 @@ export default function ProfilePage() {
 
                 <div className="space-y-6">
                   
-                  {/* --- MINI LEADERBOARD --- */}
+                  {/* --- MINI LEADERBOARD INSTALLED HERE --- */}
                   <div className={`${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm`}>
                     <div className="flex justify-between items-center mb-6">
                       <div className="flex items-center gap-2">
@@ -924,6 +1024,7 @@ export default function ProfilePage() {
                 <p className={`text-sm font-medium ${textSecondary}`}>Top 50 developers by total XP across CodeAnim.</p>
               </div>
 
+              {/* Podium Section */}
               {top3.length > 0 && (
                 <div className="podium-container flex flex-col md:flex-row justify-center items-end gap-6 pt-4 pb-8">
                   {top3.length > 1 && renderPodiumCard(top3[1], 2)}
@@ -932,6 +1033,7 @@ export default function ProfilePage() {
                 </div>
               )}
 
+              {/* Leaderboard Table */}
               {restOfLeaderboard.length > 0 && (
                 <div className={`${bgPanel}/90 backdrop-blur-md ${metallicBorder} rounded-3xl p-6 shadow-sm`}>
                   <div className="overflow-x-auto scrollbar-thin">
@@ -1153,6 +1255,36 @@ export default function ProfilePage() {
 
         </main>
       </div>
+
+      {/* --- ROOT-LEVEL LOGOUT CONFIRMATION MODAL WITH BLUR --- */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-slate-950/50 backdrop-blur-md p-4 transition-all">
+          <div className={`w-full max-w-sm rounded-3xl p-8 flex flex-col gap-5 shadow-2xl transition-all ${isDark ? 'bg-[#131822] text-white border border-slate-800' : 'bg-white text-slate-900 border border-slate-200'}`}>
+            <div className="w-14 h-14 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center text-2xl border border-rose-500/20 shadow-inner">
+              🚪
+            </div>
+            <div>
+              <h3 className="text-xl font-bold mb-1 tracking-tight">Confirm Logout</h3>
+              <p className={`text-xs leading-relaxed ${textSecondary}`}>Are you sure you want to log out of your CodeToAnim session?</p>
+            </div>
+            <div className="flex justify-end gap-3 mt-2">
+              <button 
+                onClick={() => setShowLogoutConfirm(false)} 
+                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${metallicBorder} ${hoverBg}`}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmLogout} 
+                className="px-5 py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-900/30 transition-all"
+              >
+                Yes, Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
