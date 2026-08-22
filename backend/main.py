@@ -2,6 +2,7 @@ import sys
 import copy
 import io
 import time
+import re
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -15,7 +16,7 @@ _original_import = builtins.__import__
 app = FastAPI(
     title="CodeToAnim Trace Engine",
     description="Backend execution engine to capture step-by-step code execution states.",
-    version="1.0.3"
+    version="1.0.6"
 )
 
 app.add_middleware(
@@ -41,10 +42,12 @@ class TraceResponse(BaseModel):
     steps: List[TraceStep]
     error: Optional[str] = None
 
-
 def make_json_safe(val, depth=0):
     if depth > 15: return "..."
-    if type(val).__name__ == 'module': return str(val)
+    
+    if type(val).__name__ == 'module': 
+        return f"<module '{getattr(val, '__name__', 'unknown')}'>"
+        
     if isinstance(val, (int, float, str, bool, type(None))): return val
     
     if type(val).__name__ == 'deque' or isinstance(val, collections.deque):
@@ -68,7 +71,6 @@ def make_json_safe(val, depth=0):
         if safe_dict: return safe_dict
     except Exception: pass
     return str(val)
-
 
 def generate_visual_layout(clean_vars: dict) -> dict:
     candidates = []
@@ -119,7 +121,7 @@ def generate_visual_layout(clean_vars: dict) -> dict:
             candidates.append({"type": "tree", "key": key, "nodes": nodes, "edges": edges, "pointers": pointers, "score": score})
             continue
 
-        # 2. LINKED LIST SCORING (FIXED PRIORITY)
+        # 2. LINKED LIST SCORING
         head = val if is_ll(val) else (val.get('head') if isinstance(val, dict) and is_ll(val.get('head')) else None)
         if head:
             nodes, curr, safe_count = [], head, 0
@@ -127,7 +129,6 @@ def generate_visual_layout(clean_vars: dict) -> dict:
                 nodes.append({"val": str(curr.get('val', curr.get('data', curr.get('value', '?'))))})
                 curr = curr.get('next')
                 safe_count += 1
-            # FIX: Heavily weight the length of the list so 'head' always beats 'curr'
             score = 90 + (len(nodes) * 10) + (10 if key in ['head', 'prev', 'curr', 'tail'] else 0)
             candidates.append({"type": "linked_list", "key": key, "nodes": nodes, "score": score})
             continue
@@ -187,7 +188,9 @@ def generate_visual_layout(clean_vars: dict) -> dict:
             arr_data = [str(v) for v in array_data[:40]]
             pointers = [{"key": pk, "index": pv} for pk, pv in clean_vars.items() if isinstance(pv, int) and 0 <= pv < len(array_data)]
             score = 70 + len(arr_data) + (10 * len(pointers)) + (30 if key in ['res', 'arr', 'nums', 'stack', 'queue', 'q', 'self', 's'] else 0)
-            layout_type = "stack" if is_stack_intent else "array"
+            
+            # FIX: Ensure queue intent is mapped to the queue layout, not overridden by array
+            layout_type = "stack" if is_stack_intent else ("queue" if is_queue_intent else "array")
             candidates.append({"type": layout_type, "key": key, "data": arr_data, "pointers": pointers, "score": score})
             continue
 
@@ -204,7 +207,6 @@ def generate_visual_layout(clean_vars: dict) -> dict:
 
     return {"type": "none"}
 
-
 def run_trace_worker(code_string):
     steps = []
     step_counter = 0
@@ -217,8 +219,21 @@ def run_trace_worker(code_string):
     MAX_OUTPUT_LEN = 2000 
     start_time = time.time()
 
+    stashed_vars = set()
+
+    def _execute_stash():
+        import sys
+        caller_locals = sys._getframe(1).f_locals
+        for k in caller_locals.keys():
+            stashed_vars.add(k)
+
+    code_string = re.sub(r'#\s*@stash-previous', '_execute_stash()', code_string, flags=re.IGNORECASE)
+
     def trace_func(frame, event, arg):
         nonlocal step_counter
+        
+        if frame.f_code.co_name == '_execute_stash':
+            return None
         
         if step_counter >= MAX_STEPS:
             raise RuntimeError(f"Execution stopped: Exceeded {MAX_STEPS} steps.")
@@ -226,11 +241,10 @@ def run_trace_worker(code_string):
         if time.time() - start_time > MAX_TIME:
             raise TimeoutError("Execution stopped: Exceeded 2.0 seconds.")
 
-        # ONLY listen to line events to keep visuals stable
         if event == 'line':
             clean_vars = {}
             for k, v in frame.f_locals.items():
-                if not k.startswith('__') and k not in ['sys', 'time'] and not callable(v):
+                if not k.startswith('__') and k not in ['sys', 'time', '_execute_stash'] and not callable(v) and k not in stashed_vars:
                     try:
                         clean_vars[k] = make_json_safe(v)
                     except Exception:
@@ -269,7 +283,8 @@ def run_trace_worker(code_string):
     
     execution_scope = {
         "__builtins__": safe_builtins,
-        "__name__": "__main__"
+        "__name__": "__main__",
+        "_execute_stash": _execute_stash
     }
 
     try:
@@ -277,15 +292,29 @@ def run_trace_worker(code_string):
         exec(code_string, execution_scope)
         sys.settrace(None)
         
-        # FIX: The "Missing Print" solution. 
-        # Clone the exact local variables from the last line, but update the terminal output.
+        # FIX: Capture the absolute final state after exec finishes
+        final_clean_vars = {}
+        for k, v in execution_scope.items():
+            if not k.startswith('__') and k not in ['sys', 'time', '_execute_stash'] and not callable(v) and k not in stashed_vars:
+                try:
+                    final_clean_vars[k] = make_json_safe(v)
+                except Exception:
+                    pass
+
+        final_output = stdout_buffer.getvalue()[:MAX_OUTPUT_LEN]
+        final_layout = generate_visual_layout(final_clean_vars)
+
         if steps:
-            final_output = stdout_buffer.getvalue()[:MAX_OUTPUT_LEN]
-            if steps[-1]["output"] != final_output:
-                final_step = copy.deepcopy(steps[-1])
-                final_step["step"] += 1
-                final_step["output"] = final_output
-                steps.append(final_step)
+            last_step = steps[-1]
+            if last_step["variables"] != final_clean_vars or last_step["output"] != final_output:
+                step_counter += 1
+                steps.append({
+                    "step": step_counter,
+                    "line": last_step["line"],
+                    "variables": final_clean_vars,
+                    "output": final_output,
+                    "visual_layout": final_layout
+                })
                 
         return {"success": True, "steps": steps}
         

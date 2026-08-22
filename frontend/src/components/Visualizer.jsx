@@ -38,9 +38,9 @@ export default function Visualizer({
   
   const metallicBorder = 'border border-slate-900 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_2px_5px_rgba(0,0,0,0.25)]';
 
-  const variableEntries = Object.entries(variables).filter(([val]) => {
-    if (typeof val === 'string') return !(val.startsWith("<class") || val.startsWith("<function") || val.startsWith("<method") || val.startsWith("<module"));
-    return true;
+  const variableEntries = Object.entries(variables).filter(([_, val]) => {
+      if (typeof val === 'string') return !(val.startsWith("<class") || val.startsWith("<function") || val.startsWith("<method") || val.startsWith("<module"));
+      return true;
   });
 
   return (
