@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Visualizer({ 
@@ -8,6 +8,24 @@ export default function Visualizer({
   isDark 
 }) {
   const [activeTab, setActiveTab] = useState('VISUALIZATION');
+
+  // --- MEASUREMENT STATE & OBSERVER ---
+  const containerRef = useRef(null);
+  const [dimensions, setDimensions] = useState({ width: 400, height: 280 });
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setDimensions({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const currentStep = steps[currentStepIndex];
   const variables = currentStep?.variables || {};
@@ -58,8 +76,11 @@ export default function Visualizer({
         {/* --- TAB: VISUALIZATION (Dashboard View) --- */}
         {activeTab === 'VISUALIZATION' && (
           <>
-            <div className={`p-6 rounded-2xl ${metallicBorder} flex flex-col items-center min-h-[280px] relative overflow-hidden ${isDark ? 'bg-slate-950/60 shadow-inner' : 'bg-slate-50 shadow-sm'}`}>
-              <div className="w-full flex justify-between items-center mb-4 text-xs font-mono font-bold z-10">
+            {/* CONTAINER REF ATTACHED HERE */}
+            <div ref={containerRef} className={`flex-1 p-4 sm:p-6 rounded-2xl ${metallicBorder} flex flex-col items-center justify-center min-h-[280px] relative overflow-hidden ${isDark ? 'bg-slate-950/60 shadow-inner' : 'bg-slate-50 shadow-sm'}`}>
+              
+              {/* Header pinned to absolute top so it doesn't offset calculations */}
+              <div className="absolute top-4 left-4 right-4 flex justify-between items-center text-[10px] sm:text-xs font-mono font-bold z-10">
                 <span className="text-purple-600 uppercase tracking-wider">{layout.type !== 'none' ? `${layout.type}: ${layout.key || ''}` : 'Canvas'}</span>
                 <span className={textSecondary}>STEP {steps.length > 0 ? currentStepIndex + 1 : 0} / {steps.length}</span>
               </div>
@@ -94,60 +115,72 @@ export default function Visualizer({
                 </div>
               )}
 
-              {/* 2. TREE LAYOUT RENDERER */}
-              {layout.type === 'tree' && (
-                <div className="relative w-full h-64 flex items-center justify-center my-auto">
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                    {layout.edges?.map((edge, idx) => (
-                      <line 
-                        key={`edge-${idx}`} 
-                        x1={edge.x1} y1={edge.y1} 
-                        x2={edge.x2} y2={edge.y2} 
-                        stroke={isDark ? '#6366f1' : '#818cf8'} 
-                        strokeWidth="2" 
-                      />
-                    ))}
-                  </svg>
-                  
-                  {layout.nodes.map((node, idx) => {
-                    // Check if any pointer from the backend targets this specific node
-                    const activePointers = layout.pointers?.filter(p => p.target_val === node.val) || [];
-                    const isTargeted = activePointers.length > 0;
+              {/* 2. TREE LAYOUT RENDERER (Centered & Responsive) */}
+              {layout.type === 'tree' && (() => {
+                let minX = 0, maxX = 0, minY = 0, maxY = 0;
+                if (layout.nodes && layout.nodes.length > 0) {
+                  minX = Math.min(...layout.nodes.map(n => n.x || 0));
+                  maxX = Math.max(...layout.nodes.map(n => n.x || 0));
+                  minY = Math.min(...layout.nodes.map(n => n.y || 0));
+                  maxY = Math.max(...layout.nodes.map(n => n.y || 0));
+                }
+                const treeCenterX = (minX + maxX) / 2;
+                const treeCenterY = (minY + maxY) / 2;
 
-                    return (
-                      <div 
-                        key={idx} 
-                        // --- FIX: Added translate(-50%, -50%) to perfectly center the nodes on the SVG lines ---
-                        style={{ position: 'absolute', left: node.x, top: node.y, transform: 'translate(-50%, -50%)' }}
-                      >
-                        
-                        {/* 1. The Glowing Node */}
-                        <div className={`
-                          flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300
-                          ${isTargeted 
-                            ? 'bg-purple-900 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.7)] text-white scale-110 z-10' 
-                            : isDark ? 'bg-slate-800 border-slate-600 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
-                          }
-                        `}>
-                          {node.val}
-                        </div>
+                return (
+                  <div className="relative w-full h-full min-h-[16rem] flex items-center justify-center flex-1 overflow-hidden">
+                    <div 
+                      className="relative w-0 h-0 flex items-center justify-center"
+                      style={{ transform: `translate(${-treeCenterX}px, ${-treeCenterY}px)` }}
+                    >
+                      <svg className="absolute overflow-visible pointer-events-none" style={{ left: 0, top: 0 }}>
+                        {layout.edges?.map((edge, idx) => (
+                          <line 
+                            key={`edge-${idx}`} 
+                            x1={edge.x1} y1={edge.y1} 
+                            x2={edge.x2} y2={edge.y2} 
+                            stroke={isDark ? '#6366f1' : '#818cf8'} 
+                            strokeWidth="2" 
+                          />
+                        ))}
+                      </svg>
+                      
+                      {layout.nodes.map((node, idx) => {
+                        const activePointers = layout.pointers?.filter(p => p.target_val === node.val) || [];
+                        const isTargeted = activePointers.length > 0;
 
-                        {/* 2. Show the variable name (e.g., "curr") floating under the node */}
-                        {isTargeted && (
-                          <div className="absolute top-14 left-1/2 -translate-x-1/2 flex flex-col gap-1 items-center z-20">
-                            {activePointers.map((ptr, i) => (
-                              <span key={i} className="px-2 py-0.5 text-[10px] font-bold text-purple-900 bg-purple-300 rounded-md shadow-sm">
-                                {ptr.key}
-                              </span>
-                            ))}
+                        return (
+                          <div 
+                            key={idx} 
+                            style={{ position: 'absolute', left: node.x, top: node.y, transform: 'translate(-50%, -50%)' }}
+                          >
+                            <div className={`
+                              flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 transition-all duration-300 text-xs sm:text-sm
+                              ${isTargeted 
+                                ? 'bg-purple-900 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.7)] text-white scale-110 z-10' 
+                                : isDark ? 'bg-slate-800 border-slate-600 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
+                              }
+                            `}>
+                              {node.val}
+                            </div>
+
+                            {isTargeted && (
+                              <div className="absolute top-12 sm:top-14 left-1/2 -translate-x-1/2 flex flex-col gap-1 items-center z-20">
+                                {activePointers.map((ptr, i) => (
+                                  <span key={i} className="px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[10px] font-bold text-purple-900 bg-purple-300 rounded-md shadow-sm">
+                                    {ptr.key}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        )}
-
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+              
               {/* 3. LINKED LIST LAYOUT RENDERER */}
               {layout.type === 'linked_list' && (
                 <div className="flex items-center gap-4 overflow-x-auto p-6 my-auto max-w-full">
@@ -178,51 +211,101 @@ export default function Visualizer({
                 </div>
               )}
               
+              {/* 5. GRAPH LAYOUT RENDERER (Adaptive Bounds & Scaling) */}
+              {layout.type === 'graph' && (() => {
+                const nodesCount = layout.nodes?.length || 0;
+                
+                const nodeSize = nodesCount > 8 ? 32 : nodesCount > 5 ? 40 : 48; 
+                const padding = nodeSize + 24; 
+                
+                const availableWidth = Math.max(120, dimensions.width - padding * 2);
+                const availableHeight = Math.max(120, dimensions.height - padding * 2);
+                
+                const radius = Math.min(availableWidth, availableHeight) / 2;
 
-{/* 5. GRAPH LAYOUT RENDERER (Animated) */}
-              {layout.type === 'graph' && (
-                <div className="flex flex-wrap gap-4 items-center justify-center p-4 my-auto w-full">
-                  {layout.nodes?.map((node, idx) => {
-                    // Check our variables dynamically to see what state this node is in!
-                    const isCurrent = variables.current_node === node.id || variables.node === node.id;
-                    const isVisited = Array.isArray(variables.visited) && variables.visited.includes(node.id);
-                    const inQueue = Array.isArray(variables.queue) && variables.queue.includes(node.id);
+                const positionedNodes = layout.nodes?.map((node, idx) => {
+                  const angle = (idx / nodesCount) * 2 * Math.PI - Math.PI / 2;
+                  return {
+                    ...node,
+                    x: radius * Math.cos(angle),
+                    y: radius * Math.sin(angle)
+                  };
+                }) || [];
 
-                    // Determine the color based on its algorithmic state
-                    let bgColor = isDark ? "bg-purple-900 border-purple-500" : "bg-purple-600 border-purple-400";
-                    let extraStyles = "";
+                return (
+                  <div className="relative w-full h-full min-h-[16rem] flex items-center justify-center flex-1 overflow-hidden">
+                    <div className="relative w-0 h-0 flex items-center justify-center">
+                      <svg className="absolute overflow-visible pointer-events-none" style={{ left: 0, top: 0 }}>
+                        {positionedNodes.map((node) => {
+                          const neighbors = Array.isArray(node.neighbors) 
+                            ? node.neighbors 
+                            : Object.keys(node.neighbors || {});
 
-                    if (isCurrent) {
-                      bgColor = "bg-amber-500 border-amber-300"; // Active node being processed
-                      extraStyles = "ring-4 ring-amber-500/50 scale-110 z-10";
-                    } else if (isVisited) {
-                      bgColor = "bg-emerald-600 border-emerald-400"; // Completely processed
-                      extraStyles = "opacity-90";
-                    } else if (inQueue) {
-                      bgColor = "bg-blue-500 border-blue-400"; // Waiting in line
-                      extraStyles = "ring-2 ring-blue-400 border-dashed";
-                    }
+                          return neighbors.map((neighborId) => {
+                            const targetNode = positionedNodes.find(n => String(n.id) === String(neighborId));
+                            if (!targetNode) return null;
+                            
+                            return (
+                              <line
+                                key={`edge-${node.id}-${neighborId}`}
+                                x1={node.x} y1={node.y}
+                                x2={targetNode.x} y2={targetNode.y}
+                                stroke={isDark ? '#6366f1' : '#818cf8'}
+                                strokeWidth="2"
+                                opacity="0.6"
+                              />
+                            );
+                          });
+                        })}
+                      </svg>
+                      
+                      {positionedNodes.map((node, idx) => {
+                        const isCurrent = variables.current_node === node.id || variables.node === node.id;
+                        const isVisited = Array.isArray(variables.visited) && variables.visited.includes(node.id);
+                        const inQueue = Array.isArray(variables.queue) && variables.queue.includes(node.id);
 
-                    return (
-                      <div key={`graph-node-${idx}`} className={`p-3 rounded-xl flex flex-col items-center gap-2 ${metallicBorder} ${isDark ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-900'} transition-all duration-300`}>
-                        <span className={`w-10 h-10 rounded-full border-2 text-white font-bold flex items-center justify-center text-xs shadow-md transition-all duration-300 ${bgColor} ${extraStyles}`}>
-                          {node.id}
-                        </span>
-                        <span className="text-[10px] font-mono opacity-70">
-                          → [{Array.isArray(node.neighbors) ? node.neighbors.join(', ') : (node.neighbors ? Object.keys(node.neighbors).join(', ') : '')}]
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                        let bgColor = isDark ? "bg-purple-900 border-purple-500" : "bg-purple-600 border-purple-400";
+                        let extraStyles = "";
+
+                        if (isCurrent) {
+                          bgColor = "bg-amber-500 border-amber-300";
+                          extraStyles = "ring-4 ring-amber-500/50 scale-110 z-10";
+                        } else if (isVisited) {
+                          bgColor = "bg-emerald-600 border-emerald-400";
+                          extraStyles = "opacity-90";
+                        } else if (inQueue) {
+                          bgColor = "bg-blue-500 border-blue-400";
+                          extraStyles = "ring-2 ring-blue-400 border-dashed";
+                        }
+
+                        return (
+                          <div 
+                            key={`graph-node-${idx}`} 
+                            style={{ 
+                              position: 'absolute', 
+                              left: node.x, 
+                              top: node.y, 
+                              transform: 'translate(-50%, -50%)' 
+                            }}
+                          >
+                            <span 
+                              style={{ width: `${nodeSize}px`, height: `${nodeSize}px` }}
+                              className={`rounded-full border-2 text-white font-bold flex items-center justify-center text-xs shadow-md transition-all duration-300 ${bgColor} ${extraStyles}`}
+                            >
+                              {node.id}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* 6. VERTICAL STACK LAYOUT RENDERER */}
               {layout.type === 'stack' && (
                 <div className="flex flex-col-reverse items-center justify-end h-full w-full pt-4 pb-2 relative z-0">
-                  
-                  {/* The solid base of the stack */}
                   <div className={`w-40 h-2 rounded-full mt-2 shadow-md shrink-0 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}></div>
-
                   <div className="flex flex-col-reverse gap-2 items-center w-full overflow-y-auto px-4 pb-1">
                     <AnimatePresence mode="popLayout">
                       {layout.data.map((val, idx) => {
@@ -236,7 +319,6 @@ export default function Visualizer({
                             exit={{ opacity: 0, scale: 0.8 }}
                             className="relative flex justify-center w-full"
                           >
-                            {/* Main Stack Block */}
                             <div className={`w-32 h-12 rounded-xl flex items-center justify-center text-sm font-bold font-mono shadow-md border-b-4 shrink-0 ${metallicBorder} transition-all ${
                               idx === layout.data.length - 1 
                                 ? (isDark ? 'bg-purple-600 border-purple-800 text-white' : 'bg-purple-500 border-purple-700 text-white') 
@@ -245,7 +327,6 @@ export default function Visualizer({
                               {val}
                             </div>
                             
-                            {/* Pointers fixed to the right (Absolute position prevents breaking the center alignment!) */}
                             {pointingKeys.length > 0 && (
                               <div className="absolute left-[calc(50%+4.5rem)] top-1/2 -translate-y-1/2 flex items-center z-10">
                                 <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md whitespace-nowrap ${metallicBorder} ${isDark ? 'bg-amber-600 text-white' : 'bg-amber-200 text-amber-900'}`}>
@@ -260,64 +341,57 @@ export default function Visualizer({
                   </div>
                 </div>
               )}
+
               {layout.type === 'none' && (
                 <div className={`my-auto text-xs font-mono font-semibold ${textSecondary}`}>Execute a trace to render visual state.</div>
               )}
             </div>
-              {/* 7. HORIZONTAL QUEUE (TUNNEL) LAYOUT RENDERER */}
-              {layout.type === 'queue' && (
-                <div className="relative w-full flex justify-center mb-auto min-h-[160px]">
-                  
-                  {/* The Tunnel Container */}
-                  <div className="relative w-[90%] max-w-2xl h-24 flex items-center px-4">
-                    
-                    {/* Straight, Equal Tunnel Top and Bottom Lines */}
-                    <div className={`absolute inset-0 w-full h-full border-t-4 border-b-4 pointer-events-none rounded-sm ${isDark ? 'border-slate-600' : 'border-slate-400'}`}></div>
 
-                    {/* Queue Items Container */}
-                    <div className="relative w-full h-full flex items-center gap-4 overflow-x-auto no-scrollbar z-10 px-2 py-4">
-                      <AnimatePresence mode="popLayout">
-                        {layout.data.map((val, idx) => {
-                          const pointingKeys = layout.pointers?.filter(p => p.index === idx).map(p => p.key) || [];
-                          return (
-                            <motion.div 
-                              key={`queue-${val}-${idx}`} 
-                              layout 
-                              initial={{ opacity: 0, x: 50, scale: 0.8 }}
-                              animate={{ opacity: 1, x: 0, scale: 1 }}
-                              exit={{ opacity: 0, x: -50, scale: 0.8 }}
-                              className="relative flex justify-center items-center shrink-0 w-14 h-14"
-                            >
-                              {/* Pointers above the queue items */}
-                              {pointingKeys.length > 0 && (
-                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center justify-center whitespace-nowrap z-20">
-                                  <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md ${metallicBorder} ${isDark ? 'bg-amber-600 text-white' : 'bg-amber-200 text-amber-900'}`}>
-                                    ↓ {pointingKeys.join(', ')}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Queue Item Block */}
-                              <div className={`w-full h-full rounded-xl flex items-center justify-center text-sm font-bold font-mono shadow-md border-b-4 ${metallicBorder} transition-all ${
-                                idx === 0 
-                                  ? (isDark ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-emerald-500 border-emerald-700 text-white') // Highlight front of queue
-                                  : (isDark ? 'bg-slate-800 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-900')
-                              }`}>
-                                {val}
+            {/* 7. HORIZONTAL QUEUE (TUNNEL) LAYOUT RENDERER */}
+            {layout.type === 'queue' && (
+              <div className="relative w-full flex justify-center mb-auto min-h-[160px]">
+                <div className="relative w-[90%] max-w-2xl h-24 flex items-center px-4">
+                  <div className={`absolute inset-0 w-full h-full border-t-4 border-b-4 pointer-events-none rounded-sm ${isDark ? 'border-slate-600' : 'border-slate-400'}`}></div>
+                  <div className="relative w-full h-full flex items-center gap-4 overflow-x-auto no-scrollbar z-10 px-2 py-4">
+                    <AnimatePresence mode="popLayout">
+                      {layout.data.map((val, idx) => {
+                        const pointingKeys = layout.pointers?.filter(p => p.index === idx).map(p => p.key) || [];
+                        return (
+                          <motion.div 
+                            key={`queue-${val}-${idx}`} 
+                            layout 
+                            initial={{ opacity: 0, x: 50, scale: 0.8 }}
+                            animate={{ opacity: 1, x: 0, scale: 1 }}
+                            exit={{ opacity: 0, x: -50, scale: 0.8 }}
+                            className="relative flex justify-center items-center shrink-0 w-14 h-14"
+                          >
+                            {pointingKeys.length > 0 && (
+                              <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center justify-center whitespace-nowrap z-20">
+                                <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md ${metallicBorder} ${isDark ? 'bg-amber-600 text-white' : 'bg-amber-200 text-amber-900'}`}>
+                                  ↓ {pointingKeys.join(', ')}
+                                </span>
                               </div>
-                              
-                              {/* Index indicator */}
-                              <span className={`absolute -bottom-7 left-1/2 -translate-x-1/2 text-[10px] font-mono font-bold ${textSecondary}`}>
-                                [{idx}]
-                              </span>
-                            </motion.div>
-                          );
-                        })}
-                      </AnimatePresence>
-                    </div>
+                            )}
+
+                            <div className={`w-full h-full rounded-xl flex items-center justify-center text-sm font-bold font-mono shadow-md border-b-4 ${metallicBorder} transition-all ${
+                              idx === 0 
+                                ? (isDark ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-emerald-500 border-emerald-700 text-white') 
+                                : (isDark ? 'bg-slate-800 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-900')
+                            }`}>
+                              {val}
+                            </div>
+                            
+                            <span className={`absolute -bottom-7 left-1/2 -translate-x-1/2 text-[10px] font-mono font-bold ${textSecondary}`}>
+                              [{idx}]
+                            </span>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-4">
               <div className={`p-4 rounded-2xl ${metallicBorder} ${isDark ? 'bg-slate-950/40' : 'bg-white shadow-sm'}`}>

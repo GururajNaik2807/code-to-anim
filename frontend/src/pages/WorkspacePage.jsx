@@ -11,8 +11,8 @@ import Visualizer from '../components/Visualizer';
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import { Helmet } from 'react-helmet-async'; 
 
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
 
 
 export default function WorkspacePage({ isEmbedded = false }) {
@@ -538,60 +538,61 @@ print("Final Sorted Array:", arr)`;
           </header>
 
           <div className="flex-1 flex overflow-hidden relative ws-mobile-main-row">
-            <aside className={`relative flex-shrink-0 ${cleanBorder} border-y-0 border-l-0 ${bgPanel} transition-all duration-300 flex flex-col justify-between overflow-hidden ws-mobile-desc-panel ${
-              isDescriptionOpen ? "w-64 p-5" : "w-10 p-2 items-center ws-mobile-closed"
+            <aside className={`group relative flex-shrink-0 ${cleanBorder} border-y-0 border-l-0 ${bgPanel} transition-[width,padding] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col justify-between overflow-hidden ws-mobile-desc-panel ${
+              isDescriptionOpen ? "w-64 p-5" : "w-12 p-2 items-center ws-mobile-closed"
             }`}>
+             
+             {/* THE COOL TOGGLE BUTTON */}
              <button 
               onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
-              className={`absolute top-3 right-2 z-20 w-6 h-6 rounded-full ${cleanBorder} ${bgNav} hover:border-purple-500 text-purple-600 items-center justify-center text-xs transition-colors hidden md:flex`}
+              className={`absolute top-4 right-2.5 z-20 w-7 h-7 rounded-full ${cleanBorder} ${bgNav} flex items-center justify-center text-purple-500 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hidden md:flex shadow-md hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] hover:border-purple-500 ${isDescriptionOpen ? 'scale-100 hover:scale-110' : 'scale-90 hover:scale-110 rotate-180'}`}
               title={isDescriptionOpen ? "Collapse Description" : "Expand Description"}
              >
-              {isDescriptionOpen ? "◀" : "▶"}
+              <svg className="w-4 h-4 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
             </button>
 
-              {!isDescriptionOpen ? (
-                <div className="flex flex-col items-center gap-6 mt-12 cursor-pointer closed-desc-inner" onClick={() => setIsDescriptionOpen(true)}>
-                  <span className={`text-[10px] font-bold uppercase font-mono tracking-widest ${textSecondary} [writing-mode:vertical-lr] rotate-180 closed-text`}>
-                    DESCRIPTION
+              {/* CLOSED STATE: Animated Text */}
+              <div className={`flex flex-col items-center gap-6 mt-14 cursor-pointer closed-desc-inner transition-all duration-500 ${isDescriptionOpen ? 'opacity-0 absolute pointer-events-none translate-y-8' : 'opacity-100 translate-y-0 delay-200'}`} onClick={() => setIsDescriptionOpen(true)}>
+                <span className={`text-[10px] font-bold uppercase font-mono tracking-widest ${textSecondary} [writing-mode:vertical-lr] rotate-180 closed-text group-hover:text-purple-500 transition-colors duration-300`}>
+                  DESCRIPTION
+                </span>
+              </div>
+              
+              {/* OPEN STATE: Animated Content */}
+              <div className={`space-y-5 overflow-y-auto pr-2 w-full transition-all duration-500 ${!isDescriptionOpen ? 'opacity-0 absolute pointer-events-none -translate-x-8' : 'opacity-100 translate-x-0 delay-150'}`}>
+                <div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>CURRENT ALGORITHM</span>
+                  <h2 className="text-lg font-bold mt-1 tracking-tight">{algoMetadata.algorithmTitle}</h2>
+                  <span className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-semibold border shadow-sm ${isDark ? 'bg-purple-950 text-purple-300 border-purple-800/60' : 'bg-purple-100 text-purple-800 border border-purple-300'}`}>
+                    {algoMetadata.strategy || 'Standard'}
                   </span>
+                  <p className={`text-xs ${textSecondary} mt-3 leading-relaxed`}>
+                    {algoMetadata.description}
+                  </p>
                 </div>
-              ) : (
-                <div className="space-y-5 overflow-y-auto pr-2">
-                  <div>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>CURRENT ALGORITHM</span>
-                    <h2 className="text-lg font-bold mt-1 tracking-tight">{algoMetadata.algorithmTitle}</h2>
-                    <span className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-semibold border shadow-sm ${isDark ? 'bg-purple-950 text-purple-300 border-purple-800/60' : 'bg-purple-100 text-purple-800 border border-purple-300'}`}>
-                      {algoMetadata.strategy || 'Standard'}
-                    </span>
-                    <p className={`text-xs ${textSecondary} mt-3 leading-relaxed`}>
-                      {algoMetadata.description}
-                    </p>
+
+                <div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>LANGUAGE</span>
+                  <div className={`mt-1 ${cleanBorder} rounded-lg p-2 text-xs font-medium flex items-center gap-2 ${isDark ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
+                    <span>🐍</span> {algoMetadata.language || 'Python 3'}
                   </div>
-
-                  <div>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>LANGUAGE</span>
-                    <div className={`mt-1 ${cleanBorder} rounded-lg p-2 text-xs font-medium flex items-center gap-2 ${isDark ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
-                      <span>🐍</span> {algoMetadata.language || 'Python 3'}
-                    </div>
-                  </div>
-
-                  {algoMetadata.exampleInput && (
-                    <div>
-                      <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>EXAMPLE INPUT</span>
-                      <pre className={`mt-1 p-2 rounded-lg ${cleanBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-slate-100 text-slate-800'}`}>{algoMetadata.exampleInput}</pre>
-                    </div>
-                  )}
-
-                  {algoMetadata.exampleOutput && (
-                    <div>
-                      <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>EXAMPLE OUTPUT</span>
-                      <pre className={`mt-1 p-2 rounded-lg ${cleanBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-slate-100 text-slate-800'}`}>{algoMetadata.exampleOutput}</pre>
-                    </div>
-                  )}
                 </div>
-              )}
+
+                {algoMetadata.exampleInput && (
+                  <div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>EXAMPLE INPUT</span>
+                    <pre className={`mt-1 p-2 rounded-lg ${cleanBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-slate-100 text-slate-800'}`}>{algoMetadata.exampleInput}</pre>
+                  </div>
+                )}
+
+                {algoMetadata.exampleOutput && (
+                  <div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>EXAMPLE OUTPUT</span>
+                    <pre className={`mt-1 p-2 rounded-lg ${cleanBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-slate-100 text-slate-800'}`}>{algoMetadata.exampleOutput}</pre>
+                  </div>
+                )}
+              </div>
             </aside>
-
             <div className="flex-1 flex flex-col overflow-hidden ws-mobile-workspace-col">
               
               <div className="flex-1 flex overflow-hidden relative ws-mobile-editor-row">
@@ -626,7 +627,7 @@ print("Final Sorted Array:", arr)`;
               </div>
 
               <footer className={`h-16 ${cleanBorder} border-x-0 border-b-0 ${bgNav} flex items-center justify-between px-8 z-10 ws-mobile-footer`}>
-                <div className={`font-mono text-xs ${textSecondary} flex items-center gap-2 max-w-xs truncate`}>
+                <div className={`font-mono text-xs ${textSecondary} flex items-center gap-2 flex-1 overflow-x-auto whitespace-nowrap`}>
                   <span className="text-purple-600 font-bold">OUTPUT:</span>
                   <span className="text-emerald-500 font-semibold truncate">
                     {consoleOutput.trim() ? consoleOutput : '> Stream empty...'}

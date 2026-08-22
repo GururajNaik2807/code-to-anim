@@ -1,122 +1,20 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import React from 'react';
+import { useParams, Link, Navigate } from 'react-router-dom';
+import { LESSONS_DATABASE } from '../data/lessonsData';
 import { useTheme } from '../context/ThemeContext';
-import { supabase } from '../supabaseClient';
-import LoginModal from '../components/LoginModal';
-import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
-import { motion } from 'framer-motion';
 
-// --- Ambient Gemini-Style Wave Background ---
-const AmbientBackground = () => {
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {/* Top Left Wave/Glow */}
-      <motion.div
-        className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-purple-500/20"
-        style={{ filter: "blur(120px)", willChange: "transform" }}
-        animate={{
-          x: [0, 50, 0],
-          y: [0, 80, 0],
-          scale: [1, 1.2, 1],
-        }}
-        transition={{
-          duration: 15,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-      {/* Bottom Right Wave/Glow */}
-      <motion.div
-        className="absolute bottom-[-20%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-cyan-500/20"
-        style={{ filter: "blur(140px)", willChange: "transform" }}
-        animate={{
-          x: [0, -60, 0],
-          y: [0, -40, 0],
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          duration: 18,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-    </div>
-  );
-};
-
-export default function LearnPage() {
+export default function LessonPage() {
   const { currentTheme } = useTheme();
-  const { user, openAuthModal } = useAuth();
-  
   const isDark = currentTheme === 'dark';
+
+  const { category, topic } = useParams();
+  const pathKey = `${category}/${topic}`;
   
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedDifficulty, setSelectedDifficulty] = useState('All');
+  const lesson = LESSONS_DATABASE[pathKey];
 
-  // Track which algorithms the user has marked complete
-  const [completedAlgos, setCompletedAlgos] = useState(new Set());
-
-  // Fetch completed algorithms from database on load
-  useEffect(() => {
-    const fetchProgress = async () => {
-      if (user) {
-        const { data } = await supabase
-          .from('user_progress')
-          .select('algorithm_id')
-          .eq('user_id', user.id)
-          .eq('progress_percent', 100);
-          
-        if (data) {
-          setCompletedAlgos(new Set(data.map(d => d.algorithm_id)));
-        }
-      }
-    };
-    fetchProgress();
-  }, [user]);
-
-  const categories = useMemo(() => {
-    const cats = new Set(ALGORITHMS_DATABASE.map(algo => algo.category));
-    return ['All', ...Array.from(cats)].sort();
-  }, []);
-  
-  const difficulties = ['All', 'Easy', 'Medium', 'Hard'];
-
-  const filteredAlgorithms = useMemo(() => {
-    return ALGORITHMS_DATABASE.filter((algo) => {
-      const searchStr = searchTerm.toLowerCase();
-      const matchesSearch = 
-        algo.title.toLowerCase().includes(searchStr) ||
-        algo.description.toLowerCase().includes(searchStr) ||
-        algo.category.toLowerCase().includes(searchStr);
-        
-      const matchesCategory = selectedCategory === 'All' || algo.category === selectedCategory;
-      const matchesDifficulty = selectedDifficulty === 'All' || algo.difficulty === selectedDifficulty;
-      
-      return matchesSearch && matchesCategory && matchesDifficulty;
-    });
-  }, [searchTerm, selectedCategory, selectedDifficulty]);
-
-  const checkGuestLimit = (e, algoId) => {
-    if (!user) {
-      try {
-        const raw = localStorage.getItem('guest_algo_views');
-        const views = raw ? JSON.parse(raw) : [];
-        if (!views.includes(algoId)) {
-          if (views.length >= 5) {
-            e.preventDefault();
-            openAuthModal('Guest algorithm view limit reached (5 unique algorithms viewed). Sign up to unlock the full library.');
-            return;
-          }
-          views.push(algoId);
-          localStorage.setItem('guest_algo_views', JSON.stringify(views));
-        }
-      } catch (err) {
-        console.warn('Could not access guest_algo_views in localStorage', err);
-      }
-    }
-  };
+  if (!lesson) {
+    return <Navigate to="/learn" />;
+  }
 
   const bgMain = isDark ? 'bg-[#090B10]' : 'bg-gray-50';
   const bgCard = isDark ? 'bg-[#121620]' : 'bg-white';
@@ -125,271 +23,61 @@ export default function LearnPage() {
   const borderCol = isDark ? 'border-gray-800' : 'border-gray-200';
 
   return (
-    <div className={`min-h-screen relative overflow-x-hidden ${bgMain} ${textPrimary} font-sans selection:bg-purple-500 selection:text-white flex flex-col`}>
-      
-      {/* Dynamic Background Waves */}
-      <AmbientBackground />
-
-      {/* MOBILE-ONLY OVERRIDE STYLES: This guarantees the PC view stays untouched */}
-      <style>{`
-        @media (max-width: 768px) {
-          .mobile-header {
-            height: auto !important;
-            flex-direction: column !important;
-            padding: 16px !important;
-            gap: 16px !important;
-          }
-          .mobile-header-left {
-            width: 100% !important;
-            justify-content: flex-start !important;
-          }
-          .mobile-header-right {
-            width: 100% !important;
-            justify-content: space-between !important;
-            flex-wrap: wrap !important;
-            gap: 8px !important;
-          }
-          .mobile-header-right > * {
-            flex: 1 !important;
-            justify-content: center !important;
-            text-align: center !important;
-          }
-          
-          .mobile-hero {
-            flex-direction: column !important;
-            text-align: center !important;
-            padding: 20px 16px !important;
-          }
-          .mobile-hero-badge {
-            width: 100% !important;
-            justify-content: center !important;
-          }
-
-          .mobile-controls-row {
-            flex-direction: column !important;
-            gap: 12px !important;
-          }
-          .mobile-search-bar {
-            width: 100% !important;
-          }
-          .mobile-diff-group {
-            width: 100% !important;
-            flex-wrap: wrap !important;
-          }
-          .mobile-diff-group button {
-            flex: 1 1 40% !important;
-          }
-        }
-      `}</style>
-
-      <LoginModal />    
-      
-      {/* Main content elements wrapped in relative z-10 so they sit ON TOP of the particles */}
-      <header className={`h-16 relative z-10 border-b ${borderCol} ${bgCard}/80 backdrop-blur-md flex items-center justify-between px-8 shadow-sm mobile-header`}>
-        <div className="flex items-center gap-3 mobile-header-left">
-          <Link to="/" className="w-8 h-8 rounded-lg bg-purple-600/10 border border-purple-500/30 flex items-center justify-center p-1 hover:scale-105 transition-transform">
-            <img src="/favicon.svg" alt="CodeAnim Logo" className="w-full h-full object-contain" />
-          </Link>
-          <h1 className="text-xl font-extrabold tracking-tighter">
-            CodeTo<span className="text-purple-500">Anim</span> <span className="hidden sm:inline">Algorithm Library</span>
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-4 mobile-header-right">
-          {user ? (
-            <Link
-              to="/profile"
-              className="px-4 py-2 text-sm bg-purple-900/30 hover:bg-purple-900/60 text-purple-200 rounded-md font-medium border border-purple-500/40 transition-colors flex items-center justify-center gap-2 shadow-sm"
-              title="Go to Profile"
-            >
-              <div className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-bold shadow-inner">
-                {user?.email?.[0]?.toUpperCase() || 'U'}
-              </div>
-              <span className="hidden sm:inline">Back to Profile</span>
-              <span className="sm:hidden">Profile</span>
-            </Link>
-          ) : (
-            <button 
-              onClick={() => openAuthModal('Create an account to track your progress and save favorites!')}
-              className="px-4 py-2 text-sm bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-md font-medium border border-purple-500/50 transition-colors flex items-center justify-center gap-1.5"
-            >
-              🔐 Sign Up / Log In
-            </button>
-          )}
-
-          <Link 
-            to="/workspace"
-            className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md shadow-purple-500/20 transition-all flex items-center justify-center gap-2"
-          >
-            <span>💻 Workspace</span>
-          </Link>
-        </div>
+    <div className={`min-h-screen ${bgMain} ${textPrimary} font-sans pb-20`}>
+      <header className={`h-16 border-b ${borderCol} ${bgCard} flex items-center px-8 sticky top-0 z-20`}>
+        <Link to="/learn" className={`flex items-center gap-2 text-sm font-bold ${textSecondary} hover:text-purple-400 transition-colors`}>
+          <span>←</span> Back to Learn Hub
+        </Link>
       </header>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 flex flex-col gap-8 relative z-10">
-        
-        <div className={`bg-gradient-to-r from-purple-900/60 via-gray-900/80 to-gray-900/80 backdrop-blur-md border border-purple-500/30 rounded-2xl p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xl mobile-hero ${isDark ? '' : 'text-gray-100'}`}>
-          <div>
-            <h2 className="text-3xl font-black tracking-tight mb-2">
-              Algorithm Explorer Library 📚
-            </h2>
-            <p className="text-gray-300 max-w-2xl text-sm leading-relaxed">
-              Explore our comprehensive database of computer science algorithms. Master data structures step-by-step from beginner fundamentals to advanced architectures. 
-            </p>
+      <main className="max-w-4xl mx-auto w-full p-8 mt-4">
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30 uppercase">
+              {lesson.category}
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">
+              Time: {lesson.complexity?.time}
+            </span>
           </div>
           
-          <div className="flex items-center justify-center gap-2 bg-purple-950/80 border border-purple-800 px-4 py-2 rounded-xl text-purple-300 font-mono text-sm shadow-inner mobile-hero-badge">
-            <span>⚡ {ALGORITHMS_DATABASE.length} Presets Ready</span>
-          </div>
+          <h1 className="text-4xl font-black mb-4">{lesson.title}</h1>
+          <p className={`text-lg ${textSecondary} leading-relaxed`}>
+            {lesson.overview}
+          </p>
         </div>
 
-        <div className={`flex flex-col gap-5 p-5 border ${borderCol} rounded-xl shadow-md backdrop-blur-md ${isDark ? 'bg-gray-900/70' : 'bg-white/90'}`}>
-          <div className="flex flex-col lg:flex-row gap-5 items-center justify-between mobile-controls-row">
-            <div className="relative w-full lg:w-96 mobile-search-bar">
-              <span className={`absolute left-3 top-2.5 text-sm ${textSecondary}`}>🔍</span>
-              <input 
-                type="text"
-                placeholder="Search algorithms, descriptions, or topics..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all shadow-inner ${isDark ? 'bg-gray-950/80 border-gray-700 text-gray-200 placeholder-gray-500' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400'}`}
-              />
-            </div>
+        <div className="flex flex-col gap-8">
+          {/* THE FIX IS HERE: The question mark prevents crashes */}
+          {lesson.basicConcepts?.map((concept, index) => (
+            <section key={index} className={`p-6 rounded-2xl border ${borderCol} ${bgCard} shadow-sm`}>
+              <h3 className="text-2xl font-bold text-purple-400 mb-3">{concept.name}</h3>
+              <p className={`text-sm ${textSecondary} leading-relaxed mb-6`}>{concept.description}</p>
 
-            <div className={`flex border rounded-lg p-1 w-full lg:w-auto mobile-diff-group ${isDark ? 'bg-gray-950/80 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
-              {difficulties.map((diff) => (
-                <button
-                  key={diff}
-                  onClick={() => setSelectedDifficulty(diff)}
-                  className={`flex-1 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                    selectedDifficulty === diff
-                      ? diff === 'Easy' ? 'bg-green-600/20 text-green-500' 
-                        : diff === 'Medium' ? 'bg-yellow-600/20 text-yellow-500'
-                        : diff === 'Hard' ? 'bg-red-600/20 text-red-500'
-                        : 'bg-purple-600/30 text-purple-500'
-                      : `${textSecondary} ${isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`
-                  }`}
-                >
-                  {diff}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className={`text-xs font-semibold uppercase tracking-wider ${textSecondary}`}>Topics:</span>
-            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
-                    selectedCategory === cat
-                      ? "bg-purple-600 border-purple-500 text-white shadow-md shadow-purple-500/20"
-                      : `${isDark ? 'bg-gray-800/50 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-gray-200' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center px-2">
-          <span className={`text-sm font-mono ${textSecondary}`}>
-            Showing <strong className="text-purple-500">{filteredAlgorithms.length}</strong> algorithms
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredAlgorithms.map((algo) => {
-            const isCompleted = completedAlgos.has(algo.id);
-            
-            return (
-              <div 
-                key={algo.id}
-                className={`border hover:border-purple-500/50 rounded-xl p-6 flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-900/20 backdrop-blur-md group ${isDark ? 'bg-gray-900/80 border-gray-800' : 'bg-white/90 border-gray-200'}`}
-              >
-                <div>
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex gap-2">
-                      <span className="text-[10px] font-mono uppercase font-extrabold text-purple-500 bg-purple-500/10 border border-purple-500/30 px-2 py-0.5 rounded shadow-sm">
-                        {algo.category}
-                      </span>
-                      {isCompleted && (
-                        <span className="text-[10px] font-mono font-extrabold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded shadow-sm flex items-center gap-1">
-                          ✅ DONE
-                        </span>
-                      )}
-                    </div>
-                    
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold shadow-sm ${
-                      algo.difficulty === 'Easy' 
-                        ? 'bg-green-500/10 text-green-500 border border-green-500/30' 
-                        : algo.difficulty === 'Medium'
-                        ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30'
-                        : 'bg-red-500/10 text-red-500 border border-red-500/30'
-                    }`}>
-                      {algo.difficulty}
-                    </span>
+              {concept.codeSnippet && (
+                <div className="mb-6 rounded-lg overflow-hidden border border-gray-800 bg-[#0d1117]">
+                  <div className="bg-gray-900/80 px-4 py-2 border-b border-gray-800 flex items-center">
+                    <span className="text-xs font-mono text-gray-400">Example Code</span>
                   </div>
-
-                  <h3 className={`text-lg font-bold mb-2 transition-colors ${isDark ? 'text-white group-hover:text-purple-300' : 'text-gray-900 group-hover:text-purple-600'}`}>
-                    {algo.title}
-                  </h3>
-
-                  <p className={`text-xs leading-relaxed mb-5 line-clamp-3 ${textSecondary}`}>
-                    {algo.description}
-                  </p>
+                  <pre className="p-4 overflow-x-auto">
+                    <code className="text-sm font-mono text-green-400 leading-loose">
+                      {concept.codeSnippet}
+                    </code>
+                  </pre>
                 </div>
+              )}
 
-                <div>
-                  <div className={`flex justify-between py-3 border-t border-b mb-5 font-mono text-[11px] rounded-md px-3 ${isDark ? 'border-gray-800/80 text-gray-400 bg-gray-950/50' : 'border-gray-100 text-gray-500 bg-gray-50'}`}>
-                    <div className="flex flex-col gap-1">
-                      <span className={`text-[10px] uppercase ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>Time</span>
-                      <span className={`font-bold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{algo.timeComplexity}</span>
-                    </div>
-                    <div className={`w-px h-auto ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}></div>
-                    <div className="flex flex-col gap-1 text-right">
-                      <span className={`text-[10px] uppercase ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>Space</span>
-                      <span className={`font-bold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{algo.spaceComplexity}</span>
-                    </div>
-                  </div>
-
-                  <Link
-                    to={`/workspace?algo=${algo.id}`}
-                    onClick={(e) => checkGuestLimit(e, algo.id)}
-                    className="w-full py-2.5 bg-purple-600/10 hover:bg-purple-600 border border-purple-500/30 hover:border-purple-500 text-purple-500 hover:text-white font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm"
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"></path></svg>
-                    <span>{isCompleted ? 'Review & Visualize Again' : 'Run & Visualize Step-by-Step'}</span>
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
+              {concept.workspaceContext && lesson.workspaceMetadata?.id && (
+                <Link
+                  to={`/workspace?lesson=${lesson.workspaceMetadata.id}&step=${concept.workspaceContext.highlightLine}`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm rounded-xl shadow-md transition-all hover:-translate-y-0.5"
+                >
+                  ⚡ Visualize this step in Workspace
+                </Link>
+              )}
+            </section>
+          ))}
         </div>
-
-        {filteredAlgorithms.length === 0 && (
-          <div className={`py-20 flex flex-col items-center justify-center text-center rounded-xl border border-dashed backdrop-blur-md z-10 relative ${isDark ? 'bg-gray-900/60 border-gray-700' : 'bg-gray-50/80 border-gray-200'}`}>
-            <span className="text-4xl mb-4">📭</span>
-            <h3 className="text-lg font-bold mb-1">No algorithms found</h3>
-            <p className={`font-mono text-sm max-w-sm ${textSecondary}`}>
-              Adjust your search or filter criteria to explore the database.
-            </p>
-            <button 
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCategory('All');
-                setSelectedDifficulty('All');
-              }}
-              className={`mt-4 px-4 py-2 rounded-md text-xs font-bold transition-colors ${isDark ? 'bg-gray-800 hover:bg-gray-700 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-            >
-              Clear Filters
-            </button>
-          </div>
-        )}
       </main>
     </div>
   );

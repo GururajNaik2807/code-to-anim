@@ -10,13 +10,12 @@ import collections
 import heapq
 import builtins
 
-# --- CRITICAL FIX: Save the real import function before we override it ---
 _original_import = builtins.__import__
 
 app = FastAPI(
     title="CodeToAnim Trace Engine",
-    description="Backend execution engine to capture step-by-step code execution states for visual animation.",
-    version="1.0.2"
+    description="Backend execution engine to capture step-by-step code execution states.",
+    version="1.0.3"
 )
 
 app.add_middleware(
@@ -27,7 +26,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Pydantic Data Models ---
 class CodeExecutionRequest(BaseModel):
     code: str
 
@@ -44,16 +42,11 @@ class TraceResponse(BaseModel):
     error: Optional[str] = None
 
 
-# --- Helper: Safe JSON Serialization ---
 def make_json_safe(val, depth=0):
     if depth > 15: return "..."
-    
-    # --- FIX: Prevent module scanning crashes ---
     if type(val).__name__ == 'module': return str(val)
-    
     if isinstance(val, (int, float, str, bool, type(None))): return val
     
-    # FIX: Handle sets and deques by converting them to lists first!
     if type(val).__name__ == 'deque' or isinstance(val, collections.deque):
         return [make_json_safe(item, depth + 1) for item in list(val)[:50]]
     if isinstance(val, set): 
@@ -74,10 +67,9 @@ def make_json_safe(val, depth=0):
                     safe_dict[attr] = make_json_safe(attr_val, depth + 1)
         if safe_dict: return safe_dict
     except Exception: pass
-
     return str(val)
 
-# --- Advanced Abstracted Blueprint Generator (Scoring Engine) ---
+
 def generate_visual_layout(clean_vars: dict) -> dict:
     candidates = []
 
@@ -89,17 +81,15 @@ def generate_visual_layout(clean_vars: dict) -> dict:
 
     def is_graph(obj):
         if not isinstance(obj, dict) or len(obj) == 0: return False
-        
         wrapper_keys = {'stack', 'queue', 'q', 'arr', 'array', 'list', 'items', 'data', 'elements'}
-        if len(obj) == 1 and list(obj.keys())[0].lower() in wrapper_keys:
-            return False
-            
-        sample = next(iter(obj.values()), None)
-        return isinstance(sample, list)
+        if len(obj) == 1 and list(obj.keys())[0].lower() in wrapper_keys: return False
+        for val in obj.values():
+            if not isinstance(val, list): return False
+            if len(val) > 0 and isinstance(val[0], list): return False 
+        return True
 
     for key, val in clean_vars.items():
         # 1. TREE SCORING
-# 1. TREE SCORING
         root = val if is_tree(val) else (val.get('root') if isinstance(val, dict) and is_tree(val.get('root')) else None)
         if root:
             nodes, edges = [], []
@@ -118,29 +108,18 @@ def generate_visual_layout(clean_vars: dict) -> dict:
             
             traverse(root, 250, 30, 100, 'root')
             
-            # --- NEW: FIND ACTIVE POINTERS (e.g., 'curr', 'node') ---
             pointers = []
             for pk, pv in clean_vars.items():
-                # Check if the variable is a node object but NOT the main root
                 if isinstance(pv, dict) and pk not in ['root', 'tree', 'self', key]:
                     if 'val' in pv or 'data' in pv or 'value' in pv:
                         ptr_val = str(pv.get('val', pv.get('data', pv.get('value', '?'))))
                         pointers.append({"key": pk, "target_val": ptr_val})
             
             score = 100 + len(nodes) + (20 if key in ['root', 'tree'] else 0)
-            
-            # --- NEW: Included "pointers" in the candidate output ---
-            candidates.append({
-                "type": "tree", 
-                "key": key, 
-                "nodes": nodes, 
-                "edges": edges, 
-                "pointers": pointers, 
-                "score": score
-            })
+            candidates.append({"type": "tree", "key": key, "nodes": nodes, "edges": edges, "pointers": pointers, "score": score})
             continue
 
-        # 2. LINKED LIST SCORING
+        # 2. LINKED LIST SCORING (FIXED PRIORITY)
         head = val if is_ll(val) else (val.get('head') if isinstance(val, dict) and is_ll(val.get('head')) else None)
         if head:
             nodes, curr, safe_count = [], head, 0
@@ -148,23 +127,42 @@ def generate_visual_layout(clean_vars: dict) -> dict:
                 nodes.append({"val": str(curr.get('val', curr.get('data', curr.get('value', '?'))))})
                 curr = curr.get('next')
                 safe_count += 1
-            score = 90 + len(nodes) + (30 if key in ['prev', 'curr', 'tail'] else 0)
+            # FIX: Heavily weight the length of the list so 'head' always beats 'curr'
+            score = 90 + (len(nodes) * 10) + (10 if key in ['head', 'prev', 'curr', 'tail'] else 0)
             candidates.append({"type": "linked_list", "key": key, "nodes": nodes, "score": score})
             continue
 
         # 3. GRAPH SCORING
         graph_data = None
+        matrix_data = None
+        if isinstance(val, list) and len(val) > 0 and isinstance(val[0], list):
+            matrix_data = val
+        elif isinstance(val, dict) and isinstance(val.get('matrix'), list) and len(val['matrix']) > 0 and isinstance(val['matrix'][0], list):
+            matrix_data = val['matrix']
+            
+        if matrix_data:
+            nodes = []
+            for i, row in enumerate(matrix_data):
+                neighbors = []
+                if isinstance(row, list):
+                    for j, weight in enumerate(row):
+                        if weight != 0:
+                            neighbors.append(str(j))
+                nodes.append({"id": str(i), "neighbors": neighbors})
+            score = 95 + len(nodes) + (30 if key in ['graph', 'matrix', 'adj_matrix', 'self'] else 0)
+            candidates.append({"type": "graph", "key": key, "nodes": nodes, "score": score})
+            continue
+
         if is_graph(val):
             graph_data = val
         elif isinstance(val, dict):
-            if is_graph(val.get('graph')):
-                graph_data = val.get('graph')
-            elif is_graph(val.get('adj')):
-                graph_data = val.get('adj')
+            if is_graph(val.get('graph_dict')): graph_data = val.get('graph_dict')
+            elif is_graph(val.get('graph')): graph_data = val.get('graph')
+            elif is_graph(val.get('adj')): graph_data = val.get('adj')
 
         if graph_data:
-            nodes = [{"id": k, "neighbors": v} for k, v in graph_data.items()]
-            score = 95 + len(nodes) + (30 if key in ['graph', 'adj', 'my_network', 'self'] else 0)
+            nodes = [{"id": str(k), "neighbors": [str(n) for n in v]} for k, v in graph_data.items()]
+            score = 95 + len(nodes) + (30 if key in ['graph', 'adj', 'my_network', 'self', 'graph_dict'] else 0)
             candidates.append({"type": "graph", "key": key, "nodes": nodes, "score": score})
             continue
 
@@ -175,26 +173,20 @@ def generate_visual_layout(clean_vars: dict) -> dict:
         
         if isinstance(val, list):
             array_data = val
-            if 'stack' in key.lower():
-                is_stack_intent = True
-            elif 'queue' in key.lower() or key.lower() == 'q' or 'deque' in key.lower():
-                is_queue_intent = True
+            if 'stack' in key.lower(): is_stack_intent = True
+            elif 'queue' in key.lower() or key.lower() == 'q' or 'deque' in key.lower(): is_queue_intent = True
         elif isinstance(val, dict):
             for attr in ['stack', 'queue', 'q', 'arr', 'array', 'list', 'items', 'data', 'elements']:
                 if isinstance(val.get(attr), list):
                     array_data = val.get(attr)
-                    if 'stack' in attr.lower() or 'stack' in key.lower():
-                        is_stack_intent = True
-                    elif 'queue' in attr.lower() or 'queue' in key.lower() or key.lower() == 'q':
-                        is_queue_intent = True
+                    if 'stack' in attr.lower() or 'stack' in key.lower(): is_stack_intent = True
+                    elif 'queue' in attr.lower() or 'queue' in key.lower() or key.lower() == 'q': is_queue_intent = True
                     break
         
         if array_data is not None:
             arr_data = [str(v) for v in array_data[:40]]
             pointers = [{"key": pk, "index": pv} for pk, pv in clean_vars.items() if isinstance(pv, int) and 0 <= pv < len(array_data)]
-            
             score = 70 + len(arr_data) + (10 * len(pointers)) + (30 if key in ['res', 'arr', 'nums', 'stack', 'queue', 'q', 'self', 's'] else 0)
-            
             layout_type = "stack" if is_stack_intent else "array"
             candidates.append({"type": layout_type, "key": key, "data": arr_data, "pointers": pointers, "score": score})
             continue
@@ -212,7 +204,7 @@ def generate_visual_layout(clean_vars: dict) -> dict:
 
     return {"type": "none"}
 
-# --- Standalone Worker Function ---
+
 def run_trace_worker(code_string):
     steps = []
     step_counter = 0
@@ -220,59 +212,49 @@ def run_trace_worker(code_string):
     stdout_buffer = io.StringIO()
     sys.stdout = stdout_buffer
 
-    # --- RESOURCE LIMITS ---
     MAX_STEPS = 1000
-    MAX_TIME = 2.0  # seconds
-    MAX_OUTPUT_LEN = 2000 # characters
+    MAX_TIME = 2.0 
+    MAX_OUTPUT_LEN = 2000 
     start_time = time.time()
 
     def trace_func(frame, event, arg):
         nonlocal step_counter
         
-        # 1. Stop Infinite Loops
         if step_counter >= MAX_STEPS:
             raise RuntimeError(f"Execution stopped: Exceeded {MAX_STEPS} steps.")
         
-        # 2. Stop Frozen Code
         if time.time() - start_time > MAX_TIME:
             raise TimeoutError("Execution stopped: Exceeded 2.0 seconds.")
 
-        # Ensure we trace into inner function scopes
-        if event == 'line' or event == 'call':
-            if event == 'line':
-                step_counter += 1
-                clean_vars = {}
-                for k, v in frame.f_locals.items():
-                    if not k.startswith('__') and k not in ['sys', 'time'] and not callable(v):
-                        try:
-                            clean_vars[k] = make_json_safe(v)
-                        except Exception:
-                            clean_vars[k] = "Un-serializable object"
+        # ONLY listen to line events to keep visuals stable
+        if event == 'line':
+            clean_vars = {}
+            for k, v in frame.f_locals.items():
+                if not k.startswith('__') and k not in ['sys', 'time'] and not callable(v):
+                    try:
+                        clean_vars[k] = make_json_safe(v)
+                    except Exception:
+                        pass
 
-                layout_blueprint = generate_visual_layout(clean_vars)
-                
-                # 3. Cap Output Size
-                current_output = stdout_buffer.getvalue()
-                if len(current_output) > MAX_OUTPUT_LEN:
-                    current_output = current_output[:MAX_OUTPUT_LEN] + "\n...[Output Truncated]"
-
-                steps.append({
-                    "step": step_counter,
-                    "line": frame.f_lineno,
-                    "variables": clean_vars,
-                    "output": current_output,
-                    "visual_layout": layout_blueprint
-                })
+            layout_blueprint = generate_visual_layout(clean_vars)
+            
+            step_counter += 1
+            steps.append({
+                "step": step_counter,
+                "line": frame.f_lineno,
+                "variables": clean_vars,
+                "output": stdout_buffer.getvalue()[:MAX_OUTPUT_LEN],
+                "visual_layout": layout_blueprint
+            })
         return trace_func
 
-    # --- SECURITY: RESTRICTED BUILT-INS ---
     ALLOWED_MODULES = {'collections', 'heapq'}
 
     def safe_import(name, globals=None, locals=None, fromlist=(), level=0):
         base_name = name.split('.')[0] 
         if base_name in ALLOWED_MODULES:
             return _original_import(name, globals, locals, fromlist, level)
-        raise ImportError(f"Importing module '{name}' is not allowed for security reasons.")
+        raise ImportError(f"Importing module '{name}' is not allowed.")
 
     safe_builtins = {
         'print': print, 'range': range, 'len': len, 'int': int, 'str': str,
@@ -282,9 +264,9 @@ def run_trace_worker(code_string):
         'ValueError': ValueError, 'TypeError': TypeError, 'IndexError': IndexError,
         '__build_class__': __build_class__,
         '__import__': safe_import,
+        'map': map, 'filter': filter, 'any': any, 'all': all
     }
     
-    # --- FIX: Inject __name__ for standard script boilerplates ---
     execution_scope = {
         "__builtins__": safe_builtins,
         "__name__": "__main__"
@@ -295,24 +277,16 @@ def run_trace_worker(code_string):
         exec(code_string, execution_scope)
         sys.settrace(None)
         
-        # ONE EXTRA STEP FOR FINAL STATE
-        step_counter += 1
-        clean_vars = {}
-        for k, v in execution_scope.items():
-            if not k.startswith('__') and not callable(v):
-                try:
-                    clean_vars[k] = make_json_safe(v)
-                except Exception:
-                    pass
-
-        steps.append({
-            "step": step_counter,
-            "line": steps[-1]["line"] if steps else 1,
-            "variables": clean_vars,
-            "output": stdout_buffer.getvalue()[:MAX_OUTPUT_LEN],
-            "visual_layout": generate_visual_layout(clean_vars)
-        })
-        
+        # FIX: The "Missing Print" solution. 
+        # Clone the exact local variables from the last line, but update the terminal output.
+        if steps:
+            final_output = stdout_buffer.getvalue()[:MAX_OUTPUT_LEN]
+            if steps[-1]["output"] != final_output:
+                final_step = copy.deepcopy(steps[-1])
+                final_step["step"] += 1
+                final_step["output"] = final_output
+                steps.append(final_step)
+                
         return {"success": True, "steps": steps}
         
     except Exception as e:
@@ -323,14 +297,12 @@ def run_trace_worker(code_string):
 
 @app.get("/")
 def read_root():
-    return {"status": "online", "message": "CodeToAnim Trace Engine is running successfully!"}
+    return {"status": "online"}
 
 @app.post("/api/trace", response_model=TraceResponse)
 def execute_code_trace(request: CodeExecutionRequest):
     if not request.code.strip():
         return TraceResponse(success=False, steps=[], error="Code string cannot be empty.")
-    
-    # --- FIX: Removed ThreadPoolExecutor to prevent server deadlocks ---
     try:
         result = run_trace_worker(request.code)
     except Exception as e:
