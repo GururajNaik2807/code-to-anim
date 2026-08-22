@@ -177,8 +177,8 @@ export const ALGORITHMS_DATABASE = [
     difficulty: 'Easy',
     timeComplexity: 'O(√n)',
     spaceComplexity: 'O(1)',
-    description: 'Determines if a number is prime by checking divisibility up to its square root.',
-    code: `# Prime Check\nimport math\nn = 29\nis_prime = True\nif n <= 1:\n    is_prime = False\nelse:\n    for i in range(2, int(math.isqrt(n)) + 1):\n        if n % i == 0:\n            is_prime = False\n            break\nprint(f"Is {n} prime?:", is_prime)`
+    description: 'Determines if a number is prime without restricted imports.',
+    code: `# Prime Check\nn = 29\nis_prime = True\nif n <= 1:\n    is_prime = False\nelse:\n    i = 2\n    while i * i <= n:\n        if n % i == 0:\n            is_prime = False\n            break\n        i += 1\nprint(f"Is {n} prime?:", is_prime)`
   },
   {
     id: 'fizz-buzz',
@@ -221,16 +221,6 @@ export const ALGORITHMS_DATABASE = [
     spaceComplexity: 'O(amount)',
     description: 'Finds the minimum number of coins needed to make up a given amount.',
     code: `# Coin Change\ncoins = [1, 2, 5]\namount = 11\ndp = [float('inf')] * (amount + 1)\ndp[0] = 0\nfor a in range(1, amount + 1):\n    for c in coins:\n        if a - c >= 0:\n            dp[a] = min(dp[a], 1 + dp[a - c])\nprint("Min coins:", dp[amount] if dp[amount] != float('inf') else -1)`
-  },
-  {
-    id: 'longest-common-subsequence',
-    title: 'Longest Common Subsequence',
-    category: 'Dynamic Programming',
-    difficulty: 'Hard',
-    timeComplexity: 'O(m * n)',
-    spaceComplexity: 'O(m * n)',
-    description: 'Finds the longest sequence of characters present in both strings in the same order.',
-    code: `# LCS\ntext1 = "abcde"\ntext2 = "ace"\nm, n = len(text1), len(text2)\ndp = [[0] * (n + 1) for _ in range(m + 1)]\nfor i in range(1, m + 1):\n    for j in range(1, n + 1):\n        if text1[i - 1] == text2[j - 1]:\n            dp[i][j] = dp[i - 1][j - 1] + 1\n        else:\n            dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])\nprint("LCS Length:", dp[m][n])`
   },
 
   // --- STACKS & QUEUES ---
@@ -600,48 +590,6 @@ export const ALGORITHMS_DATABASE = [
     description: 'Finds the maximum profit you can achieve from a single day purchase and a future day sale.',
     code: `# Best Time to Buy and Sell Stock\nprices = [7, 1, 5, 3, 6, 4]\nmin_price = float('inf')\nmax_profit = 0\nfor price in prices:\n    if price < min_price:\n        min_price = price\n    elif price - min_price > max_profit:\n        max_profit = price - min_price\nprint("Maximum Profit:", max_profit)`
   },
-  {
-    id: 'pascals-triangle',
-    title: 'Pascal\'s Triangle',
-    category: 'Arrays',
-    difficulty: 'Easy',
-    timeComplexity: 'O(n²)',
-    spaceComplexity: 'O(n²)',
-    description: 'Generates the first numRows of Pascal\'s triangle.',
-    code: `# Pascal's Triangle\nnumRows = 5\nres = [[1]]\nfor i in range(numRows - 1):\n    temp = [0] + res[-1] + [0]\n    row = []\n    for j in range(len(res[-1]) + 1):\n        row.append(temp[j] + temp[j+1])\n    res.append(row)\nprint("Pascal Triangle:", res)`
-  },
-
-  // --- INTERVALS ---
-  {
-    id: 'merge-intervals',
-    title: 'Merge Intervals',
-    category: 'Intervals',
-    difficulty: 'Medium',
-    timeComplexity: 'O(n log n)',
-    spaceComplexity: 'O(n)',
-    description: 'Merges all overlapping intervals into an array of non-overlapping intervals.',
-    code: `# Merge Intervals\nintervals = [[1,3], [2,6], [8,10], [15,18]]\nintervals.sort(key=lambda i: i[0])\nres = [intervals[0]]\nfor start, end in intervals[1:]:\n    last_end = res[-1][1]\n    if start <= last_end:\n        res[-1][1] = max(last_end, end)\n    else:\n        res.append([start, end])\nprint("Merged Intervals:", res)`
-  },
-  {
-    id: 'insert-interval',
-    title: 'Insert Interval',
-    category: 'Intervals',
-    difficulty: 'Medium',
-    timeComplexity: 'O(n)',
-    spaceComplexity: 'O(n)',
-    description: 'Inserts a new interval into a sorted array of non-overlapping intervals and merges overlaps.',
-    code: `# Insert Interval\nintervals = [[1,3], [6,9]]\nnewInterval = [2,5]\nres = []\ninserted = False\nfor i in range(len(intervals)):\n    if newInterval[1] < intervals[i][0]:\n        res.append(newInterval)\n        res = res + intervals[i:]\n        inserted = True\n        break\n    elif newInterval[0] > intervals[i][1]:\n        res.append(intervals[i])\n    else:\n        newInterval = [min(newInterval[0], intervals[i][0]), max(newInterval[1], intervals[i][1])]\nif not inserted:\n    res.append(newInterval)\nprint("Inserted Intervals:", res)`
-  },
-  {
-    id: 'non-overlapping-intervals',
-    title: 'Non-overlapping Intervals',
-    category: 'Intervals',
-    difficulty: 'Medium',
-    timeComplexity: 'O(n log n)',
-    spaceComplexity: 'O(1)',
-    description: 'Finds the minimum number of intervals you need to remove to make the rest non-overlapping.',
-    code: `# Non-overlapping Intervals\nintervals = [[1,2], [2,3], [3,4], [1,3]]\nintervals.sort(key=lambda i: i[1])\nremoved_count = 0\nprev_end = intervals[0][1]\nfor start, end in intervals[1:]:\n    if start >= prev_end:\n        prev_end = end\n    else:\n        removed_count += 1\nprint("Min removals:", removed_count)`
-  },
 
   // --- HEAPS / PRIORITY QUEUES ---
   {
@@ -694,19 +642,311 @@ export const ALGORITHMS_DATABASE = [
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(h)',
     description: 'Computes the length of the longest path between any two nodes in a tree.',
-    code: `# Diameter of Binary Tree\nclass TreeNode:\n    def __init__(self, val=0, left=None, right=None):\n        self.val = val\n        self.left = left\n        self.right = right\n\nroot = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3))\ndiameter = 0\ndef dfs(curr):\n    global diameter\n    if not curr: return -1\n    left = dfs(curr.left)\n    right = dfs(curr.right)\n    diameter = max(diameter, 2 + left + right)\n    return 1 + max(left, right)\n\ndfs(root)\nprint("Diameter:", diameter)`
+    code: `# Diameter of Binary Tree\nclass TreeNode:\n    def __init__(self, val=0, left=None, right=None):\n        self.val = val\n        self.left = left\n        self.right = right\n\nclass TreeInfo:\n    def __init__(self):\n        self.diameter = 0\n\nroot = TreeNode(1, TreeNode(2, TreeNode(4), TreeNode(5)), TreeNode(3))\ninfo = TreeInfo()\n\ndef dfs(curr, tree_info):\n    if not curr: return -1\n    left = dfs(curr.left, tree_info)\n    right = dfs(curr.right, tree_info)\n    tree_info.diameter = max(tree_info.diameter, 2 + left + right)\n    return 1 + max(left, right)\n\ndfs(root, info)\nprint("Diameter:", info.diameter)`
   },
-  
-  // ... (Paste all the other 66 algorithms here) ...
-  
+  // --- TWO POINTERS / SLIDING WINDOW (ADVANCED) ---
   {
-    id: 'subsets',
-    title: 'Subsets',
-    category: 'Backtracking',
+    id: 'container-most-water',
+    title: 'Container With Most Water',
+    category: 'Two Pointers',
     difficulty: 'Medium',
-    timeComplexity: 'O(n * 2^n)',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds two lines that together with the x-axis form a container that holds the most water.',
+    code: `# Container With Most Water\nheights = [1, 8, 6, 2, 5, 4, 8, 3, 7]\nleft, right = 0, len(heights) - 1\nmax_area = 0\nwhile left < right:\n    width = right - left\n    current_height = min(heights[left], heights[right])\n    max_area = max(max_area, width * current_height)\n    if heights[left] < heights[right]:\n        left += 1\n    else:\n        right -= 1\nprint("Maximum water area:", max_area)`
+  },
+  {
+    id: 'sort-colors',
+    title: 'Sort Colors',
+    category: 'Two Pointers',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Sorts an array of 0s, 1s, and 2s in-place using the Dutch National Flag algorithm.',
+    code: `# Sort Colors (Dutch National Flag)\nnums = [2, 0, 2, 1, 1, 0]\nlow, mid, high = 0, 0, len(nums) - 1\nwhile mid <= high:\n    if nums[mid] == 0:\n        nums[low], nums[mid] = nums[mid], nums[low]\n        low += 1\n        mid += 1\n    elif nums[mid] == 1:\n        mid += 1\n    else:\n        nums[high], nums[mid] = nums[mid], nums[high]\n        high -= 1\nprint("Sorted Colors:", nums)`
+  },
+  {
+    id: 'valid-palindrome',
+    title: 'Valid Palindrome',
+    category: 'Two Pointers',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
     spaceComplexity: 'O(n)',
-    description: 'Generates all possible subsets (the power set) of an array of unique elements.',
-    code: `# Subsets\nnums = [1, 2, 3]\nres = []\nsubset = []\n\ndef dfs(i):\n    if i >= len(nums):\n        res.append(subset.copy())\n        return\n    subset.append(nums[i])\n    dfs(i + 1)\n    subset.pop()\n    dfs(i + 1)\n\ndfs(0)\nprint("Subsets:", res)`
+    description: 'Checks if a string is a palindrome, ignoring non-alphanumeric characters and cases.',
+    code: `# Valid Palindrome\ns = "A man, a plan, a canal: Panama"\ns_clean = "".join([c.lower() for c in s if c.isalnum()])\narr = list(s_clean)\nleft, right = 0, len(arr) - 1\nis_palindrome = True\nwhile left < right:\n    if arr[left] != arr[right]:\n        is_palindrome = False\n        break\n    left += 1\n    right -= 1\nprint("Is Palindrome:", is_palindrome)`
+  },
+  {
+    id: 'remove-element',
+    title: 'Remove Element',
+    category: 'Two Pointers',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Removes all instances of a target value in-place and returns the new length.',
+    code: `# Remove Element\nnums = [3, 2, 2, 3]\ntarget = 3\nleft = 0\nfor right in range(len(nums)):\n    if nums[right] != target:\n        nums[left] = nums[right]\n        left += 1\nprint("Array without target:", nums[:left])`
+  },
+  {
+    id: 'reverse-string',
+    title: 'Reverse String',
+    category: 'Two Pointers',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Reverses an array of characters in-place using two pointers.',
+    code: `# Reverse String\ns = ["h", "e", "l", "l", "o"]\nleft, right = 0, len(s) - 1\nwhile left < right:\n    s[left], s[right] = s[right], s[left]\n    left += 1\n    right -= 1\nprint("Reversed String:", s)`
+  },
+
+  // --- BINARY SEARCH (ADVANCED) ---
+  {
+    id: 'search-insert-position',
+    title: 'Search Insert Position',
+    category: 'Searching',
+    difficulty: 'Easy',
+    timeComplexity: 'O(log n)',
+    spaceComplexity: 'O(1)',
+    description: 'Returns the index of a target in a sorted array, or where it would be if inserted.',
+    code: `# Search Insert Position\nnums = [1, 3, 5, 6]\ntarget = 5\nlow, high = 0, len(nums) - 1\nwhile low <= high:\n    mid = (low + high) // 2\n    if nums[mid] == target:\n        low = mid\n        break\n    elif nums[mid] < target:\n        low = mid + 1\n    else:\n        high = mid - 1\nprint("Insert Position:", low)`
+  },
+  {
+    id: 'find-minimum-rotated',
+    title: 'Find Minimum in Rotated Array',
+    category: 'Searching',
+    difficulty: 'Medium',
+    timeComplexity: 'O(log n)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the minimum element in an array that has been sorted and then rotated.',
+    code: `# Find Minimum in Rotated Sorted Array\nnums = [3, 4, 5, 1, 2]\nlow, high = 0, len(nums) - 1\nwhile low < high:\n    mid = (low + high) // 2\n    if nums[mid] > nums[high]:\n        low = mid + 1\n    else:\n        high = mid\nprint("Minimum Value:", nums[low])`
+  },
+  {
+    id: 'first-bad-version',
+    title: 'First Bad Version',
+    category: 'Searching',
+    difficulty: 'Easy',
+    timeComplexity: 'O(log n)',
+    spaceComplexity: 'O(1)',
+    description: 'Uses binary search to find the first bad version in a linear sequence of product builds.',
+    code: `# First Bad Version\nversions = [False, False, False, True, True]\nlow, high = 0, len(versions) - 1\nfirst_bad = -1\nwhile low <= high:\n    mid = (low + high) // 2\n    if versions[mid]:\n        first_bad = mid\n        high = mid - 1\n    else:\n        low = mid + 1\nprint("First Bad Version at index:", first_bad)`
+  },
+  {
+    id: 'peak-index-mountain',
+    title: 'Peak Index in a Mountain Array',
+    category: 'Searching',
+    difficulty: 'Medium',
+    timeComplexity: 'O(log n)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the peak element in an array that strictly increases then strictly decreases.',
+    code: `# Peak Index in a Mountain Array\nnums = [0, 2, 1, 0]\nlow, high = 0, len(nums) - 1\nwhile low < high:\n    mid = (low + high) // 2\n    if nums[mid] < nums[mid + 1]:\n        low = mid + 1\n    else:\n        high = mid\nprint("Peak Index:", low)`
+  },
+
+  // --- HASH MAPS & SETS (ADVANCED) ---
+  {
+    id: 'ransom-note',
+    title: 'Ransom Note',
+    category: 'Hash Map',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n + m)',
+    spaceComplexity: 'O(1)',
+    description: 'Checks if a string can be constructed by using the letters from another string.',
+    code: `# Ransom Note\nransomNote = "aa"\nmagazine = "aab"\nhashmap = {}\nfor char in magazine:\n    hashmap[char] = hashmap.get(char, 0) + 1\ncan_construct = True\nfor char in ransomNote:\n    if hashmap.get(char, 0) == 0:\n        can_construct = False\n        break\n    hashmap[char] -= 1\nprint("Can construct:", can_construct)`
+  },
+  {
+    id: 'jewels-and-stones',
+    title: 'Jewels and Stones',
+    category: 'Hash Map',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n + m)',
+    spaceComplexity: 'O(n)',
+    description: 'Counts how many stones you have are also considered jewels.',
+    code: `# Jewels and Stones\njewels = "aA"\nstones = "aAAbbbb"\njewel_set = set(jewels)\ncount = 0\nfor stone in stones:\n    if stone in jewel_set:\n        count += 1\nprint("Total Jewels:", count)`
+  },
+  {
+    id: 'find-the-difference',
+    title: 'Find the Difference',
+    category: 'Hash Map',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the single letter that was added to a randomly shuffled string.',
+    code: `# Find the Difference\ns = "abcd"\nt = "abcde"\nhashmap = {}\nfor char in s:\n    hashmap[char] = hashmap.get(char, 0) + 1\nextra_char = ""\nfor char in t:\n    if hashmap.get(char, 0) == 0:\n        extra_char = char\n        break\n    hashmap[char] -= 1\nprint("Added character:", extra_char)`
+  },
+  {
+    id: 'subarray-sum-equals-k',
+    title: 'Subarray Sum Equals K',
+    category: 'Hash Map',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(n)',
+    description: 'Finds the total number of continuous subarrays whose sum equals K using a prefix sum map.',
+    code: `# Subarray Sum Equals K\nnums = [1, 1, 1]\nk = 2\nhashmap = {0: 1}\ncurr_sum = 0\ntotal_subarrays = 0\nfor n in nums:\n    curr_sum += n\n    diff = curr_sum - k\n    if diff in hashmap:\n        total_subarrays += hashmap[diff]\n    hashmap[curr_sum] = hashmap.get(curr_sum, 0) + 1\nprint("Total matching subarrays:", total_subarrays)`
+  },
+  {
+    id: 'longest-palindrome',
+    title: 'Longest Palindrome',
+    category: 'Hash Map',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Calculates the length of the longest palindrome that can be built from a string of characters.',
+    code: `# Longest Palindrome (from string characters)\ns = "abccccdd"\nseen = set()\nlength = 0\nfor char in s:\n    if char in seen:\n        seen.remove(char)\n        length += 2\n    else:\n        seen.add(char)\nif seen:\n    length += 1\nprint("Max Palindrome Length:", length)`
+  },
+  {
+    id: 'intersection-two-arrays-ii',
+    title: 'Intersection of Two Arrays II',
+    category: 'Hash Map',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n + m)',
+    spaceComplexity: 'O(n)',
+    description: 'Finds the intersection of two arrays, returning elements exactly as many times as they appear.',
+    code: `# Intersection of Two Arrays II\nnums1 = [1, 2, 2, 1]\nnums2 = [2, 2]\nhashmap = {}\nres = []\nfor n in nums1:\n    hashmap[n] = hashmap.get(n, 0) + 1\nfor n in nums2:\n    if hashmap.get(n, 0) > 0:\n        res.append(n)\n        hashmap[n] -= 1\nprint("Intersected Elements:", res)`
+  },
+
+  // --- ARRAYS & PREFIX SUMS ---
+  {
+    id: 'find-pivot-index',
+    title: 'Find Pivot Index',
+    category: 'Arrays',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the index where the sum of all numbers strictly to the left equals the sum of numbers to the right.',
+    code: `# Find Pivot Index\nnums = [1, 7, 3, 6, 5, 6]\ntotal_sum = sum(nums)\nleft_sum = 0\npivot = -1\nfor i in range(len(nums)):\n    if left_sum == (total_sum - left_sum - nums[i]):\n        pivot = i\n        break\n    left_sum += nums[i]\nprint("Pivot Index:", pivot)`
+  },
+  {
+    id: 'rotate-array',
+    title: 'Rotate Array',
+    category: 'Arrays',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Rotates an array to the right by k steps in-place.',
+    code: `# Rotate Array\nnums = [1, 2, 3, 4, 5, 6, 7]\nk = 3\nk = k % len(nums)\n\ndef reverse(arr, start, end):\n    while start < end:\n        arr[start], arr[end] = arr[end], arr[start]\n        start, end = start + 1, end - 1\n\nreverse(nums, 0, len(nums) - 1)\nreverse(nums, 0, k - 1)\nreverse(nums, k, len(nums) - 1)\nprint("Rotated Array:", nums)`
+  },
+  {
+    id: 'sort-array-by-parity',
+    title: 'Sort Array By Parity',
+    category: 'Arrays',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Moves all even integers to the beginning of the array followed by all odd integers.',
+    code: `# Sort Array By Parity\nnums = [3, 1, 2, 4]\nleft, right = 0, len(nums) - 1\nwhile left < right:\n    if nums[left] % 2 != 0 and nums[right] % 2 == 0:\n        nums[left], nums[right] = nums[right], nums[left]\n    if nums[left] % 2 == 0:\n        left += 1\n    if nums[right] % 2 != 0:\n        right -= 1\nprint("Sorted by Parity:", nums)`
+  },
+
+  // --- STACKS & QUEUES ---
+  {
+    id: 'daily-temperatures',
+    title: 'Daily Temperatures',
+    category: 'Stack',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(n)',
+    description: 'Calculates how many days you have to wait to get a warmer temperature using a monotonic stack.',
+    code: `# Daily Temperatures\ntemperatures = [73, 74, 75, 71, 69, 72, 76, 73]\nres = [0] * len(temperatures)\nstack = []  # Stores indices\nfor i, temp in enumerate(temperatures):\n    while stack and temp > temperatures[stack[-1]]:\n        prev_idx = stack.pop()\n        res[prev_idx] = i - prev_idx\n    stack.append(i)\nprint("Days to wait:", res)`
+  },
+  {
+    id: 'evaluate-rpn',
+    title: 'Evaluate Reverse Polish Notation',
+    category: 'Stack',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(n)',
+    description: 'Evaluates the value of an arithmetic expression in Reverse Polish Notation.',
+    code: `# Evaluate RPN\ntokens = ["2", "1", "+", "3", "*"]\nstack = []\nfor t in tokens:\n    if t not in "+-*/":\n        stack.append(int(t))\n    else:\n        b, a = stack.pop(), stack.pop()\n        if t == "+": stack.append(a + b)\n        elif t == "-": stack.append(a - b)\n        elif t == "*": stack.append(a * b)\n        else: stack.append(int(a / b))\nprint("Result:", stack[0])`
+  },
+  {
+    id: 'min-stack',
+    title: 'Min Stack Simulation',
+    category: 'Stack',
+    difficulty: 'Medium',
+    timeComplexity: 'O(1)',
+    spaceComplexity: 'O(n)',
+    description: 'Simulates a stack that retrieves the minimum element in constant time O(1).',
+    code: `# Min Stack Simulation\ncommands = [10, 2, 5, 1]\nstack = []\nmin_stack = []\nfor val in commands:\n    stack.append(val)\n    if not min_stack or val <= min_stack[-1]:\n        min_stack.append(val)\n    else:\n        min_stack.append(min_stack[-1])\nstack.pop()\nmin_stack.pop()\nprint("Current Stack:", stack)\nprint("Current Minimum:", min_stack[-1] if min_stack else None)`
+  },
+
+  // --- LINKED LISTS ---
+  {
+    id: 'intersection-of-two-linked-lists',
+    title: 'Intersection of Linked Lists',
+    category: 'Linked Lists',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n + m)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the node at which the intersection of two singly linked lists begins.',
+    code: `# Intersection of Two Linked Lists\nclass ListNode:\n    def __init__(self, val=0, next=None):\n        self.val = val\n        self.next = next\nshared = ListNode(8, ListNode(4, ListNode(5)))\nheadA = ListNode(4, ListNode(1, shared))\nheadB = ListNode(5, ListNode(6, ListNode(1, shared)))\ncurrA, currB = headA, headB\nwhile currA != currB:\n    currA = currA.next if currA else headB\n    currB = currB.next if currB else headA\nprint("Intersection Val:", currA.val if currA else None)`
+  },
+  {
+    id: 'palindrome-linked-list',
+    title: 'Palindrome Linked List',
+    category: 'Linked Lists',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(n)',
+    description: 'Checks if a linked list is a palindrome by dumping values into an array.',
+    code: `# Palindrome Linked List\nclass ListNode:\n    def __init__(self, val=0, next=None):\n        self.val = val\n        self.next = next\nhead = ListNode(1, ListNode(2, ListNode(2, ListNode(1))))\narr = []\ncurr = head\nwhile curr:\n    arr.append(curr.val)\n    curr = curr.next\nis_palindrome = arr == arr[::-1]\nprint("Is Palindrome:", is_palindrome)`
+  },
+  {
+    id: 'remove-linked-list-elements',
+    title: 'Remove Linked List Elements',
+    category: 'Linked Lists',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(1)',
+    description: 'Removes all nodes from a linked list that have a specific target value.',
+    code: `# Remove Linked List Elements\nclass ListNode:\n    def __init__(self, val=0, next=None):\n        self.val = val\n        self.next = next\nhead = ListNode(1, ListNode(2, ListNode(6, ListNode(3, ListNode(6)))))\ntarget = 6\ndummy = ListNode(0, head)\ncurr = dummy\nwhile curr.next:\n    if curr.next.val == target:\n        curr.next = curr.next.next\n    else:\n        curr = curr.next\nprint("Removed target nodes successfully.")`
+  },
+
+  // --- TREES ---
+  {
+    id: 'path-sum',
+    title: 'Path Sum',
+    category: 'Trees',
+    difficulty: 'Easy',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(h)',
+    description: 'Determines if a tree has a root-to-leaf path adding up to a target sum.',
+    code: `# Path Sum\nclass TreeNode:\n    def __init__(self, val=0, left=None, right=None):\n        self.val = val\n        self.left = left\n        self.right = right\nroot = TreeNode(5, TreeNode(4, TreeNode(11)), TreeNode(8, TreeNode(13), TreeNode(4)))\ntarget_sum = 20\ndef has_path_sum(node, curr_sum):\n    if not node: return False\n    curr_sum += node.val\n    if not node.left and not node.right:\n        return curr_sum == target_sum\n    return has_path_sum(node.left, curr_sum) or has_path_sum(node.right, curr_sum)\nprint("Has Path Sum:", has_path_sum(root, 0))`
+  },
+  {
+    id: 'search-bst',
+    title: 'Search in a BST',
+    category: 'Trees',
+    difficulty: 'Easy',
+    timeComplexity: 'O(h)',
+    spaceComplexity: 'O(1)',
+    description: 'Finds the node in a Binary Search Tree whose value equals a given target.',
+    code: `# Search in a Binary Search Tree\nclass TreeNode:\n    def __init__(self, val=0, left=None, right=None):\n        self.val = val\n        self.left = left\n        self.right = right\nroot = TreeNode(4, TreeNode(2, TreeNode(1), TreeNode(3)), TreeNode(7))\ntarget = 2\ncurr = root\nfound_node = None\nwhile curr:\n    if curr.val == target:\n        found_node = curr\n        break\n    elif curr.val > target:\n        curr = curr.left\n    else:\n        curr = curr.right\nprint("Found Node Val:", found_node.val if found_node else None)`
+  },
+  {
+    id: 'insert-into-bst',
+    title: 'Insert into a BST',
+    category: 'Trees',
+    difficulty: 'Medium',
+    timeComplexity: 'O(h)',
+    spaceComplexity: 'O(1)',
+    description: 'Iteratively inserts a new value into its correct location within a Binary Search Tree.',
+    code: `# Insert into a Binary Search Tree\nclass TreeNode:\n    def __init__(self, val=0, left=None, right=None):\n        self.val = val\n        self.left = left\n        self.right = right\nroot = TreeNode(4, TreeNode(2, TreeNode(1), TreeNode(3)), TreeNode(7))\nval_to_insert = 5\ncurr = root\nwhile True:\n    if val_to_insert < curr.val:\n        if not curr.left:\n            curr.left = TreeNode(val_to_insert)\n            break\n        curr = curr.left\n    else:\n        if not curr.right:\n            curr.right = TreeNode(val_to_insert)\n            break\n        curr = curr.right\nprint("Value inserted.")`
+  },
+
+  // --- GRAPHS & DP ---
+  {
+    id: 'find-the-town-judge',
+    title: 'Find the Town Judge',
+    category: 'Graphs',
+    difficulty: 'Easy',
+    timeComplexity: 'O(V + E)',
+    spaceComplexity: 'O(V)',
+    description: 'Finds the town judge by tracking the indegree and outdegree of trust relationships.',
+    code: `# Find the Town Judge\nn = 3\ntrust = [[1, 3], [2, 3]]\ntrust_scores = {i: 0 for i in range(1, n + 1)}\nfor u, v in trust:\n    trust_scores[u] -= 1\n    trust_scores[v] += 1\njudge = -1\nfor person, score in trust_scores.items():\n    if score == n - 1:\n        judge = person\n        break\nprint("Town Judge:", judge)`
+  },
+  {
+    id: 'house-robber',
+    title: 'House Robber',
+    category: 'Dynamic Programming',
+    difficulty: 'Medium',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(n)',
+    description: 'Determines the maximum amount of money you can rob without triggering adjacent alarms.',
+    code: `# House Robber\nnums = [2, 7, 9, 3, 1]\ndp = [0] * (len(nums) + 1)\ndp[1] = nums[0]\nfor i in range(1, len(nums)):\n    dp[i + 1] = max(dp[i], dp[i - 1] + nums[i])\nprint("Max Money Robbed:", dp[-1])`
   }
 ];

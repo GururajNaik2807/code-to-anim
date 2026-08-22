@@ -392,6 +392,31 @@ export default function Visualizer({
                 </div>
               </div>
             )}
+            {/* 8. HASH SET LAYOUT RENDERER */}
+              {layout.type === 'set' && (
+                <div className="flex flex-col items-center justify-center my-auto p-4 w-full">
+                  <div className={`p-5 rounded-2xl ${metallicBorder} border-dashed flex flex-wrap gap-3 items-center justify-center max-w-lg ${isDark ? 'bg-slate-900/50 border-purple-500/40' : 'bg-purple-50/50 border-purple-300'}`}>
+                    <AnimatePresence>
+                      {layout.data?.map((val, idx) => (
+                        <motion.div
+                          key={`set-${val}-${idx}`}
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.5, opacity: 0 }}
+                          className={`px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold shadow-md ${metallicBorder} ${
+                            isDark ? 'bg-purple-950 text-purple-200 border-purple-500/60' : 'bg-purple-600 text-white'
+                          }`}
+                        >
+                          {val}
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                    {(!layout.data || layout.data.length === 0) && (
+                      <span className={`text-xs font-mono italic ${textSecondary}`}>Empty Set ∅</span>
+                    )}
+                  </div>
+                </div>
+              )}
 
             <div className="grid grid-cols-3 gap-4">
               <div className={`p-4 rounded-2xl ${metallicBorder} ${isDark ? 'bg-slate-950/40' : 'bg-white shadow-sm'}`}>

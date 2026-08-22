@@ -72,8 +72,9 @@ def make_json_safe(val, depth=0):
     except Exception: pass
     return str(val)
 
-def generate_visual_layout(clean_vars: dict) -> dict:
+def generate_visual_layout(clean_vars: dict, raw_vars: dict = None) -> dict:
     candidates = []
+    raw_vars = raw_vars or {}
 
     def is_tree(obj):
         return isinstance(obj, dict) and ('left' in obj or 'right' in obj)
@@ -91,7 +92,16 @@ def generate_visual_layout(clean_vars: dict) -> dict:
         return True
 
     for key, val in clean_vars.items():
-        # 1. TREE SCORING
+        raw_val = raw_vars.get(key)
+
+        # 1. HASH SET SCORING (Distinct from Arrays)
+        if isinstance(raw_val, set):
+            set_items = [str(x) for x in list(raw_val)[:30]]
+            score = 85 + len(set_items) + (15 if key in ['seen', 'visited', 'lookup', 'hashset'] else 0)
+            candidates.append({"type": "set", "key": key, "data": set_items, "score": score})
+            continue
+
+        # 2. TREE SCORING
         root = val if is_tree(val) else (val.get('root') if isinstance(val, dict) and is_tree(val.get('root')) else None)
         if root:
             nodes, edges = [], []
@@ -99,29 +109,22 @@ def generate_visual_layout(clean_vars: dict) -> dict:
                 if not isinstance(node, dict) or len(nodes) > 40: return
                 val_str = str(node.get('val', node.get('data', node.get('value', '?'))))
                 nodes.append({"val": val_str, "x": x, "y": y, "id": path_id})
-                
                 if isinstance(node.get('left'), dict):
                     edges.append({"x1": x, "y1": y, "x2": x - h_spacing, "y2": y + 60})
                     traverse(node['left'], x - h_spacing, y + 60, h_spacing / 1.8, path_id + 'L')
-                
                 if isinstance(node.get('right'), dict):
                     edges.append({"x1": x, "y1": y, "x2": x + h_spacing, "y2": y + 60})
                     traverse(node['right'], x + h_spacing, y + 60, h_spacing / 1.8, path_id + 'R')
             
             traverse(root, 250, 30, 100, 'root')
-            
-            pointers = []
-            for pk, pv in clean_vars.items():
-                if isinstance(pv, dict) and pk not in ['root', 'tree', 'self', key]:
-                    if 'val' in pv or 'data' in pv or 'value' in pv:
-                        ptr_val = str(pv.get('val', pv.get('data', pv.get('value', '?'))))
-                        pointers.append({"key": pk, "target_val": ptr_val})
-            
+            pointers = [{"key": pk, "target_val": str(pv.get('val', pv.get('data', '?')))} 
+                        for pk, pv in clean_vars.items() 
+                        if isinstance(pv, dict) and pk not in ['root', 'tree', 'self', key] and ('val' in pv or 'data' in pv)]
             score = 100 + len(nodes) + (20 if key in ['root', 'tree'] else 0)
             candidates.append({"type": "tree", "key": key, "nodes": nodes, "edges": edges, "pointers": pointers, "score": score})
             continue
 
-        # 2. LINKED LIST SCORING
+        # 3. LINKED LIST SCORING
         head = val if is_ll(val) else (val.get('head') if isinstance(val, dict) and is_ll(val.get('head')) else None)
         if head:
             nodes, curr, safe_count = [], head, 0
@@ -133,45 +136,24 @@ def generate_visual_layout(clean_vars: dict) -> dict:
             candidates.append({"type": "linked_list", "key": key, "nodes": nodes, "score": score})
             continue
 
-        # 3. GRAPH SCORING
-        graph_data = None
-        matrix_data = None
-        if isinstance(val, list) and len(val) > 0 and isinstance(val[0], list):
-            matrix_data = val
-        elif isinstance(val, dict) and isinstance(val.get('matrix'), list) and len(val['matrix']) > 0 and isinstance(val['matrix'][0], list):
-            matrix_data = val['matrix']
-            
+        # 4. GRAPH SCORING
+        matrix_data = val if (isinstance(val, list) and len(val) > 0 and isinstance(val[0], list)) else (val.get('matrix') if isinstance(val, dict) and isinstance(val.get('matrix'), list) else None)
         if matrix_data:
-            nodes = []
-            for i, row in enumerate(matrix_data):
-                neighbors = []
-                if isinstance(row, list):
-                    for j, weight in enumerate(row):
-                        if weight != 0:
-                            neighbors.append(str(j))
-                nodes.append({"id": str(i), "neighbors": neighbors})
+            nodes = [{"id": str(i), "neighbors": [str(j) for j, w in enumerate(row) if w != 0]} for i, row in enumerate(matrix_data) if isinstance(row, list)]
             score = 95 + len(nodes) + (30 if key in ['graph', 'matrix', 'adj_matrix', 'self'] else 0)
             candidates.append({"type": "graph", "key": key, "nodes": nodes, "score": score})
             continue
 
-        if is_graph(val):
-            graph_data = val
-        elif isinstance(val, dict):
-            if is_graph(val.get('graph_dict')): graph_data = val.get('graph_dict')
-            elif is_graph(val.get('graph')): graph_data = val.get('graph')
-            elif is_graph(val.get('adj')): graph_data = val.get('adj')
-
-        if graph_data:
-            nodes = [{"id": str(k), "neighbors": [str(n) for n in v]} for k, v in graph_data.items()]
-            score = 95 + len(nodes) + (30 if key in ['graph', 'adj', 'my_network', 'self', 'graph_dict'] else 0)
+        if is_graph(val) or (isinstance(val, dict) and (is_graph(val.get('graph_dict')) or is_graph(val.get('graph')) or is_graph(val.get('adj')))):
+            g_dict = val if is_graph(val) else (val.get('graph_dict') or val.get('graph') or val.get('adj'))
+            nodes = [{"id": str(k), "neighbors": [str(n) for n in v]} for k, v in g_dict.items()]
+            score = 95 + len(nodes) + (30 if key in ['graph', 'adj', 'self', 'graph_dict'] else 0)
             candidates.append({"type": "graph", "key": key, "nodes": nodes, "score": score})
             continue
 
-        # 4. ARRAY / STACK / QUEUE SCORING
+        # 5. ARRAY / STACK / QUEUE SCORING
         array_data = None
-        is_stack_intent = False
-        is_queue_intent = False
-        
+        is_stack_intent, is_queue_intent = False, False
         if isinstance(val, list):
             array_data = val
             if 'stack' in key.lower(): is_stack_intent = True
@@ -188,16 +170,14 @@ def generate_visual_layout(clean_vars: dict) -> dict:
             arr_data = [str(v) for v in array_data[:40]]
             pointers = [{"key": pk, "index": pv} for pk, pv in clean_vars.items() if isinstance(pv, int) and 0 <= pv < len(array_data)]
             score = 70 + len(arr_data) + (10 * len(pointers)) + (30 if key in ['res', 'arr', 'nums', 'stack', 'queue', 'q', 'self', 's'] else 0)
-            
-            # FIX: Ensure queue intent is mapped to the queue layout, not overridden by array
             layout_type = "stack" if is_stack_intent else ("queue" if is_queue_intent else "array")
             candidates.append({"type": layout_type, "key": key, "data": arr_data, "pointers": pointers, "score": score})
             continue
 
-        # 5. HASH MAP / DICT SCORING
+        # 6. HASH MAP / DICT SCORING
         if isinstance(val, dict) and len(val) > 0:
             entries = [{"key": str(k), "val": str(v)} for i, (k, v) in enumerate(val.items()) if i < 25]
-            score = 60 + len(entries) + (15 if key in ['seen', 'visited', 'memo', 'freq', 'hashmap'] else 0)
+            score = 65 + len(entries) + (20 if key in ['seen', 'visited', 'memo', 'freq', 'hashmap', 'prevmap'] else 0)
             candidates.append({"type": "dict", "key": key, "entries": entries, "score": score})
 
     if candidates:
@@ -206,7 +186,6 @@ def generate_visual_layout(clean_vars: dict) -> dict:
         return best_candidate
 
     return {"type": "none"}
-
 def run_trace_worker(code_string):
     steps = []
     step_counter = 0
@@ -243,12 +222,16 @@ def run_trace_worker(code_string):
 
         if event == 'line':
             clean_vars = {}
+            raw_vars = {}
             for k, v in frame.f_locals.items():
                 if not k.startswith('__') and k not in ['sys', 'time', '_execute_stash'] and not callable(v) and k not in stashed_vars:
+                    raw_vars[k] = v
                     try:
                         clean_vars[k] = make_json_safe(v)
                     except Exception:
                         pass
+
+            layout_blueprint = generate_visual_layout(clean_vars, raw_vars)
 
             layout_blueprint = generate_visual_layout(clean_vars)
             

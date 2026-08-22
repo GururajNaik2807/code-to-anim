@@ -6,22 +6,19 @@ import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import TutorialModal from './TutorialModal'; 
 import TooltipTour from './TooltipTour'; 
+import FeedbackWidget from './FeedbackWidget'; 
 
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import WorkspacePage from './WorkspacePage';
 
 // --- OPTIMIZATION: Ambient Neon Wave Background for Low-End Devices ---
-// --- Premium Ambient Wave Background (High Contrast) ---
 const AmbientBackground = memo(({ isDark }) => {
-  // High opacity in dark mode so the colors pop against the new black background
-  const indigoOpacity = isDark ? "0.25" : "0.12";
-  const purpleOpacity = isDark ? "0.25" : "0.12";
+  const indigoOpacity = isDark ? "0.08" : "0.12";
+  const purpleOpacity = isDark ? "0.08" : "0.12";
   const tealOpacity = isDark ? "0.15" : "0.08";
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      
-      {/* Deep Indigo Wave */}
       <motion.div
         className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full"
         style={{ 
@@ -29,15 +26,9 @@ const AmbientBackground = memo(({ isDark }) => {
           filter: "blur(120px)", 
           willChange: "transform" 
         }}
-        animate={{
-          x: [0, 60, 0],
-          y: [0, 40, 0],
-          scale: [1, 1.2, 1],
-        }}
+        animate={{ x: [0, 60, 0], y: [0, 40, 0], scale: [1, 1.2, 1] }}
         transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
       />
-      
-      {/* Soft Purple Wave */}
       <motion.div
         className="absolute top-[20%] right-[-10%] w-[50vw] h-[50vw] rounded-full"
         style={{ 
@@ -45,15 +36,9 @@ const AmbientBackground = memo(({ isDark }) => {
           filter: "blur(130px)", 
           willChange: "transform" 
         }}
-        animate={{
-          x: [0, -50, 0],
-          y: [0, 70, 0],
-          scale: [1, 1.3, 1],
-        }}
+        animate={{ x: [0, -50, 0], y: [0, 70, 0], scale: [1, 1.3, 1] }}
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
       />
-      
-      {/* Subtle Teal Wave */}
       <motion.div
         className="absolute bottom-[-20%] left-[20%] w-[70vw] h-[70vw] rounded-full"
         style={{ 
@@ -61,17 +46,12 @@ const AmbientBackground = memo(({ isDark }) => {
           filter: "blur(140px)", 
           willChange: "transform" 
         }}
-        animate={{
-          x: [0, 40, 0],
-          y: [0, -60, 0],
-          scale: [1, 1.1, 1],
-        }}
+        animate={{ x: [0, 40, 0], y: [0, -60, 0], scale: [1, 1.1, 1] }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
       />
     </div>
   );
 });
-
 
 // --- Level System Definitions ---
 const HONORS = [
@@ -391,7 +371,8 @@ export default function ProfilePage() {
 
   const recentAlgo = progressData.find(algo => algo.progress_percent < 100) || null;
 
-  const bgMain = isDark ? 'bg-black' : 'bg-[#F4F6F8]';  const bgPanel = isDark ? 'bg-[#10141D]' : 'bg-[#FFFFFF]';
+  const bgMain = isDark ? 'bg-black' : 'bg-[#F4F6F8]';  
+  const bgPanel = isDark ? 'bg-[#05070A]' : 'bg-[#FFFFFF]';
   const textPrimary = isDark ? 'text-slate-100' : 'text-slate-800';
   const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
   
@@ -446,11 +427,11 @@ export default function ProfilePage() {
   const navLinks = [
     { section: 'WORKSPACE', links: [{ name: 'Workspace', action: () => handleNavClick('workspace'), icon: '⚡', isActive: currentView === 'workspace' }] },
     { section: 'LEARNING', links: [
-      { name: 'Learning Path', path: '#', icon: '🎓', tag: 'Building', tagColor: isDark ? 'bg-amber-900/40 text-amber-400 border-amber-500/30' : 'bg-amber-100 text-amber-700 border-amber-300' }, 
       { name: 'Algorithm Library', action: () => handleNavClick('library'), icon: '📚', isActive: currentView === 'library' }
     ] },
     { section: 'COMMUNITY', links: [
       { name: 'Leaderboard', action: () => handleNavClick('leaderboard'), icon: '🏆', isActive: currentView === 'leaderboard' },
+      { name: 'Give Feedback', action: () => handleNavClick('feedback'), icon: '💬', isActive: currentView === 'feedback' }
     ] }
   ];
 
@@ -491,97 +472,40 @@ export default function ProfilePage() {
     <div className={`flex h-screen w-screen font-sans ${bgMain} ${textPrimary} overflow-hidden relative`}>
       
       {/* Dynamic Background */}
-      <AmbientBackground />
+      <AmbientBackground isDark={isDark} />
 
-      {/* MOBILE-ONLY CSS OVERRIDES */}
+      {/* --- NEW: CUSTOM MARQUEE ANIMATION --- */}
       <style>{`
+        @keyframes scroll-left {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-100%); }
+        }
+        .animate-scroll-left {
+          animation: scroll-left 30s linear infinite;
+        }
+        .animate-scroll-left:hover {
+          animation-play-state: paused;
+        }
+        
+        /* MOBILE OVERRIDES */
         @media (max-width: 768px) {
-          .sidebar-container {
-            position: absolute !important;
-            height: 100% !important;
-            z-index: 50 !important;
-            box-shadow: 5px 0 20px rgba(0,0,0,0.5) !important;
-          }
-          .mobile-header {
-            height: auto !important;
-            flex-direction: row !important;
-            padding: 10px 16px !important;
-            gap: 10px !important;
-            align-items: center !important;
-          }
-          .mobile-header > div:first-child {
-            flex: 1 !important;
-            width: auto !important;
-          }
-          .mobile-header input {
-            width: 100% !important;
-          }
-          .profile-card {
-            flex-direction: column !important;
-            text-align: center !important;
-            padding: 20px 16px !important;
-            gap: 16px !important;
-          }
-          .profile-user-info {
-            flex-direction: column !important;
-            align-items: center !important;
-            text-align: center !important;
-            width: 100% !important;
-            gap: 12px !important;
-          }
-          .profile-card-stats {
-            width: 100% !important;
-            margin-top: 4px !important;
-            align-items: center !important;
-          }
-          .profile-badges-row {
-            justify-content: center !important;
-            flex-wrap: wrap !important;
-            gap: 6px !important;
-          }
-          .profile-edit-actions {
-            width: 100% !important;
-            justify-content: center !important;
-            gap: 8px !important;
-          }
-          .profile-edit-actions button {
-            flex: 1 !important;
-            min-width: 0 !important;
-            padding-left: 8px !important;
-            padding-right: 8px !important;
-            font-size: 13px !important;
-          }
-          .quick-stats-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 10px !important;
-          }
-          .dashboard-panels-grid,
-          .dashboard-bottom-grid {
-            grid-template-columns: minmax(0, 1fr) !important;
-            gap: 16px !important;
-          }
-          .podium-container {
-            flex-direction: column !important;
-            gap: 20px !important;
-            align-items: center !important;
-            padding-bottom: 24px !important;
-          }
-          .podium-card {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin-top: 0 !important;
-            transform: none !important;
-          }
-          .library-filters {
-            flex-direction: column !important;
-            gap: 12px !important;
-          }
-          .library-filters > div {
-            width: 100% !important;
-          }
-          .library-filters button {
-            flex: 1 1 40% !important;
-          }
+          .sidebar-container { position: absolute !important; height: 100% !important; z-index: 50 !important; box-shadow: 5px 0 20px rgba(0,0,0,0.5) !important; }
+          .mobile-header { height: auto !important; flex-direction: row !important; padding: 10px 16px !important; gap: 10px !important; align-items: center !important; }
+          .mobile-header > div:first-child { flex: 1 !important; width: auto !important; }
+          .mobile-header input { width: 100% !important; }
+          .profile-card { flex-direction: column !important; text-align: center !important; padding: 20px 16px !important; gap: 16px !important; }
+          .profile-user-info { flex-direction: column !important; align-items: center !important; text-align: center !important; width: 100% !important; gap: 12px !important; }
+          .profile-card-stats { width: 100% !important; margin-top: 4px !important; align-items: center !important; }
+          .profile-badges-row { justify-content: center !important; flex-wrap: wrap !important; gap: 6px !important; }
+          .profile-edit-actions { width: 100% !important; justify-content: center !important; gap: 8px !important; }
+          .profile-edit-actions button { flex: 1 !important; min-width: 0 !important; padding-left: 8px !important; padding-right: 8px !important; font-size: 13px !important; }
+          .quick-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+          .dashboard-panels-grid, .dashboard-bottom-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 16px !important; }
+          .podium-container { flex-direction: column !important; gap: 20px !important; align-items: center !important; padding-bottom: 24px !important; }
+          .podium-card { width: 100% !important; max-width: 100% !important; margin-top: 0 !important; transform: none !important; }
+          .library-filters { flex-direction: column !important; gap: 12px !important; }
+          .library-filters > div { width: 100% !important; }
+          .library-filters button { flex: 1 1 40% !important; }
         }
       `}</style>
 
@@ -682,7 +606,7 @@ export default function ProfilePage() {
               </svg>
             </button>
 
-            {/* --- NEW: INTERACTIVE HEADER SEARCH BAR & DROPDOWN PANEL --- */}
+            {/* --- INTERACTIVE HEADER SEARCH BAR & DROPDOWN PANEL --- */}
             <div ref={headerSearchRef} className="relative z-50">
               <div className={`flex items-center w-80 lg:w-96 ${metallicBorder} rounded-xl px-3 py-1.5 transition-shadow focus-within:ring-2 focus-within:ring-indigo-500/30 ${isDark ? 'bg-[#0A0D14]' : 'bg-slate-50'}`}>
                 <span className="text-slate-400 text-sm">🔍</span>
@@ -773,6 +697,22 @@ export default function ProfilePage() {
           {/* ===================== */}
           {currentView === 'dashboard' && (
             <div className="max-w-7xl mx-auto space-y-6">
+
+              {/* --- DEVELOPMENT MARQUEE BANNER --- */}
+              <div className={`w-full overflow-hidden rounded-2xl ${metallicBorder} ${isDark ? 'bg-indigo-900/20 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200'} shadow-sm flex items-center group`}>
+                <div className="whitespace-nowrap inline-block pl-[100%] animate-scroll-left py-3">
+                  <span className={`text-xs md:text-sm font-bold ${isDark ? 'text-indigo-300' : 'text-indigo-700'} flex items-center gap-2`}>
+                    <img src="/favicon.svg" alt="Logo" className="w-4 h-4 object-contain" /> 
+                    We are actively building <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 tracking-tight text-sm md:text-base">
+                      CodeToAnim
+                    </span> for visual learners and developers. Your suggestions directly shape our next updates. — 
+                    <button onClick={() => handleNavClick('feedback')} className="underline decoration-2 underline-offset-2 hover:text-indigo-500 transition-colors cursor-pointer mx-1">
+                      Give Feedback
+                    </button> 
+                    to share your thoughts and help shape the platform! 💡
+                  </span>
+                </div>
+              </div>
               
               {/* Profile Hero Card */}
               <div className={`profile-card ${bgPanel}/90 backdrop-blur-md ${metallicBorder} rounded-3xl p-8 flex flex-col md:flex-row justify-between items-center shadow-sm relative overflow-hidden`}>
@@ -1029,8 +969,29 @@ export default function ProfilePage() {
                       <div className={`w-10 h-10 rounded-xl ${metallicBorder} ${isDark ? 'bg-slate-800' : 'bg-slate-100'} flex items-center justify-center text-xs font-black ${textSecondary} shadow-inner`}>+8</div>
                     </div>
                   </div>
+                  
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ======================= */}
+          {/*    FEEDBACK VIEW        */}
+          {/* ======================= */}
+          {currentView === 'feedback' && (
+            <div className="max-w-3xl mx-auto py-10 space-y-8">
+              <div className="text-center space-y-3 mb-10 mt-4">
+                <h1 className="text-4xl font-black tracking-tight">We'd Love Your Feedback!</h1>
+                <p className={`text-sm font-medium ${textSecondary}`}>Help us improve CodeToAnim by sharing your thoughts.</p>
+              </div>
+
+              <FeedbackWidget 
+                user={user} 
+                isDark={isDark} 
+                metallicBorder={metallicBorder} 
+                textSecondary={textSecondary} 
+                bgPanel={bgPanel} 
+              />
             </div>
           )}
 
@@ -1305,23 +1266,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* --- 3. NEW TUTORIAL MODAL ADDED HERE --- */}
-      {/* <TutorialModal 
-        isOpen={showTutorial} 
-        onClose={() => {
-          setShowTutorial(false);
-          // UNCOMMENT THIS WHEN FINALIZED:
-          // localStorage.setItem('tutorialCompleted', 'true');
-        }} 
-      /> */}
-      {/* --- TOUR TOOLTIP POPUP ---
-      <TooltipTour 
-        isOpen={showTutorial} 
-        onClose={() => {
-          setShowTutorial(false);
-          // localStorage.setItem('tooltipTourCompleted', 'true');
-        }} 
-      /> */}
+      {/* --- TUTORIAL/TOOLTIP COMPONENT REFERENCES OMITTED FOR BREVITY --- */}
     </div>
   );
 }
