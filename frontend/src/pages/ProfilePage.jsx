@@ -108,6 +108,7 @@ export default function ProfilePage() {
   const [headerSearchTerm, setHeaderSearchTerm] = useState('');
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const headerSearchRef = useRef(null);
+  const mainRef = useRef(null); // <-- Added Ref for Scroll Position
 
   const [loading, setLoading] = useState(!hasLoadedBefore);
   const [searchQuery, setSearchQuery] = useState('');
@@ -389,6 +390,27 @@ export default function ProfilePage() {
     [&::-webkit-scrollbar-thumb]:rounded-full 
     ${isDark ? '[&::-webkit-scrollbar-thumb]:bg-slate-800 hover:[&::-webkit-scrollbar-thumb]:bg-slate-700' : '[&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400'}
   `;
+
+  // --- ADDED: Scroll tracking logic for library ---
+  const handleScroll = (e) => {
+    if (currentView === 'library') {
+      sessionStorage.setItem('library_scroll_pos', e.target.scrollTop);
+    }
+  };
+
+  useEffect(() => {
+    if (currentView === 'library' && mainRef.current) {
+      const savedScroll = sessionStorage.getItem('library_scroll_pos');
+      if (savedScroll) {
+        setTimeout(() => {
+          if (mainRef.current) {
+            mainRef.current.scrollTop = parseInt(savedScroll, 10);
+          }
+        }, 50);
+      }
+    }
+  }, [currentView]);
+  // ------------------------------------------------
 
   if (loading) {
     return (
@@ -690,7 +712,11 @@ export default function ProfilePage() {
         </header>
 
         {/* Dynamic Main Container Area */}
-        <main className={`flex-1 ${currentView === 'workspace' ? 'overflow-hidden flex flex-col' : `overflow-y-auto p-4 md:p-8 ${scrollbarStyles}`}`}>
+        <main 
+          ref={mainRef}
+          onScroll={handleScroll}
+          className={`flex-1 ${currentView === 'workspace' ? 'overflow-hidden flex flex-col' : `overflow-y-auto p-4 md:p-8 ${scrollbarStyles}`}`}
+        >
           
           {/* ===================== */}
           {/*    DASHBOARD VIEW     */}

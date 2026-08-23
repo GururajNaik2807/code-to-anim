@@ -7,7 +7,7 @@ import { HelmetProvider } from 'react-helmet-async';
 
 import LandingPage from './pages/LandingPage';
 import WorkspacePage from './pages/WorkspacePage';
-import LearnPage from './pages/LearnPage';
+import AlgorithmLibrary from './pages/AlgorithmLibrary'; // <-- Added this import
 import LearnHub from './pages/LearnHub';
 import LessonPage from './pages/LessonPage';
 import ProfilePage from './pages/ProfilePage';
@@ -52,7 +52,7 @@ function NotFoundPage() {
 
 export default function App() {
   const [session, setSession] = useState(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true); // <-- Added loading state[cite: 4]
+  const [isAuthLoading, setIsAuthLoading] = useState(true); 
   
   // OPTIMIZATION: Ref guard to prevent double-firing in Strict Mode
   const streakUpdatedRef = useRef(null);
@@ -78,8 +78,8 @@ export default function App() {
     // 1. Initial Session Check
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      triggerDailyStreak(session?.user?.id); // Guard protects against double fetch
-      setIsAuthLoading(false); // <-- Mark loading as complete[cite: 4]
+      triggerDailyStreak(session?.user?.id); 
+      setIsAuthLoading(false); 
     });
 
     // 2. Auth State Listener (Catches logins and logouts)
@@ -87,9 +87,9 @@ export default function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      setIsAuthLoading(false); // <-- Mark loading as complete on change[cite: 4]
+      setIsAuthLoading(false); 
       if (_event === 'SIGNED_IN') {
-        triggerDailyStreak(session?.user?.id); // Guard protects against double fetch
+        triggerDailyStreak(session?.user?.id); 
       }
     });
 
@@ -114,7 +114,10 @@ export default function App() {
             <Route path="/workspace" element={<WorkspacePage />} />
             
             <Route path="/learn" element={<LearnHub />} />
-            <Route path="/algorithms" element={<LearnPage />} />
+            
+            {/* <-- Updated this route to point to the new component --> */}
+            <Route path="/algorithms" element={<AlgorithmLibrary />} />
+            
             <Route path="/learn/:category/:topic" element={<LessonPage />} />
             <Route path="/p/:userId" element={<PublicProfileCard />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
@@ -135,7 +138,7 @@ export default function App() {
                   <Navigate to="/" />
                 )
               } 
-            /> {/* <-- Updated conditional rendering[cite: 4] */}
+            /> 
             
             <Route path="/community" element={<CommunityPage />} />
             <Route path="*" element={<NotFoundPage />} />

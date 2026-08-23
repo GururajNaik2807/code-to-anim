@@ -488,7 +488,10 @@ print("Final Sorted Array:", arr)`;
                   ← Back to Lesson
                 </Link>
               ) : !isEmbedded ? (
-                <Link to="/algorithms" className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold hover:border-purple-600 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}>
+                <Link 
+                  to="/algorithms" 
+                  className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold hover:border-purple-600 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}
+                >
                   📚 Algorithm Library
                 </Link>
               ) : null}
