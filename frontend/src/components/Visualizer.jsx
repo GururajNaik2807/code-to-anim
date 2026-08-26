@@ -33,10 +33,12 @@ export default function Visualizer({
   
   const callStack = currentStep?.call_stack || [{ name: 'module', file: 'main.py', line: currentStep?.line || 1 }];
 
-  const bgPanel = isDark ? 'bg-[#10141D]' : 'bg-[#FFFFFF]';
-  const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
-  
-  const metallicBorder = 'border border-slate-900 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_2px_5px_rgba(0,0,0,0.25)]';
+  // --- Updated Theme Colors ---
+  const bgPanel = isDark ? 'bg-[#10141D]' : 'bg-[#EFE8DE]';
+  const bgContent = isDark ? 'bg-slate-950/60' : 'bg-[#F5EBE1]';
+  const textSecondary = isDark ? 'text-slate-400' : 'text-[#765A51]';
+  const textPrimary = isDark ? 'text-slate-200' : 'text-[#3E2723]';
+  const metallicBorder = isDark ? 'border-slate-800' : 'border-[#D7CCC8]';
 
   const variableEntries = Object.entries(variables).filter(([_, val]) => {
       if (typeof val === 'string') return !(val.startsWith("<class") || val.startsWith("<function") || val.startsWith("<method") || val.startsWith("<module"));
@@ -47,7 +49,7 @@ export default function Visualizer({
     <div className={`w-full h-full flex flex-col ${bgPanel}`}>
       
       {/* Canvas Tab Header */}
-      <div className={`h-10 ${metallicBorder} border-x-0 border-t-0 flex items-center justify-between px-4 text-xs font-bold ${isDark ? 'bg-[#0E121B]' : 'bg-slate-100'}`}>
+      <div className={`h-10 border-b ${metallicBorder} flex items-center justify-between px-4 text-xs font-bold`}>
         <div className="flex gap-6 h-full pt-1">
           {['VISUALIZATION', 'VARIABLES', 'CALL STACK', 'BREAKPOINTS'].map((tab) => (
             <button
@@ -55,8 +57,8 @@ export default function Visualizer({
               onClick={() => setActiveTab(tab)}
               className={`pb-1 border-b-[3px] transition-colors ${
                 activeTab === tab 
-                  ? 'border-purple-600 text-purple-600 font-extrabold' 
-                  : `border-transparent ${textSecondary} hover:text-slate-900 dark:hover:text-slate-200`
+                  ? (isDark ? 'border-purple-600 text-purple-600 font-extrabold' : 'border-[#8C5A48] text-[#8C5A48] font-extrabold')
+                  : `border-transparent ${textSecondary} hover:text-[#3E2723] dark:hover:text-slate-200`
               }`}
             >
               {tab}
@@ -68,7 +70,7 @@ export default function Visualizer({
       {/* Main Canvas Content */}
       <div className="flex-1 flex flex-col p-6 overflow-auto gap-6">
         {errorMessage && (
-          <div className={`p-3 rounded-lg text-xs font-mono shadow-md ${metallicBorder} ${isDark ? 'bg-red-950/80 text-red-300' : 'bg-red-100 text-red-700'}`}>
+          <div className={`p-3 rounded-lg text-xs font-mono shadow-md border ${metallicBorder} ${isDark ? 'bg-red-950/80 text-red-300' : 'bg-red-100 text-red-700'}`}>
             ⚠️ {errorMessage}
           </div>
         )}
@@ -77,11 +79,11 @@ export default function Visualizer({
         {activeTab === 'VISUALIZATION' && (
           <>
             {/* CONTAINER REF ATTACHED HERE */}
-            <div ref={containerRef} className={`flex-1 p-4 sm:p-6 rounded-2xl ${metallicBorder} flex flex-col items-center justify-center min-h-[280px] relative overflow-hidden ${isDark ? 'bg-slate-950/60 shadow-inner' : 'bg-slate-50 shadow-sm'}`}>
+            <div ref={containerRef} className={`flex-1 p-4 sm:p-6 rounded-2xl border ${metallicBorder} flex flex-col items-center justify-center min-h-[280px] relative overflow-hidden ${bgContent} shadow-inner`}>
               
               {/* Header pinned to absolute top so it doesn't offset calculations */}
               <div className="absolute top-4 left-4 right-4 flex justify-between items-center text-[10px] sm:text-xs font-mono font-bold z-10">
-                <span className="text-purple-600 uppercase tracking-wider">{layout.type !== 'none' ? `${layout.type}: ${layout.key || ''}` : 'Canvas'}</span>
+                <span className={`uppercase tracking-wider ${isDark ? 'text-purple-600' : 'text-[#8C5A48]'}`}>{layout.type !== 'none' ? `${layout.type}: ${layout.key || ''}` : 'Canvas'}</span>
                 <span className={textSecondary}>STEP {steps.length > 0 ? currentStepIndex + 1 : 0} / {steps.length}</span>
               </div>
 
@@ -95,15 +97,15 @@ export default function Visualizer({
                         <motion.div key={`arr-${idx}`} layout className="flex flex-col items-center">
                           <div className="h-6 flex flex-col items-center justify-end mb-1">
                             {pointingKeys.length > 0 && (
-                              <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md ${metallicBorder} ${isDark ? 'bg-purple-600 text-white' : 'bg-purple-200 text-purple-900'}`}>
+                              <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md border ${metallicBorder} ${isDark ? 'bg-purple-600 text-white' : 'bg-[#8C5A48] text-white'}`}>
                                 {pointingKeys.join(', ')}
                               </span>
                             )}
                           </div>
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold font-mono ${metallicBorder} transition-all ${
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold font-mono border ${metallicBorder} transition-all ${
                             pointingKeys.length > 0 
-                              ? (isDark ? 'bg-purple-950/80 text-white shadow-purple-900/50' : 'bg-purple-100 text-purple-950 shadow-md')
-                              : (isDark ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-900 shadow-sm')
+                              ? (isDark ? 'bg-purple-950/80 text-white shadow-purple-900/50' : 'bg-[#8C5A48] text-white shadow-md')
+                              : (isDark ? 'bg-slate-900 text-slate-200' : 'bg-white text-[#3E2723] shadow-sm')
                           }`}>
                             {val}
                           </div>
@@ -139,7 +141,7 @@ export default function Visualizer({
                             key={`edge-${idx}`} 
                             x1={edge.x1} y1={edge.y1} 
                             x2={edge.x2} y2={edge.y2} 
-                            stroke={isDark ? '#6366f1' : '#818cf8'} 
+                            stroke={isDark ? '#6366f1' : '#8C5A48'} 
                             strokeWidth="2" 
                           />
                         ))}
@@ -157,8 +159,8 @@ export default function Visualizer({
                             <div className={`
                               flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 transition-all duration-300 text-xs sm:text-sm
                               ${isTargeted 
-                                ? 'bg-purple-900 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.7)] text-white scale-110 z-10' 
-                                : isDark ? 'bg-slate-800 border-slate-600 text-slate-300' : 'bg-white border-slate-300 text-slate-700'
+                                ? (isDark ? 'bg-purple-900 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.7)] text-white scale-110 z-10' : 'bg-[#8C5A48] border-[#765A51] shadow-lg text-white scale-110 z-10')
+                                : isDark ? 'bg-slate-800 border-slate-600 text-slate-300' : 'bg-white border-[#D7CCC8] text-[#3E2723]'
                               }
                             `}>
                               {node.val}
@@ -167,7 +169,7 @@ export default function Visualizer({
                             {isTargeted && (
                               <div className="absolute top-12 sm:top-14 left-1/2 -translate-x-1/2 flex flex-col gap-1 items-center z-20">
                                 {activePointers.map((ptr, i) => (
-                                  <span key={i} className="px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[10px] font-bold text-purple-900 bg-purple-300 rounded-md shadow-sm">
+                                  <span key={i} className={`px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[10px] font-bold rounded-md shadow-sm ${isDark ? 'text-purple-900 bg-purple-300' : 'bg-[#EFE8DE] text-[#8C5A48] border border-[#D7CCC8]'}`}>
                                     {ptr.key}
                                   </span>
                                 ))}
@@ -186,13 +188,13 @@ export default function Visualizer({
                 <div className="flex items-center gap-4 overflow-x-auto p-6 my-auto max-w-full">
                   {layout.nodes?.map((node, idx) => (
                     <div key={`ll-${idx}`} className="flex items-center gap-4 flex-shrink-0">
-                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-base shadow-md font-mono ${metallicBorder} ${
-                        isDark ? 'bg-indigo-950 text-indigo-200 border-indigo-500' : 'bg-indigo-600 text-white border-indigo-400'
+                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-base shadow-md font-mono border ${metallicBorder} ${
+                        isDark ? 'bg-indigo-950 text-indigo-200 border-indigo-500' : 'bg-[#8C5A48] text-white'
                       }`}>
                         {node.val}
                       </div>
                       {idx < layout.nodes.length - 1 && (
-                        <span className="text-purple-500 font-bold text-xl">→</span>
+                        <span className={`font-bold text-xl ${isDark ? 'text-purple-500' : 'text-[#8C5A48]'}`}>→</span>
                       )}
                     </div>
                   ))}
@@ -203,8 +205,8 @@ export default function Visualizer({
               {layout.type === 'dict' && (
                 <div className="flex flex-wrap gap-2 items-center justify-center py-4 my-auto">
                   {layout.entries?.map((entry, idx) => (
-                    <div key={`dict-${idx}`} className={`px-3 py-2 rounded-xl flex items-center gap-2 font-mono text-xs ${metallicBorder} ${isDark ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-800'}`}>
-                      <span className="text-purple-400 font-bold">{entry.key}:</span>
+                    <div key={`dict-${idx}`} className={`px-3 py-2 rounded-xl flex items-center gap-2 font-mono text-xs border ${metallicBorder} ${isDark ? 'bg-slate-900 text-slate-200' : 'bg-white text-slate-800'}`}>
+                      <span className={`font-bold ${isDark ? 'text-purple-400' : 'text-[#8C5A48]'}`}>{entry.key}:</span>
                       <span>{entry.val}</span>
                     </div>
                   ))}
@@ -250,7 +252,7 @@ export default function Visualizer({
                                 key={`edge-${node.id}-${neighborId}`}
                                 x1={node.x} y1={node.y}
                                 x2={targetNode.x} y2={targetNode.y}
-                                stroke={isDark ? '#6366f1' : '#818cf8'}
+                                stroke={isDark ? '#6366f1' : '#8C5A48'}
                                 strokeWidth="2"
                                 opacity="0.6"
                               />
@@ -264,17 +266,17 @@ export default function Visualizer({
                         const isVisited = Array.isArray(variables.visited) && variables.visited.includes(node.id);
                         const inQueue = Array.isArray(variables.queue) && variables.queue.includes(node.id);
 
-                        let bgColor = isDark ? "bg-purple-900 border-purple-500" : "bg-purple-600 border-purple-400";
+                        let bgColor = isDark ? "bg-purple-900 border-purple-500" : "bg-[#8C5A48] border-[#765A51]";
                         let extraStyles = "";
 
                         if (isCurrent) {
-                          bgColor = "bg-amber-500 border-amber-300";
+                          bgColor = isDark ? "bg-amber-500 border-amber-300" : "bg-amber-600 border-amber-500";
                           extraStyles = "ring-4 ring-amber-500/50 scale-110 z-10";
                         } else if (isVisited) {
-                          bgColor = "bg-emerald-600 border-emerald-400";
+                          bgColor = isDark ? "bg-emerald-600 border-emerald-400" : "bg-emerald-600 border-emerald-500";
                           extraStyles = "opacity-90";
                         } else if (inQueue) {
-                          bgColor = "bg-blue-500 border-blue-400";
+                          bgColor = isDark ? "bg-blue-500 border-blue-400" : "bg-blue-600 border-blue-500";
                           extraStyles = "ring-2 ring-blue-400 border-dashed";
                         }
 
@@ -319,17 +321,17 @@ export default function Visualizer({
                             exit={{ opacity: 0, scale: 0.8 }}
                             className="relative flex justify-center w-full"
                           >
-                            <div className={`w-32 h-12 rounded-xl flex items-center justify-center text-sm font-bold font-mono shadow-md border-b-4 shrink-0 ${metallicBorder} transition-all ${
+                            <div className={`w-32 h-12 rounded-xl flex items-center justify-center text-sm font-bold font-mono shadow-md border-b-4 shrink-0 border ${metallicBorder} transition-all ${
                               idx === layout.data.length - 1 
-                                ? (isDark ? 'bg-purple-600 border-purple-800 text-white' : 'bg-purple-500 border-purple-700 text-white') 
-                                : (isDark ? 'bg-slate-800 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-900')
+                                ? (isDark ? 'bg-purple-600 border-purple-800 text-white' : 'bg-[#8C5A48] border-[#765A51] text-white') 
+                                : (isDark ? 'bg-slate-800 border-slate-900 text-slate-200' : 'bg-white border-[#D7CCC8] text-[#3E2723]')
                             }`}>
                               {val}
                             </div>
                             
                             {pointingKeys.length > 0 && (
                               <div className="absolute left-[calc(50%+4.5rem)] top-1/2 -translate-y-1/2 flex items-center z-10">
-                                <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md whitespace-nowrap ${metallicBorder} ${isDark ? 'bg-amber-600 text-white' : 'bg-amber-200 text-amber-900'}`}>
+                                <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md whitespace-nowrap border ${metallicBorder} ${isDark ? 'bg-amber-600 text-white' : 'bg-[#EFE8DE] text-[#8C5A48]'}`}>
                                   ← {pointingKeys.join(', ')}
                                 </span>
                               </div>
@@ -351,7 +353,7 @@ export default function Visualizer({
             {layout.type === 'queue' && (
               <div className="relative w-full flex justify-center mb-auto min-h-[160px]">
                 <div className="relative w-[90%] max-w-2xl h-24 flex items-center px-4">
-                  <div className={`absolute inset-0 w-full h-full border-t-4 border-b-4 pointer-events-none rounded-sm ${isDark ? 'border-slate-600' : 'border-slate-400'}`}></div>
+                  <div className={`absolute inset-0 w-full h-full border-t-4 border-b-4 pointer-events-none rounded-sm ${isDark ? 'border-slate-600' : 'border-[#D7CCC8]'}`}></div>
                   <div className="relative w-full h-full flex items-center gap-4 overflow-x-auto no-scrollbar z-10 px-2 py-4">
                     <AnimatePresence mode="popLayout">
                       {layout.data.map((val, idx) => {
@@ -367,16 +369,16 @@ export default function Visualizer({
                           >
                             {pointingKeys.length > 0 && (
                               <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center justify-center whitespace-nowrap z-20">
-                                <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md ${metallicBorder} ${isDark ? 'bg-amber-600 text-white' : 'bg-amber-200 text-amber-900'}`}>
+                                <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md border ${metallicBorder} ${isDark ? 'bg-amber-600 text-white' : 'bg-[#EFE8DE] text-[#8C5A48]'}`}>
                                   ↓ {pointingKeys.join(', ')}
                                 </span>
                               </div>
                             )}
 
-                            <div className={`w-full h-full rounded-xl flex items-center justify-center text-sm font-bold font-mono shadow-md border-b-4 ${metallicBorder} transition-all ${
+                            <div className={`w-full h-full rounded-xl flex items-center justify-center text-sm font-bold font-mono shadow-md border-b-4 border ${metallicBorder} transition-all ${
                               idx === 0 
-                                ? (isDark ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-emerald-500 border-emerald-700 text-white') 
-                                : (isDark ? 'bg-slate-800 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-900')
+                                ? (isDark ? 'bg-emerald-600 border-emerald-800 text-white' : 'bg-[#8C5A48] border-[#765A51] text-white') 
+                                : (isDark ? 'bg-slate-800 border-slate-900 text-slate-200' : 'bg-white border-[#D7CCC8] text-[#3E2723]')
                             }`}>
                               {val}
                             </div>
@@ -392,10 +394,11 @@ export default function Visualizer({
                 </div>
               </div>
             )}
+            
             {/* 8. HASH SET LAYOUT RENDERER */}
               {layout.type === 'set' && (
                 <div className="flex flex-col items-center justify-center my-auto p-4 w-full">
-                  <div className={`p-5 rounded-2xl ${metallicBorder} border-dashed flex flex-wrap gap-3 items-center justify-center max-w-lg ${isDark ? 'bg-slate-900/50 border-purple-500/40' : 'bg-purple-50/50 border-purple-300'}`}>
+                  <div className={`p-5 rounded-2xl border ${metallicBorder} border-dashed flex flex-wrap gap-3 items-center justify-center max-w-lg ${isDark ? 'bg-slate-900/50 border-purple-500/40' : 'bg-[#8C5A48]/5 border-[#8C5A48]/30'}`}>
                     <AnimatePresence>
                       {layout.data?.map((val, idx) => (
                         <motion.div
@@ -403,8 +406,8 @@ export default function Visualizer({
                           initial={{ scale: 0.5, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           exit={{ scale: 0.5, opacity: 0 }}
-                          className={`px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold shadow-md ${metallicBorder} ${
-                            isDark ? 'bg-purple-950 text-purple-200 border-purple-500/60' : 'bg-purple-600 text-white'
+                          className={`px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold shadow-md border ${metallicBorder} ${
+                            isDark ? 'bg-purple-950 text-purple-200 border-purple-500/60' : 'bg-[#8C5A48] text-white'
                           }`}
                         >
                           {val}
@@ -418,34 +421,35 @@ export default function Visualizer({
                 </div>
               )}
 
+            {/* Bottom 3 Mini Panels */}
             <div className="grid grid-cols-3 gap-4">
-              <div className={`p-4 rounded-2xl ${metallicBorder} ${isDark ? 'bg-slate-950/40' : 'bg-white shadow-sm'}`}>
-                <div className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-cyan-400' : 'text-cyan-700'}`}>VARIABLES</div>
+              <div className={`p-4 rounded-2xl border ${metallicBorder} ${bgPanel}`}>
+                <div className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-cyan-400' : 'text-[#8C5A48]'}`}>VARIABLES</div>
                 <div className="space-y-2 font-mono text-xs overflow-y-auto max-h-32 pr-1">
                   {variableEntries.map(([k, v]) => (
                     <div key={k} className="flex justify-between items-start gap-2">
                       <span className={textSecondary}>{k}</span>
-                      <span className="font-bold text-right break-all">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+                      <span className={`font-bold text-right break-all ${textPrimary}`}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
                     </div>
                   ))}
                   {variableEntries.length === 0 && <span className={textSecondary}>No variables</span>}
                 </div>
               </div>
 
-              <div className={`p-4 rounded-2xl ${metallicBorder} ${isDark ? 'bg-slate-950/40' : 'bg-white shadow-sm'}`}>
-                <div className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-purple-400' : 'text-purple-700'}`}>CALL STACK</div>
+              <div className={`p-4 rounded-2xl border ${metallicBorder} ${bgPanel}`}>
+                <div className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-purple-400' : 'text-[#8C5A48]'}`}>CALL STACK</div>
                 <div className="space-y-2 font-mono text-xs overflow-y-auto max-h-32 pr-1">
                   {callStack.map((frame, idx) => (
-                    <div key={idx} className={`p-2 rounded-xl shadow-sm ${metallicBorder} ${isDark ? 'bg-purple-950/40 text-purple-200' : 'bg-purple-50 text-purple-900'}`}>
+                    <div key={idx} className={`p-2 rounded-xl shadow-sm border ${metallicBorder} ${isDark ? 'bg-purple-950/40 text-purple-200' : 'bg-[#F5EBE1] text-[#3E2723]'}`}>
                       &lt;{frame.name}&gt; {frame.file}:{frame.line}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className={`p-4 rounded-2xl ${metallicBorder} ${isDark ? 'bg-slate-950/40' : 'bg-white shadow-sm'}`}>
+              <div className={`p-4 rounded-2xl border ${metallicBorder} ${bgPanel}`}>
                 <div className="flex justify-between items-center mb-3">
-                  <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>BREAKPOINTS</span>
+                  <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-[#8C5A48]'}`}>BREAKPOINTS</span>
                 </div>
                 <div className={`text-xs font-mono font-medium ${textSecondary}`}>No breakpoints set</div>
               </div>
@@ -455,13 +459,13 @@ export default function Visualizer({
 
         {/* --- TAB: FULL VARIABLES VIEW --- */}
         {activeTab === 'VARIABLES' && (
-          <div className={`flex-1 p-6 rounded-2xl ${metallicBorder} ${isDark ? 'bg-slate-950/60 shadow-inner' : 'bg-slate-50 shadow-sm'}`}>
-            <h2 className={`text-sm font-bold uppercase tracking-wider mb-6 ${isDark ? 'text-cyan-400' : 'text-cyan-700'}`}>All Local Variables</h2>
+          <div className={`flex-1 p-6 rounded-2xl border ${metallicBorder} ${bgContent} shadow-inner`}>
+            <h2 className={`text-sm font-bold uppercase tracking-wider mb-6 ${isDark ? 'text-cyan-400' : 'text-[#8C5A48]'}`}>All Local Variables</h2>
             <div className="space-y-3 font-mono text-sm">
               {variableEntries.length > 0 ? variableEntries.map(([k, v]) => (
-                <div key={k} className={`flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-xl ${metallicBorder} ${isDark ? 'bg-[#10141D]' : 'bg-white'}`}>
+                <div key={k} className={`flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-xl border ${metallicBorder} ${bgPanel}`}>
                   <span className={`font-semibold ${textSecondary}`}>{k}</span>
-                  <span className="font-bold break-all mt-1 sm:mt-0">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+                  <span className={`font-bold break-all mt-1 sm:mt-0 ${textPrimary}`}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
                 </div>
               )) : (
                 <div className={textSecondary}>No variables currently in scope.</div>
@@ -472,11 +476,11 @@ export default function Visualizer({
 
         {/* --- TAB: FULL CALL STACK VIEW --- */}
         {activeTab === 'CALL STACK' && (
-          <div className={`flex-1 p-6 rounded-2xl ${metallicBorder} ${isDark ? 'bg-slate-950/60 shadow-inner' : 'bg-slate-50 shadow-sm'}`}>
-            <h2 className={`text-sm font-bold uppercase tracking-wider mb-6 ${isDark ? 'text-purple-400' : 'text-purple-700'}`}>Call Stack Frames</h2>
+          <div className={`flex-1 p-6 rounded-2xl border ${metallicBorder} ${bgContent} shadow-inner`}>
+            <h2 className={`text-sm font-bold uppercase tracking-wider mb-6 ${isDark ? 'text-purple-400' : 'text-[#8C5A48]'}`}>Call Stack Frames</h2>
             <div className="space-y-3 font-mono text-sm flex flex-col-reverse">
               {callStack.map((frame, idx) => (
-                <div key={idx} className={`p-4 rounded-xl shadow-sm flex items-center justify-between ${metallicBorder} ${isDark ? 'bg-purple-950/40 text-purple-200' : 'bg-purple-50 text-purple-900'}`}>
+                <div key={idx} className={`p-4 rounded-xl shadow-sm flex items-center justify-between border ${metallicBorder} ${isDark ? 'bg-purple-950/40 text-purple-200' : 'bg-[#EFE8DE] text-[#3E2723]'}`}>
                   <span className="font-bold">&lt;{frame.name}&gt;</span>
                   <span className="opacity-80">{frame.file} : Line {frame.line}</span>
                 </div>
@@ -487,13 +491,13 @@ export default function Visualizer({
 
         {/* --- TAB: FULL BREAKPOINTS VIEW --- */}
         {activeTab === 'BREAKPOINTS' && (
-          <div className={`flex-1 p-6 rounded-2xl flex flex-col items-center justify-center text-center ${metallicBorder} ${isDark ? 'bg-slate-950/60 shadow-inner' : 'bg-slate-50 shadow-sm'}`}>
-            <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-4 bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
+          <div className={`flex-1 p-6 rounded-2xl flex flex-col items-center justify-center text-center border ${metallicBorder} ${bgContent} shadow-inner`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-4 ${isDark ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30' : 'bg-[#8C5A48]/10 text-[#8C5A48] border-[#8C5A48]/30'} border`}>
               ⏸
             </div>
-            <h2 className={`text-sm font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>Breakpoints</h2>
+            <h2 className={`text-sm font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-emerald-400' : 'text-[#8C5A48]'}`}>Breakpoints</h2>
             <p className={`text-xs mb-6 max-w-xs ${textSecondary}`}>Click the margin in the editor to add breakpoints and pause execution during playback.</p>
-            <button className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${metallicBorder} ${isDark ? 'bg-[#10141D] hover:bg-slate-800' : 'bg-white hover:bg-slate-100'}`}>
+            <button className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors border ${metallicBorder} ${isDark ? 'bg-[#10141D] hover:bg-slate-800' : 'bg-[#EFE8DE] hover:bg-white'}`}>
               Manage Breakpoints
             </button>
           </div>

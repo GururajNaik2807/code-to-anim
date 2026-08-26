@@ -156,18 +156,20 @@ export default function Editor({
       setIsEditing(true);
     }
   };
-
-  const bgPanel = isDark ? 'bg-[#10141D]' : 'bg-[#FFFFFF]';
-  const bgCodeArea = isDark ? 'bg-[#0A0D14]' : 'bg-[#FAFAFC]';
-  const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
-  const metallicBorder = 'border border-slate-900 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_2px_5px_rgba(0,0,0,0.25)]';
+// --- Updated Theme Colors ---
+  const bgPanel = isDark ? 'bg-[#10141D]' : 'bg-[#EFE8DE]';
+  const bgCodeArea = isDark ? 'bg-[#0A0D14]' : 'bg-[#F5EBE1]';
+  const textSecondary = isDark ? 'text-slate-400' : 'text-[#765A51]';
+  const textPrimary = isDark ? 'text-white' : 'text-[#3E2723]';
+  const metallicBorder = isDark ? 'border-slate-800' : 'border-[#D7CCC8]';
 
   return (
-    <div className={`w-full h-full flex flex-col ${metallicBorder} border-y-0 border-l-0 ${bgPanel}`}> 
+    // Removed rounded corners here so it fits perfectly in the WorkspacePage parent box
+    <div className={`w-full h-full flex flex-col ${bgPanel}`}> 
       
-      <div className={`h-10 ${metallicBorder} border-x-0 border-t-0 flex items-center justify-between px-4 text-xs font-mono ${isDark ? 'bg-[#0E121B]' : 'bg-slate-100'} z-10`}>
-        <div className="flex items-center gap-2">
-          <div className={`px-3 py-1 border-t-2 border-purple-600 font-bold flex items-center gap-2 ${metallicBorder} border-b-0 ${isDark ? 'bg-[#10141D] text-white' : 'bg-white text-slate-900'}`}>
+      <div className={`h-10 border-b ${metallicBorder} flex items-center justify-between px-4 text-xs font-mono z-10`}>
+        <div className="flex items-center gap-2 h-full">
+          <div className={`px-3 h-full border-t-2 border-purple-600 font-bold flex items-center gap-2 border-x ${metallicBorder} border-b-0 ${isDark ? 'bg-[#10141D] text-white' : 'bg-[#F5EBE1] text-[#3E2723]'}`}>
             <span>🐍 main.py</span>
             {user && (
               <span className="text-[10px] text-emerald-500 font-mono ml-1 font-semibold">
@@ -177,12 +179,12 @@ export default function Editor({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-slate-500 text-[11px]">
+        <div className="flex items-center gap-2 text-[11px] font-semibold text-[#765A51]">
           {!user && <span className="text-amber-600 font-medium text-[10px]">🔒 Log in to edit</span>}
           {user && isEditing && (
             <button 
               onClick={() => setIsEditing(false)} 
-              className="px-2 py-0.5 rounded bg-slate-900 text-white hover:bg-slate-800 text-[10px] shadow"
+              className={`px-2 py-0.5 rounded text-[10px] shadow transition-colors ${isDark ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-[#8C5A48] text-white hover:opacity-80'}`}
             >
               Done Editing
             </button>
@@ -190,19 +192,17 @@ export default function Editor({
         </div>
       </div>
 
-      {/* --- FIX: Outer container is now hidden. Only the inner components scroll. --- */}
       <div className={`flex-1 flex overflow-hidden font-mono text-sm leading-6 ${bgCodeArea} cursor-text relative`}>
         
-        {/* Synchronized Line Numbers */}
         <div 
           ref={lineNumbersRef}
-          className={`select-none py-4 text-right pr-3 pl-3 ${textSecondary} font-mono text-xs min-w-[40px] border-r ${isDark ? 'border-slate-800/80' : 'border-slate-300'} overflow-hidden`}
+          className={`select-none py-4 text-right pr-3 pl-3 ${textSecondary} font-mono text-xs min-w-[40px] border-r ${metallicBorder} overflow-hidden`}
         >
           {codeLines.map((_, idx) => {
             const lineNum = idx + 1;
             const isActive = lineNum === activeLineNumber;
             return (
-              <div key={idx} className={`h-6 flex items-center justify-end gap-1 ${isActive ? "text-purple-600 font-bold" : ""}`}>
+              <div key={idx} className={`h-6 flex items-center justify-end gap-1 ${isActive ? "text-[#8C5A48] dark:text-purple-600 font-bold" : ""}`}>
                 {isActive && <span className="text-[10px]">▶</span>}
                 <span>{lineNum}</span>
               </div>
@@ -212,7 +212,6 @@ export default function Editor({
 
         {isEditing && user ? (
           <div className="flex-1 relative bg-transparent">
-            {/* The Textarea is now the sole scrollable element */}
             <textarea
               ref={textareaRef}
               value={code}
@@ -220,7 +219,7 @@ export default function Editor({
               onKeyDown={handleKeyDown}
               onScroll={handleScroll}
               spellCheck={false}
-              className={`absolute inset-0 w-full h-full py-4 px-3 overflow-auto bg-transparent font-mono text-sm leading-6 resize-none outline-none ${isDark ? 'text-slate-100' : 'text-slate-900'} caret-purple-600 whitespace-pre`}
+              className={`absolute inset-0 w-full h-full py-4 px-3 overflow-auto bg-transparent font-mono text-sm leading-6 resize-none outline-none ${textPrimary} caret-purple-600 whitespace-pre`}
             />
           </div>
         ) : (
@@ -241,8 +240,8 @@ export default function Editor({
                     isActive
                       ? isDark 
                         ? "bg-purple-950/60 border-l-2 border-purple-500 text-purple-200 font-bold shadow-sm" 
-                        : "bg-purple-100 border-l-2 border-purple-600 text-purple-950 font-bold shadow-sm"
-                      : isDark ? "text-slate-300 hover:bg-slate-900/40" : "text-slate-800 hover:bg-slate-200/50"
+                        : "bg-[#8C5A48]/10 border-l-2 border-[#8C5A48] text-[#3E2723] font-bold shadow-sm"
+                      : isDark ? "text-slate-300 hover:bg-slate-900/40" : "text-[#3E2723] hover:bg-[#8C5A48]/5"
                   }`}
                 >
                   {highlightPythonCode(lineStr, isDark)}
@@ -253,7 +252,7 @@ export default function Editor({
         )}
       </div>
 
-      <div className={`h-7 ${metallicBorder} border-x-0 border-b-0 flex items-center justify-between px-4 text-[10px] font-mono ${textSecondary} ${isDark ? 'bg-[#0E121B]' : 'bg-slate-100'} z-10`}>
+      <div className={`h-7 border-t ${metallicBorder} flex items-center justify-between px-4 text-[10px] font-mono ${textSecondary} z-10`}>
         <div>
           Ln {activeLineNumber || 1}, Col 1 &nbsp; Spaces: 4 &nbsp; UTF-8 &nbsp; Python 3.10
         </div>

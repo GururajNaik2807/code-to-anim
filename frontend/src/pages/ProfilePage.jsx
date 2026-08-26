@@ -13,16 +13,19 @@ import WorkspacePage from './WorkspacePage';
 
 // --- OPTIMIZATION: Ambient Neon Wave Background for Low-End Devices ---
 const AmbientBackground = memo(({ isDark }) => {
-  const indigoOpacity = isDark ? "0.08" : "0.12";
-  const purpleOpacity = isDark ? "0.08" : "0.12";
-  const tealOpacity = isDark ? "0.15" : "0.08";
+  const op1 = isDark ? "0.05" : "0.08";
+  const op2 = isDark ? "0.05" : "0.08";
+  
+  // Custom theme colors for ambient glows
+  const color1 = isDark ? `rgba(37, 133, 139, ${op1})` : `rgba(118, 66, 48, ${op1})`;
+  const color2 = isDark ? `rgba(20, 184, 166, ${op2})` : `rgba(168, 114, 91, ${op2})`;
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
       <motion.div
         className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full"
         style={{ 
-          backgroundColor: `rgba(99, 102, 241, ${indigoOpacity})`, 
+          backgroundColor: color1, 
           filter: "blur(120px)", 
           willChange: "transform" 
         }}
@@ -32,7 +35,7 @@ const AmbientBackground = memo(({ isDark }) => {
       <motion.div
         className="absolute top-[20%] right-[-10%] w-[50vw] h-[50vw] rounded-full"
         style={{ 
-          backgroundColor: `rgba(168, 85, 247, ${purpleOpacity})`, 
+          backgroundColor: color2, 
           filter: "blur(130px)", 
           willChange: "transform" 
         }}
@@ -42,7 +45,7 @@ const AmbientBackground = memo(({ isDark }) => {
       <motion.div
         className="absolute bottom-[-20%] left-[20%] w-[70vw] h-[70vw] rounded-full"
         style={{ 
-          backgroundColor: `rgba(45, 212, 191, ${tealOpacity})`, 
+          backgroundColor: color1, 
           filter: "blur(140px)", 
           willChange: "transform" 
         }}
@@ -82,6 +85,17 @@ const calculateLevelInfo = (totalXP) => {
   return { level, honor: HONORS[level - 1] || "Legend", totalXP, nextLevelXP, progressPercent, xpRemaining, isMax };
 };
 
+// --- Custom SVG Icons ---
+const Icons = {
+  Home: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
+  Workspace: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>,
+  Library: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>,
+  Leaderboard: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
+  Feedback: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
+  Moon: () => <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>,
+  Sun: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+};
+
 export default function ProfilePage() {
   const hasLoadedBefore = sessionStorage.getItem('profile_loaded') === 'true';
 
@@ -99,7 +113,8 @@ export default function ProfilePage() {
     return localStorage.getItem('codeanim_current_view') || 'dashboard';
   });
   
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   
   const [libSearchTerm, setLibSearchTerm] = useState('');
   const [libCategory, setLibCategory] = useState('All');
@@ -108,7 +123,7 @@ export default function ProfilePage() {
   const [headerSearchTerm, setHeaderSearchTerm] = useState('');
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const headerSearchRef = useRef(null);
-  const mainRef = useRef(null); // <-- Added Ref for Scroll Position
+  const mainRef = useRef(null);
 
   const [loading, setLoading] = useState(!hasLoadedBefore);
   const [searchQuery, setSearchQuery] = useState('');
@@ -124,8 +139,30 @@ export default function ProfilePage() {
   const { openAuthModal } = useAuth();
   const isDark = currentTheme === 'dark';
 
+  // --- EXACT THEME COLOR MAPPINGS ---
+  const bgMain = isDark ? 'bg-[#0A1118]' : 'bg-[#F5EBE1]';  
+  const bgPanel = isDark ? 'bg-[#111A22]' : 'bg-[#EFE8DE]';
+  const textPrimary = isDark ? 'text-[#E2E8F0]' : 'text-[#3E2723]';
+  const textSecondary = isDark ? 'text-[#94A3B8]' : 'text-[#765A51]';
+  const metallicBorder = isDark ? 'border-[#1E293B]' : 'border-[#D7CCC8]';
+  const hoverBg = isDark ? 'hover:bg-[#1E293B]' : 'hover:bg-[#E8DED4]';
+  const accentText = isDark ? 'text-[#38B2AC]' : 'text-[#8C5A48]';
+  const accentBg = isDark ? 'bg-[#38B2AC]' : 'bg-[#8C5A48]';
+  const accentBgLight = isDark ? 'bg-[#38B2AC]/10' : 'bg-[#8C5A48]/10';
+
+  const scrollbarStyles = `
+    [&::-webkit-scrollbar]:w-1.5 
+    [&::-webkit-scrollbar-track]:bg-transparent 
+    [&::-webkit-scrollbar-thumb]:rounded-full 
+    ${isDark ? '[&::-webkit-scrollbar-thumb]:bg-[#1E293B] hover:[&::-webkit-scrollbar-thumb]:bg-[#38B2AC]' : '[&::-webkit-scrollbar-thumb]:bg-[#D7CCC8] hover:[&::-webkit-scrollbar-thumb]:bg-[#8C5A48]'}
+  `;
+
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setIsSidebarOpen(false); // Let hover take over on desktop
+    };
     checkMobile(); 
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -347,11 +384,13 @@ export default function ProfilePage() {
       const dateStr = d.toISOString().split('T')[0];
       const activity = dailyActivity.find(a => a.activity_date === dateStr);
       const count = activity ? activity.execution_count : 0;
-      let bgClass = isDark ? 'bg-slate-800' : 'bg-slate-200';
-      if (count > 0 && count <= 2) bgClass = 'bg-indigo-500/40';
-      if (count > 2 && count <= 5) bgClass = 'bg-indigo-500/70';
-      if (count > 5) bgClass = 'bg-indigo-500';
-      return <div key={i} className={`w-full aspect-square rounded-[2px] ${bgClass} transition-colors`} title={`${dateStr}: ${count} executions`}></div>;
+      
+      let fillClass = isDark ? 'bg-[#1E293B]' : 'bg-[#D7CCC8]';
+      if (count > 0 && count <= 2) fillClass = `${accentBg} opacity-40`;
+      if (count > 2 && count <= 5) fillClass = `${accentBg} opacity-70`;
+      if (count > 5) fillClass = `${accentBg}`;
+      
+      return <div key={i} className={`w-full aspect-square rounded-[2px] ${fillClass} transition-colors`} title={`${dateStr}: ${count} executions`}></div>;
     });
   };
 
@@ -372,26 +411,6 @@ export default function ProfilePage() {
 
   const recentAlgo = progressData.find(algo => algo.progress_percent < 100) || null;
 
-  const bgMain = isDark ? 'bg-black' : 'bg-[#F4F6F8]';  
-  const bgPanel = isDark ? 'bg-[#05070A]' : 'bg-[#FFFFFF]';
-  const textPrimary = isDark ? 'text-slate-100' : 'text-slate-800';
-  const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
-  
-  const metallicBorder = isDark 
-    ? 'border border-slate-800/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_2px_4px_rgba(0,0,0,0.3)]' 
-    : 'border border-slate-200/80 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_1px_3px_rgba(0,0,0,0.05)]';
-  
-  const hoverBg = isDark ? 'hover:bg-slate-800/50' : 'hover:bg-slate-50';
-  const focusBorder = 'focus:ring-2 focus:ring-indigo-500/50 outline-none';
-
-  const scrollbarStyles = `
-    [&::-webkit-scrollbar]:w-1.5 
-    [&::-webkit-scrollbar-track]:bg-transparent 
-    [&::-webkit-scrollbar-thumb]:rounded-full 
-    ${isDark ? '[&::-webkit-scrollbar-thumb]:bg-slate-800 hover:[&::-webkit-scrollbar-thumb]:bg-slate-700' : '[&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400'}
-  `;
-
-  // --- ADDED: Scroll tracking logic for library ---
   const handleScroll = (e) => {
     if (currentView === 'library') {
       sessionStorage.setItem('library_scroll_pos', e.target.scrollTop);
@@ -410,13 +429,12 @@ export default function ProfilePage() {
       }
     }
   }, [currentView]);
-  // ------------------------------------------------
 
   if (loading) {
     return (
       <div className={`h-screen w-screen flex flex-col items-center justify-center font-mono gap-4 ${bgMain} ${textPrimary}`}>
-        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-sm tracking-widest text-indigo-400 uppercase font-bold animate-pulse">Loading Dashboard...</p>
+        <div className={`w-10 h-10 border-4 border-t-transparent rounded-full animate-spin ${isDark ? 'border-[#38B2AC]' : 'border-[#8C5A48]'}`}></div>
+        <p className={`text-sm tracking-widest uppercase font-bold animate-pulse ${accentText}`}>Loading Dashboard...</p>
       </div>
     );
   }
@@ -447,13 +465,13 @@ export default function ProfilePage() {
   };
 
   const navLinks = [
-    { section: 'WORKSPACE', links: [{ name: 'Workspace', action: () => handleNavClick('workspace'), icon: '⚡', isActive: currentView === 'workspace' }] },
+    { section: 'WORKSPACE', links: [{ name: 'Workspace', action: () => handleNavClick('workspace'), icon: <Icons.Workspace />, isActive: currentView === 'workspace' }] },
     { section: 'LEARNING', links: [
-      { name: 'Algorithm Library', action: () => handleNavClick('library'), icon: '📚', isActive: currentView === 'library' }
+      { name: 'Algorithm Library', action: () => handleNavClick('library'), icon: <Icons.Library />, isActive: currentView === 'library' }
     ] },
     { section: 'COMMUNITY', links: [
-      { name: 'Leaderboard', action: () => handleNavClick('leaderboard'), icon: '🏆', isActive: currentView === 'leaderboard' },
-      { name: 'Give Feedback', action: () => handleNavClick('feedback'), icon: '💬', isActive: currentView === 'feedback' }
+      { name: 'Leaderboard', action: () => handleNavClick('leaderboard'), icon: <Icons.Leaderboard />, isActive: currentView === 'leaderboard' },
+      { name: 'Give Feedback', action: () => handleNavClick('feedback'), icon: <Icons.Feedback />, isActive: currentView === 'feedback' }
     ] }
   ];
 
@@ -475,16 +493,16 @@ export default function ProfilePage() {
     }
 
     return (
-      <div className={`flex flex-col items-center p-6 rounded-3xl ${metallicBorder} ${bgPanel} ${glow} relative overflow-hidden flex-1 max-w-[280px] hover:-translate-y-2 transition-transform duration-300 podium-card ${rank === 1 ? 'md:-mt-8 z-10 scale-105' : 'opacity-90'}`}>
+      <div className={`flex flex-col items-center p-6 rounded-3xl border ${metallicBorder} ${bgPanel} ${glow} relative overflow-hidden flex-1 max-w-[280px] hover:-translate-y-2 transition-transform duration-300 podium-card ${rank === 1 ? 'md:-mt-8 z-10 scale-105' : 'opacity-90'}`}>
         <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${rankColors} rounded-full blur-3xl opacity-20 pointer-events-none`}></div>
         <div className="absolute top-4 right-4 text-2xl drop-shadow-md">{badge}</div>
-        <div className="absolute top-4 left-4 text-xs font-black text-slate-400">#{rank}</div>
-        <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${rankColors} flex items-center justify-center text-3xl font-black shadow-lg mb-4 mt-2 border-2 ${isDark ? 'border-[#10141D]' : 'border-white'}`}>{initial}</div>
+        <div className={`absolute top-4 left-4 text-xs font-black ${textSecondary}`}>#{rank}</div>
+        <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${rankColors} flex items-center justify-center text-3xl font-black shadow-lg mb-4 mt-2 border-2 ${metallicBorder}`}>{initial}</div>
         <h3 className="font-bold text-lg tracking-tight truncate w-full text-center">{player.display_name || 'Anonymous'}</h3>
         <p className={`text-[10px] font-bold uppercase tracking-widest ${textSecondary} mt-1 mb-4`}>{honor}</p>
-        <div className={`w-full py-2 px-3 rounded-xl ${metallicBorder} ${isDark ? 'bg-slate-900/60' : 'bg-slate-50'} flex justify-between items-center shadow-inner`}>
+        <div className={`w-full py-2 px-3 rounded-xl border ${metallicBorder} ${bgMain} flex justify-between items-center shadow-inner`}>
           <span className={`text-xs font-bold ${textSecondary}`}>Lv. {level}</span>
-          <span className="text-sm font-black text-indigo-500">{totalXP.toLocaleString()} XP</span>
+          <span className={`text-sm font-black ${accentText}`}>{totalXP.toLocaleString()} XP</span>
         </div>
       </div>
     );
@@ -496,7 +514,6 @@ export default function ProfilePage() {
       {/* Dynamic Background */}
       <AmbientBackground isDark={isDark} />
 
-      {/* --- NEW: CUSTOM MARQUEE ANIMATION --- */}
       <style>{`
         @keyframes scroll-left {
           0% { transform: translateX(0%); }
@@ -509,6 +526,13 @@ export default function ProfilePage() {
           animation-play-state: paused;
         }
         
+        .sidebar-text {
+           opacity: ${isMobile || isSidebarHovered ? '1' : '0'};
+           transition: opacity 0.2s ease-in-out;
+           white-space: nowrap;
+           overflow: hidden;
+        }
+
         /* MOBILE OVERRIDES */
         @media (max-width: 768px) {
           .sidebar-container { position: absolute !important; height: 100% !important; z-index: 50 !important; box-shadow: 5px 0 20px rgba(0,0,0,0.5) !important; }
@@ -533,21 +557,26 @@ export default function ProfilePage() {
 
       {/* --- LOGOUT LOADING SCREEN --- */}
       {isLoggingOut && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
-          <div className={`relative w-full max-w-sm rounded-3xl p-8 flex flex-col items-center text-center transform transition-all ${metallicBorder} ${isDark ? 'bg-[#10141D] text-white' : 'bg-white text-slate-900'}`}>
-            <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center text-3xl mb-4 border border-emerald-500/30 shadow-inner">👋</div>
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+          <div className={`relative w-full max-w-sm rounded-3xl p-8 flex flex-col items-center text-center transform transition-all border ${metallicBorder} ${bgPanel}`}>
+            <div className={`w-16 h-16 ${accentBgLight} ${accentText} rounded-full flex items-center justify-center text-3xl mb-4 border ${metallicBorder} shadow-inner`}>👋</div>
             <h2 className="text-2xl font-black mb-2 tracking-tight">Successfully Logged Out</h2>
             <p className={`text-sm leading-relaxed mb-6 ${textSecondary}`}>Your progress has been securely saved. Redirecting you to home...</p>
-            <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'} ${metallicBorder} shadow-none`}>
-              <div className="h-full bg-emerald-500 w-full animate-[pulse_1s_ease-in-out_infinite]"></div>
+            <div className={`w-full h-1.5 rounded-full overflow-hidden ${bgMain} border ${metallicBorder} shadow-none`}>
+              <div className={`h-full ${accentBg} w-full animate-[pulse_1s_ease-in-out_infinite]`}></div>
             </div>
           </div>
         </div>
       )}
 
       {/* Sidebar Container */}
-      <div className={`sidebar-container transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden relative z-20 ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
-        <aside className={`w-64 h-full ${metallicBorder} border-y-0 border-l-0 ${bgPanel}/95 backdrop-blur-md flex flex-col justify-between overflow-y-auto ${scrollbarStyles}`}>
+{/* Sidebar Container */}
+      <div 
+        className={`sidebar-container transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden relative z-20 rounded-3xl ${isMobile ? (isSidebarOpen ? 'w-64' : 'w-0') : (isSidebarHovered ? 'w-64' : 'w-20')}`}
+        onMouseEnter={() => !isMobile && setIsSidebarHovered(true)}
+        onMouseLeave={() => !isMobile && setIsSidebarHovered(false)}
+      >
+        <aside className={`w-64 h-full ${isDark ? `border-r ${metallicBorder} ${bgPanel}/95` : 'bg-[#8C5A48] border-none'} backdrop-blur-md flex flex-col justify-between overflow-y-auto ${scrollbarStyles}`}>
           <div>
             <Link 
               to="/" 
@@ -556,40 +585,46 @@ export default function ProfilePage() {
               <img 
                 src="/favicon.svg" 
                 alt="CodeToAnim Logo" 
-                className="w-7 h-7 mr-2 rounded-md object-contain group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" 
+                className="w-7 h-7 mr-3 shrink-0 rounded-md object-contain group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" 
               />
-              <span className={`${isDark ? 'text-white' : 'text-slate-900'} transition-colors`}>CodeTo</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-indigo-500 group-hover:from-indigo-400 group-hover:to-purple-500 ml-1 transition-all duration-500">Anim</span>
+              <span className={`sidebar-text ${isDark ? textPrimary : 'text-white'} transition-colors`}>CodeTo<span className="opacity-80">Anim</span></span>
             </Link>
+            
             <div className="px-4 py-4">
               <button 
                 onClick={() => handleNavClick('dashboard')}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                  currentView === 'dashboard' ? (isDark ? 'text-white bg-slate-800/80 shadow-inner border border-slate-700/50' : 'text-slate-900 bg-slate-100 shadow-sm border border-slate-200') : `${textSecondary} ${hoverBg}`
+                  currentView === 'dashboard' 
+                    ? (isDark ? `${accentBgLight} ${accentText} shadow-inner border border-transparent` : 'bg-white/20 text-white shadow-inner border border-transparent')
+                    : (isDark ? `${textSecondary} ${hoverBg} border border-transparent` : 'text-white/80 hover:bg-white/10 hover:text-white border border-transparent')
                 }`}
               >
-                <span className="opacity-80">🏠</span> Dashboard
+                <Icons.Home />
+                <span className="sidebar-text">Dashboard</span>
               </button>
             </div>
+            
             <div className="px-4 pb-6">
               {navLinks.map((group, idx) => (
                 <div key={idx} className="mt-6">
-                  <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-3 px-4 ${textSecondary}`}>{group.section}</h4>
+                  <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-3 px-4 sidebar-text ${isDark ? textSecondary : 'text-white/60'}`}>{group.section}</h4>
                   <div className="space-y-1">
                     {group.links.map((link, lIdx) => {
-                      const activeClasses = (link.isActive) 
-                        ? (isDark ? 'text-white bg-slate-800/40 shadow-inner border border-slate-700/50' : 'text-slate-900 bg-slate-100 shadow-sm border border-slate-200') 
-                        : `${textSecondary} ${hoverBg} border border-transparent`;
+                      const activeClasses = link.isActive 
+                        ? (isDark ? `${accentBgLight} ${accentText} shadow-inner border border-transparent` : 'bg-white/20 text-white shadow-inner border border-transparent')
+                        : (isDark ? `${textSecondary} ${hoverBg} border border-transparent` : 'text-white/80 hover:bg-white/10 hover:text-white border border-transparent');
 
                       return link.action ? (
                         <button key={lIdx} onClick={link.action} className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeClasses}`}>
-                          <span className="opacity-80">{link.icon}</span>{link.name}
-                          {link.tag && <span className={`ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${link.tagColor}`}>{link.tag}</span>}
+                          {link.icon}
+                          <span className="sidebar-text">{link.name}</span>
+                          {link.tag && <span className={`sidebar-text ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${link.tagColor}`}>{link.tag}</span>}
                         </button>
                       ) : (
                         <Link key={lIdx} to={link.path} className={`flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeClasses}`}>
-                          <span className="opacity-80">{link.icon}</span>{link.name}
-                          {link.tag && <span className={`ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${link.tagColor}`}>{link.tag}</span>}
+                          {link.icon}
+                          <span className="sidebar-text">{link.name}</span>
+                          {link.tag && <span className={`sidebar-text ml-auto text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${link.tagColor}`}>{link.tag}</span>}
                         </Link>
                       );
                     })}
@@ -598,39 +633,43 @@ export default function ProfilePage() {
               ))}
             </div>
           </div>
-          <div className={`p-4 ${metallicBorder} border-x-0 border-b-0`}>
-            <button onClick={toggleTheme} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl ${metallicBorder} ${hoverBg} transition-colors shadow-sm`}>
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
-                <span>{isDark ? '🌙' : '☀️'}</span><span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Theme</span>
+          <div className={`p-4 ${isDark ? `border-t ${metallicBorder}` : 'border-none'}`}>
+            <button onClick={toggleTheme} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl ${isDark ? `border ${metallicBorder} ${hoverBg}` : 'border border-transparent hover:bg-white/10'} transition-colors shadow-sm`}>
+              <div className={`flex items-center gap-3 text-sm font-semibold ${isDark ? textSecondary : 'text-white/80'}`}>
+                {isDark ? <Icons.Sun /> : <Icons.Moon />}
+                <span className={`sidebar-text ${isDark ? textPrimary : 'text-white'}`}>Theme</span>
               </div>
-              <span className={`text-xs font-medium ${textSecondary}`}>{isDark ? 'Dark' : 'Light'}</span>
+              <span className={`sidebar-text text-xs font-medium ${isDark ? textSecondary : 'text-white/60'}`}>{isDark ? 'Dark' : 'Light'}</span>
             </button>
           </div>
         </aside>
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
-        <header className={`h-16 flex-shrink-0 ${metallicBorder} border-x-0 border-t-0 ${bgPanel}/80 backdrop-blur-md flex items-center justify-between px-8 z-10 transition-all mobile-header`}>
+        <header className={`h-16 flex-shrink-0 border-b ${metallicBorder} ${bgPanel}/80 backdrop-blur-md flex items-center justify-between px-8 z-10 transition-all mobile-header`}>
           
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`p-2 rounded-xl ${metallicBorder} ${hoverBg} transition-all duration-300 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-indigo-500/50 shadow-sm group`}
-              aria-label="Toggle Sidebar"
-            >
-              <svg 
-                className={`w-5 h-5 ${textSecondary} group-hover:text-indigo-500 transition-transform duration-300 ${isSidebarOpen ? '' : 'rotate-180'}`} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
+            {/* Hamburger Only Rendered on Mobile */}
+            {isMobile && (
+              <button 
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className={`p-2 rounded-xl border ${metallicBorder} ${hoverBg} transition-all duration-300 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-opacity-50 shadow-sm group`}
+                aria-label="Toggle Sidebar"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h8m-8 6h16" />
-              </svg>
-            </button>
+                <svg 
+                  className={`w-5 h-5 ${textSecondary} transition-transform duration-300 ${isSidebarOpen ? '' : 'rotate-180'}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h8m-8 6h16" />
+                </svg>
+              </button>
+            )}
 
             {/* --- INTERACTIVE HEADER SEARCH BAR & DROPDOWN PANEL --- */}
             <div ref={headerSearchRef} className="relative z-50">
-              <div className={`flex items-center w-80 lg:w-96 ${metallicBorder} rounded-xl px-3 py-1.5 transition-shadow focus-within:ring-2 focus-within:ring-indigo-500/30 ${isDark ? 'bg-[#0A0D14]' : 'bg-slate-50'}`}>
+              <div className={`flex items-center w-80 lg:w-96 border ${metallicBorder} rounded-xl px-3 py-1.5 transition-shadow focus-within:ring-2 focus-within:ring-opacity-30 ${bgMain}`}>
                 <span className="text-slate-400 text-sm">🔍</span>
                 <input 
                   type="text" 
@@ -641,10 +680,10 @@ export default function ProfilePage() {
                   }}
                   onFocus={() => setIsHeaderSearchOpen(true)}
                   placeholder="Search algorithms, topics, users..." 
-                  className={`bg-transparent border-none outline-none text-sm font-medium w-full ml-2 placeholder-slate-400/70 ${textPrimary}`} 
+                  className={`bg-transparent border-none outline-none text-sm font-medium w-full ml-2 placeholder-opacity-70 ${textPrimary}`} 
                 />
                 {headerSearchTerm && (
-                  <button onClick={() => setHeaderSearchTerm('')} className="text-slate-400 hover:text-slate-200 text-xs px-1">
+                  <button onClick={() => setHeaderSearchTerm('')} className={`hover:opacity-80 text-xs px-1 ${textSecondary}`}>
                     ✕
                   </button>
                 )}
@@ -653,7 +692,7 @@ export default function ProfilePage() {
               {/* SEARCH RESULTS PANEL */}
               {isHeaderSearchOpen && headerSearchTerm.trim().length > 0 && (
                 <div className={`absolute top-full left-0 right-0 mt-2 rounded-2xl shadow-2xl border ${metallicBorder} ${bgPanel} overflow-hidden max-h-80 overflow-y-auto ${scrollbarStyles} z-50 transition-all`}>
-                  <div className="p-2 border-b border-slate-800/40 text-[10px] font-black uppercase tracking-wider text-indigo-400 px-4">
+                  <div className={`p-2 border-b ${metallicBorder} text-[10px] font-black uppercase tracking-wider ${accentText} px-4`}>
                     Algorithm Results ({headerSearchResults.length})
                   </div>
                   
@@ -666,7 +705,7 @@ export default function ProfilePage() {
                           className={`p-3 rounded-xl cursor-pointer transition-all flex items-center justify-between ${hoverBg} group`}
                         >
                           <div>
-                            <div className="font-bold text-sm text-indigo-400 group-hover:text-indigo-300 flex items-center gap-2">
+                            <div className={`font-bold text-sm ${accentText} flex items-center gap-2`}>
                               <span>{algo.title}</span>
                             </div>
                             <div className={`text-[11px] line-clamp-1 ${textSecondary} mt-0.5`}>
@@ -675,13 +714,13 @@ export default function ProfilePage() {
                           </div>
                           
                           <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
-                            <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                            <span className={`text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded ${accentBgLight} ${accentText} border ${metallicBorder}`}>
                               {algo.category}
                             </span>
                             <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
-                              algo.difficulty === 'Easy' ? 'text-emerald-400 bg-emerald-500/10' :
-                              algo.difficulty === 'Medium' ? 'text-amber-400 bg-amber-500/10' :
-                              'text-rose-400 bg-rose-500/10'
+                              algo.difficulty === 'Easy' ? 'text-emerald-500 bg-emerald-500/10' :
+                              algo.difficulty === 'Medium' ? 'text-amber-500 bg-amber-500/10' :
+                              'text-rose-500 bg-rose-500/10'
                             }`}>
                               {algo.difficulty}
                             </span>
@@ -697,15 +736,16 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-
           </div>
 
           <div className="flex items-center gap-5">
-            <div className={`flex items-center gap-3 cursor-pointer pl-4 border-l ${isDark ? 'border-slate-800' : 'border-slate-200'}`} onClick={handleLogoutClick}>
-              <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm ${metallicBorder} shadow-md`}>{userInitial}</div>
+            <div className={`flex items-center gap-3 cursor-pointer pl-4 border-l ${metallicBorder}`} onClick={handleLogoutClick}>
+              <div className={`w-9 h-9 rounded-full ${accentBg} flex items-center justify-center text-white font-bold text-sm shadow-md`}>
+                {userInitial}
+              </div>
               <div className="flex flex-col hidden sm:flex">
                 <span className="text-sm font-bold leading-tight">{displayName}</span>
-                <span className="text-[10px] font-medium text-slate-500 leading-tight">Log Out</span>
+                <span className={`text-[10px] font-medium ${textSecondary} leading-tight`}>Log Out</span>
               </div>
             </div>
           </div>
@@ -725,14 +765,14 @@ export default function ProfilePage() {
             <div className="max-w-7xl mx-auto space-y-6">
 
               {/* --- DEVELOPMENT MARQUEE BANNER --- */}
-              <div className={`w-full overflow-hidden rounded-2xl ${metallicBorder} ${isDark ? 'bg-indigo-900/20 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200'} shadow-sm flex items-center group`}>
+              <div className={`w-full overflow-hidden rounded-2xl border ${metallicBorder} ${accentBgLight} shadow-sm flex items-center group`}>
                 <div className="whitespace-nowrap inline-block pl-[100%] animate-scroll-left py-3">
-                  <span className={`text-xs md:text-sm font-bold ${isDark ? 'text-indigo-300' : 'text-indigo-700'} flex items-center gap-2`}>
+                  <span className={`text-xs md:text-sm font-bold ${accentText} flex items-center gap-2`}>
                     <img src="/favicon.svg" alt="Logo" className="w-4 h-4 object-contain" /> 
                     We are actively building <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 tracking-tight text-sm md:text-base">
                       CodeToAnim
                     </span> for visual learners and developers. Your suggestions directly shape our next updates. — 
-                    <button onClick={() => handleNavClick('feedback')} className="underline decoration-2 underline-offset-2 hover:text-indigo-500 transition-colors cursor-pointer mx-1">
+                    <button onClick={() => handleNavClick('feedback')} className="underline decoration-2 underline-offset-2 hover:opacity-70 transition-colors cursor-pointer mx-1">
                       Give Feedback
                     </button> 
                     to share your thoughts and help shape the platform! 💡
@@ -741,16 +781,16 @@ export default function ProfilePage() {
               </div>
               
               {/* Profile Hero Card */}
-              <div className={`profile-card ${bgPanel}/90 backdrop-blur-md ${metallicBorder} rounded-3xl p-8 flex flex-col md:flex-row justify-between items-center shadow-sm relative overflow-hidden`}>
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+              <div className={`profile-card ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} rounded-3xl p-8 flex flex-col md:flex-row justify-between items-center shadow-sm relative overflow-hidden`}>
+                <div className={`absolute top-0 right-0 w-64 h-64 ${accentBgLight} rounded-full blur-3xl pointer-events-none opacity-50`}></div>
                 
                 {/* User Avatar + Details */}
                 <div className="profile-user-info flex items-center gap-6 relative z-10 w-full md:w-auto">
                   <div className="relative group flex-shrink-0">
-                    <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-800 ${metallicBorder} border-4 border-transparent flex items-center justify-center text-3xl md:text-4xl text-white font-black shadow-xl group-hover:scale-105 transition-transform`}>
+                    <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full ${accentBg} border-4 border-transparent flex items-center justify-center text-3xl md:text-4xl text-white font-black shadow-xl group-hover:scale-105 transition-transform`}>
                       {userInitial}
                     </div>
-                    <button className="absolute bottom-0 right-0 p-1.5 bg-slate-800 rounded-full border-2 border-slate-900 text-xs shadow-md hover:bg-slate-700 transition-colors">
+                    <button className={`absolute bottom-0 right-0 p-1.5 ${bgMain} rounded-full border-2 ${metallicBorder} text-xs shadow-md ${hoverBg} transition-colors`}>
                       ✏️
                     </button>
                   </div>
@@ -762,11 +802,11 @@ export default function ProfilePage() {
                           type="text" 
                           value={editName} 
                           onChange={(e) => setEditName(e.target.value)} 
-                          className={`text-xl md:text-2xl font-black bg-transparent border-b-2 border-indigo-500 w-40 ${focusBorder} ${textPrimary}`} 
+                          className={`text-xl md:text-2xl font-black bg-transparent border-b-2 ${metallicBorder} w-40 outline-none focus:border-b-4 focus:${accentBorder} ${textPrimary}`} 
                           autoFocus 
                         />
-                        <button onClick={handleSaveProfile} className="text-xs font-bold bg-indigo-600 text-white px-3 py-1 rounded-lg shadow-md hover:bg-indigo-500 transition-colors">Save</button>
-                        <button onClick={() => setIsEditing(false)} className={`text-xs font-bold px-3 py-1 rounded-lg ${metallicBorder} ${hoverBg} transition-colors`}>Cancel</button>
+                        <button onClick={handleSaveProfile} className={`text-xs font-bold ${accentBg} text-white px-3 py-1 rounded-lg shadow-md hover:opacity-80 transition-colors`}>Save</button>
+                        <button onClick={() => setIsEditing(false)} className={`text-xs font-bold px-3 py-1 rounded-lg border ${metallicBorder} ${hoverBg} transition-colors`}>Cancel</button>
                       </div>
                     ) : (
                       <h1 className="text-2xl md:text-3xl font-black tracking-tight truncate max-w-full">
@@ -779,10 +819,10 @@ export default function ProfilePage() {
                     </p>
 
                     <div className="profile-badges-row flex items-center gap-2 mt-3 flex-wrap justify-center md:justify-start">
-                      <span className={`text-[11px] md:text-xs px-2.5 py-1 rounded-md ${isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'} ${metallicBorder} font-bold shadow-sm flex items-center gap-1.5`}>
-                        <span className="text-[9px] uppercase text-slate-500">Lv. {levelInfo.level}</span> {levelInfo.honor}
+                      <span className={`text-[11px] md:text-xs px-2.5 py-1 rounded-md ${bgMain} border ${metallicBorder} font-bold shadow-sm flex items-center gap-1.5`}>
+                        <span className={`text-[9px] uppercase ${textSecondary}`}>Lv. {levelInfo.level}</span> {levelInfo.honor}
                       </span>
-                      <span className="text-[11px] md:text-xs px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 font-bold shadow-sm">
+                      <span className={`text-[11px] md:text-xs px-2.5 py-1 rounded-md ${accentBgLight} ${accentText} border ${metallicBorder} font-bold shadow-sm`}>
                         Algorithm Explorer
                       </span>
                     </div>
@@ -791,26 +831,26 @@ export default function ProfilePage() {
 
                 {/* Progress Bar & Actions */}
                 <div className="profile-card-stats flex flex-col items-end gap-4 mt-4 md:mt-0 w-full md:w-1/3 relative z-10">
-                  <div className="w-full bg-slate-900/5 dark:bg-black/20 p-4 rounded-2xl border border-slate-500/10">
+                  <div className={`w-full ${bgMain} p-4 rounded-2xl border ${metallicBorder}`}>
                     <div className="flex justify-between text-xs md:text-sm font-bold mb-2">
-                      <span className="text-indigo-500">Level {levelInfo.level}</span>
+                      <span className={`${accentText}`}>Level {levelInfo.level}</span>
                       <span className={textSecondary}>
                         {levelInfo.totalXP.toLocaleString()} <span className="opacity-50">/ {levelInfo.nextLevelXP.toLocaleString()} XP</span>
                       </span>
                     </div>
-                    <div className={`w-full h-2 rounded-full ${metallicBorder} ${isDark ? 'bg-slate-800/80' : 'bg-slate-200/80'} overflow-hidden shadow-inner`}>
-                      <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${levelInfo.progressPercent}%` }}></div>
+                    <div className={`w-full h-2 rounded-full border ${metallicBorder} ${bgPanel} overflow-hidden shadow-inner`}>
+                      <div className={`h-full ${accentBg} rounded-full transition-all duration-700 ease-out`} style={{ width: `${levelInfo.progressPercent}%` }}></div>
                     </div>
-                    <p className="text-[11px] font-semibold text-slate-500 mt-2 text-center md:text-right">
+                    <p className={`text-[11px] font-semibold ${textSecondary} mt-2 text-center md:text-right`}>
                       {levelInfo.isMax ? "Max Level Reached!" : `${levelInfo.xpRemaining.toLocaleString()} XP to level up`}
                     </p>
                   </div>
 
                   <div className="profile-edit-actions flex gap-3 w-full justify-end">
-                    <button onClick={handleEditClick} className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl shadow-sm ${metallicBorder} ${hoverBg} transition-colors`}>
+                    <button onClick={handleEditClick} className={`px-4 py-2 text-xs md:text-sm font-bold rounded-xl shadow-sm border ${metallicBorder} ${hoverBg} transition-colors`}>
                       Edit Profile
                     </button>
-                    <button onClick={handleShareProfile} className="px-4 py-2 text-xs md:text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl shadow-md shadow-emerald-900/20 transition-all flex items-center justify-center gap-1.5 md:w-36">
+                    <button onClick={handleShareProfile} className={`px-4 py-2 text-xs md:text-sm font-bold ${accentBg} hover:opacity-80 text-white rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 md:w-36`}>
                       {shareText}
                     </button>
                   </div>
@@ -820,9 +860,9 @@ export default function ProfilePage() {
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 quick-stats-grid">
                 {quickStats.map((stat, i) => (
-                  <div key={i} className={`${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-5 rounded-2xl shadow-sm flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 group`}>
+                  <div key={i} className={`${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-5 rounded-2xl shadow-sm flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 group`}>
                     <div className="flex justify-between items-start mb-3">
-                      <div className={`p-2.5 rounded-xl shadow-inner ${metallicBorder} ${isDark ? 'bg-slate-800/50' : 'bg-slate-50'} ${stat.color} group-hover:scale-110 transition-transform`}>{stat.icon}</div>
+                      <div className={`p-2.5 rounded-xl shadow-inner border ${metallicBorder} ${bgMain} ${stat.color} group-hover:scale-110 transition-transform`}>{stat.icon}</div>
                     </div>
                     <div>
                       <h4 className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>{stat.label}</h4>
@@ -835,16 +875,16 @@ export default function ProfilePage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 dashboard-panels-grid">
                 
-                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
+                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-lg">Learning Activity</h3>
-                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${metallicBorder} ${isDark ? 'bg-slate-800' : 'bg-slate-100'} ${textSecondary}`}>12 Weeks</span>
+                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md border ${metallicBorder} ${bgMain} ${textSecondary}`}>12 Weeks</span>
                   </div>
                   <div className="grid grid-cols-12 gap-1.5 mb-6 flex-1 items-center">{generateHeatmap()}</div>
                 </div>
 
-                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col justify-between relative overflow-hidden`}>
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl"></div>
+                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col justify-between relative overflow-hidden`}>
+                  <div className={`absolute top-0 right-0 w-32 h-32 ${accentBgLight} rounded-full blur-2xl`}></div>
                   <div>
                     <h3 className="font-bold text-lg mb-1">Continue Learning</h3>
                     <p className={`text-xs font-medium ${textSecondary}`}>Pick up where you left off</p>
@@ -852,7 +892,7 @@ export default function ProfilePage() {
                   {recentAlgo ? (
                     <>
                       <div className="flex items-center gap-4 mt-6">
-                        <div className={`w-14 h-14 rounded-2xl ${metallicBorder} shadow-inner ${isDark ? 'bg-slate-800/80' : 'bg-slate-100'} flex items-center justify-center text-2xl`}>🧱</div>
+                        <div className={`w-14 h-14 rounded-2xl border ${metallicBorder} shadow-inner ${bgMain} flex items-center justify-center text-2xl`}>🧱</div>
                         <div className="flex-1">
                           <h4 className="font-bold text-sm leading-tight">{recentAlgo.title}</h4>
                           <p className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary} mt-1`}>{recentAlgo.category} • {recentAlgo.difficulty}</p>
@@ -860,24 +900,24 @@ export default function ProfilePage() {
                       </div>
                     </>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center text-sm font-medium text-slate-500 py-10">No pending lessons.</div>
+                    <div className={`flex-1 flex items-center justify-center text-sm font-medium ${textSecondary} py-10`}>No pending lessons.</div>
                   )}
-                  <button onClick={() => setCurrentView('library')} className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-bold rounded-xl shadow-md transition-all mt-6">Explore Library</button>
+                  <button onClick={() => setCurrentView('library')} className={`w-full py-3 ${accentBg} hover:opacity-80 text-white text-sm font-bold rounded-xl shadow-md transition-all mt-6`}>Explore Library</button>
                 </div>
 
-                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
+                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
                   <h3 className="font-bold text-lg mb-1">Topic Mastery</h3>
                   <p className={`text-xs font-medium ${textSecondary} mb-6`}>Progress across categories</p>
                   <div className="space-y-5 flex-1">
                     {algoProgressStats.map((topic, i) => (
                       <div key={i} className="flex items-center justify-between group">
                         <div className="flex items-center gap-3 w-1/3">
-                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${metallicBorder} ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>{topic.icon}</span>
+                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm border ${metallicBorder} ${bgMain}`}>{topic.icon}</span>
                           <span className={`text-xs font-bold ${textSecondary}`}>{topic.name}</span>
                         </div>
                         <div className="w-[45%]">
-                          <div className={`h-1.5 w-full rounded-full ${metallicBorder} ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
-                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${topic.prog}%` }}></div>
+                          <div className={`h-1.5 w-full rounded-full border ${metallicBorder} ${bgMain}`}>
+                            <div className={`h-full ${accentBg} rounded-full`} style={{ width: `${topic.prog}%` }}></div>
                           </div>
                         </div>
                         <span className="text-xs font-black w-10 text-right">{topic.prog}%</span>
@@ -889,15 +929,15 @@ export default function ProfilePage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 dashboard-bottom-grid">
                 
-                <div className={`lg:col-span-2 ${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
+                <div className={`lg:col-span-2 ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
                   <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-3">
                       <h3 className="font-bold text-lg">Saved Algorithms</h3>
-                      <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs ${metallicBorder} ${isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>{savedCodes.length}</span>
+                      <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs border ${metallicBorder} ${bgMain}`}>{savedCodes.length}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-3 mb-6">
-                    <div className={`flex items-center ${metallicBorder} rounded-xl px-3 py-2 flex-1 min-w-[200px] ${isDark ? 'bg-[#0A0D14]' : 'bg-white'}`}>
+                    <div className={`flex items-center border ${metallicBorder} rounded-xl px-3 py-2 flex-1 min-w-[200px] ${bgMain}`}>
                       <span className="text-sm mr-2 text-slate-400">🔍</span>
                       <input type="text" placeholder="Search saved algorithms..." className="bg-transparent border-none outline-none text-sm font-medium w-full" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                     </div>
@@ -912,14 +952,14 @@ export default function ProfilePage() {
                       {savedCodes.filter(c => (c.title || '').toLowerCase().includes(searchQuery.toLowerCase())).slice(0,4).map((item) => (
                         <div 
                           key={item.id} 
-                          className={`${metallicBorder} rounded-2xl p-5 hover:border-indigo-500/50 cursor-pointer ${isDark ? 'bg-slate-900/30' : 'bg-slate-50'}`} 
+                          className={`border ${metallicBorder} rounded-2xl p-5 ${hoverBg} cursor-pointer ${bgMain}`} 
                           onClick={() => {
                             navigate('/profile', { state: { presetCode: item.code_content } });
                             setCurrentView('workspace');
                           }}
                         >
                           <h4 className="font-bold text-sm tracking-tight mb-3">{item.title}</h4>
-                          <div className={`text-xs font-mono p-2 rounded-lg ${metallicBorder} ${isDark ? 'bg-[#0A0D14] text-slate-400' : 'bg-white text-slate-600'} line-clamp-2 h-10 mb-4 shadow-inner`}>
+                          <div className={`text-xs font-mono p-2 rounded-lg border ${metallicBorder} ${bgPanel} line-clamp-2 h-10 mb-4 shadow-inner`}>
                             {item.code_content?.substring(0, 50) || "Code snippet..."}
                           </div>
                         </div>
@@ -931,13 +971,13 @@ export default function ProfilePage() {
                 <div className="space-y-6">
                   
                   {/* --- MINI LEADERBOARD INSTALLED HERE --- */}
-                  <div className={`${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm`}>
+                  <div className={`${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm`}>
                     <div className="flex justify-between items-center mb-6">
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-lg">Top Ranked</h3>
                         <span className="text-amber-500 text-sm drop-shadow-md">🏆</span>
                       </div>
-                      <button onClick={() => setCurrentView('leaderboard')} className={`text-xs font-bold text-indigo-500 hover:text-indigo-400 transition-colors`}>View All</button>
+                      <button onClick={() => setCurrentView('leaderboard')} className={`text-xs font-bold ${accentText} hover:opacity-80 transition-colors`}>View All</button>
                     </div>
                     
                     <div className="space-y-3">
@@ -951,14 +991,14 @@ export default function ProfilePage() {
                             <div 
                               key={player.id} 
                               onClick={() => setCurrentView('leaderboard')}
-                              className={`flex items-center justify-between p-3 rounded-2xl ${metallicBorder} transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-md ${isDark ? 'bg-slate-900/40 hover:bg-slate-800/80' : 'bg-slate-50 hover:bg-white'}`}
+                              className={`flex items-center justify-between p-3 rounded-2xl border ${metallicBorder} transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-md ${bgMain} ${hoverBg}`}
                             >
                               <div className="flex items-center gap-3">
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-white shadow-sm border border-white/20 ${
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-white shadow-sm border ${metallicBorder} ${
                                   rank === 1 ? 'bg-gradient-to-br from-amber-400 to-yellow-600 shadow-yellow-900/30' : 
                                   rank === 2 ? 'bg-gradient-to-br from-slate-300 to-slate-500 shadow-slate-900/30' : 
                                   rank === 3 ? 'bg-gradient-to-br from-orange-400 to-amber-700 shadow-orange-900/30' : 
-                                  'bg-gradient-to-br from-indigo-500 to-purple-600'
+                                  accentBg
                                 }`}>
                                   {(player.display_name || 'U').charAt(0).toUpperCase()}
                                 </div>
@@ -968,7 +1008,7 @@ export default function ProfilePage() {
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className={`text-sm font-black ${rank === 1 ? 'text-amber-500' : rank === 2 ? 'text-slate-400' : rank === 3 ? 'text-orange-500' : 'text-indigo-500'}`}>
+                                <div className={`text-sm font-black ${rank === 1 ? 'text-amber-500' : rank === 2 ? 'text-slate-400' : rank === 3 ? 'text-orange-500' : accentText}`}>
                                   #{rank}
                                 </div>
                                 <div className={`text-[10px] font-semibold ${textSecondary}`}>
@@ -983,7 +1023,7 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Badges/Achievements */}
-                  <div className={`${bgPanel}/90 backdrop-blur-md ${metallicBorder} p-6 rounded-3xl shadow-sm`}>
+                  <div className={`${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm`}>
                     <div className="flex justify-between items-center mb-6">
                       <h3 className="font-bold text-lg">Badges</h3>
                     </div>
@@ -992,7 +1032,7 @@ export default function ProfilePage() {
                       <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-pointer">🏅</div>
                       <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-pointer">🎓</div>
                       <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-pointer">⭐</div>
-                      <div className={`w-10 h-10 rounded-xl ${metallicBorder} ${isDark ? 'bg-slate-800' : 'bg-slate-100'} flex items-center justify-center text-xs font-black ${textSecondary} shadow-inner`}>+8</div>
+                      <div className={`w-10 h-10 rounded-xl border ${metallicBorder} ${bgMain} flex items-center justify-center text-xs font-black ${textSecondary} shadow-inner`}>+8</div>
                     </div>
                   </div>
                   
@@ -1042,11 +1082,11 @@ export default function ProfilePage() {
 
               {/* Leaderboard Table */}
               {restOfLeaderboard.length > 0 && (
-                <div className={`${bgPanel}/90 backdrop-blur-md ${metallicBorder} rounded-3xl p-6 shadow-sm`}>
+                <div className={`${bgPanel}/90 backdrop-blur-md border ${metallicBorder} rounded-3xl p-6 shadow-sm`}>
                   <div className="overflow-x-auto scrollbar-thin">
                     <table className="w-full text-left border-collapse min-w-[500px]">
                       <thead>
-                        <tr className={`border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+                        <tr className={`border-b ${metallicBorder}`}>
                           <th className={`py-4 px-6 text-[10px] font-black uppercase tracking-widest ${textSecondary}`}>Rank</th>
                           <th className={`py-4 px-6 text-[10px] font-black uppercase tracking-widest ${textSecondary}`}>Developer</th>
                           <th className={`py-4 px-6 text-[10px] font-black uppercase tracking-widest ${textSecondary}`}>Level</th>
@@ -1062,34 +1102,32 @@ export default function ProfilePage() {
                           return (
                             <tr 
                               key={player.id} 
-                              className={`border-b last:border-b-0 transition-colors ${
-                                isCurrentUser 
-                                  ? (isDark ? 'bg-indigo-900/20 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200') 
-                                  : (isDark ? 'border-slate-800 hover:bg-slate-900/50' : 'border-slate-200 hover:bg-slate-50')
+                              className={`border-b last:border-b-0 transition-colors border ${metallicBorder} ${
+                                isCurrentUser ? `${accentBgLight}` : hoverBg
                               }`}
                             >
                               <td className="py-4 px-6"><span className={`text-sm font-bold ${textSecondary}`}>#{rank}</span></td>
                               <td className="py-4 px-6">
                                 <div className="flex items-center gap-4">
-                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm ${isCurrentUser ? 'bg-indigo-500' : 'bg-slate-500'}`}>
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm ${isCurrentUser ? accentBg : 'bg-slate-500'}`}>
                                     {(player.display_name || 'U').charAt(0).toUpperCase()}
                                   </div>
                                   <div>
-                                    <div className={`font-bold text-sm flex items-center gap-2 ${isCurrentUser ? 'text-indigo-500' : textPrimary}`}>
+                                    <div className={`font-bold text-sm flex items-center gap-2 ${isCurrentUser ? accentText : textPrimary}`}>
                                       {player.display_name || 'Anonymous'}
-                                      {isCurrentUser && <span className={`text-[9px] px-1.5 py-0.5 rounded border ${isDark ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-indigo-100 border-indigo-300 text-indigo-700'}`}>YOU</span>}
+                                      {isCurrentUser && <span className={`text-[9px] px-1.5 py-0.5 rounded border ${accentBgLight} border ${metallicBorder} ${accentText}`}>YOU</span>}
                                     </div>
                                     <div className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>{honor}</div>
                                   </div>
                                 </div>
                               </td>
                               <td className="py-4 px-6">
-                                <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${metallicBorder} ${isDark ? 'bg-slate-900/60 text-slate-300' : 'bg-white text-slate-700'}`}>
+                                <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${metallicBorder} ${bgMain}`}>
                                   Lv. {level}
                                 </span>
                               </td>
                               <td className="py-4 px-6 text-right">
-                                <span className="text-sm font-black text-indigo-500">{totalXP.toLocaleString()} XP</span>
+                                <span className={`text-sm font-black ${accentText}`}>{totalXP.toLocaleString()} XP</span>
                               </td>
                             </tr>
                           );
@@ -1113,7 +1151,7 @@ export default function ProfilePage() {
                 <p className={`text-sm font-medium ${textSecondary}`}>Explore and visualize {ALGORITHMS_DATABASE.length} computer science algorithms step-by-step.</p>
               </div>
 
-              <div className={`library-filters flex flex-col gap-5 p-6 rounded-3xl ${metallicBorder} ${bgPanel}/90 backdrop-blur-md shadow-sm mb-8`}>
+              <div className={`library-filters flex flex-col gap-5 p-6 rounded-3xl border ${metallicBorder} ${bgPanel}/90 backdrop-blur-md shadow-sm mb-8`}>
                 <div className="flex flex-col lg:flex-row gap-5 items-center justify-between">
                   <div className="relative w-full lg:w-96">
                     <span className={`absolute left-4 top-3 text-sm ${textSecondary}`}>🔍</span>
@@ -1122,11 +1160,11 @@ export default function ProfilePage() {
                       placeholder="Search algorithms or topics..."
                       value={libSearchTerm}
                       onChange={(e) => setLibSearchTerm(e.target.value)}
-                      className={`w-full border rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-inner ${isDark ? 'bg-[#0A0D14] border-slate-800 text-slate-200 placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                      className={`w-full border rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all shadow-inner ${bgMain} ${metallicBorder} ${textPrimary}`}
                     />
                   </div>
 
-                  <div className={`flex flex-wrap border rounded-xl p-1.5 w-full lg:w-auto ${isDark ? 'bg-[#0A0D14] border-slate-800' : 'bg-slate-50 border-slate-200'} shadow-inner`}>
+                  <div className={`flex flex-wrap border rounded-xl p-1.5 w-full lg:w-auto ${bgMain} ${metallicBorder} shadow-inner`}>
                     {libDifficulties.map((diff) => (
                       <button
                         key={diff}
@@ -1136,7 +1174,7 @@ export default function ProfilePage() {
                             ? diff === 'Easy' ? 'bg-emerald-500/20 text-emerald-500 shadow-sm' 
                               : diff === 'Medium' ? 'bg-amber-500/20 text-amber-500 shadow-sm'
                               : diff === 'Hard' ? 'bg-rose-500/20 text-rose-500 shadow-sm'
-                              : 'bg-indigo-500/20 text-indigo-500 shadow-sm'
+                              : `${accentBgLight} ${accentText} shadow-sm`
                             : `${textSecondary} ${hoverBg}`
                         }`}
                       >
@@ -1155,8 +1193,8 @@ export default function ProfilePage() {
                         onClick={() => setLibCategory(cat)}
                         className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
                           libCategory === cat
-                            ? "bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-900/30"
-                            : `${isDark ? 'bg-slate-800/50 border-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'}`
+                            ? `${accentBg} border-transparent text-white shadow-md`
+                            : `${bgPanel} ${metallicBorder} ${textSecondary} ${hoverBg}`
                         }`}
                       >
                         {cat}
@@ -1173,12 +1211,12 @@ export default function ProfilePage() {
                   return (
                     <div 
                       key={algo.id}
-                      className={`border hover:border-indigo-500/50 rounded-3xl p-6 flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-900/10 group ${metallicBorder} ${bgPanel}/90 backdrop-blur-md`}
+                      className={`border rounded-3xl p-6 flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-xl group ${metallicBorder} ${bgPanel}/90 backdrop-blur-md`}
                     >
                       <div>
                         <div className="flex justify-between items-start mb-5">
                           <div className="flex gap-2">
-                            <span className="text-[10px] font-mono uppercase font-black text-indigo-500 bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-1 rounded-md shadow-sm">
+                            <span className={`text-[10px] font-mono uppercase font-black ${accentText} ${accentBgLight} border ${metallicBorder} px-2.5 py-1 rounded-md shadow-sm`}>
                               {algo.category}
                             </span>
                             {isCompleted && (
@@ -1196,7 +1234,7 @@ export default function ProfilePage() {
                           </span>
                         </div>
 
-                        <h3 className={`text-lg font-black mb-3 tracking-tight transition-colors ${isDark ? 'text-slate-100 group-hover:text-indigo-400' : 'text-slate-900 group-hover:text-indigo-600'}`}>
+                        <h3 className={`text-lg font-black mb-3 tracking-tight transition-colors ${textPrimary} group-hover:opacity-80`}>
                           {algo.title}
                         </h3>
 
@@ -1206,25 +1244,21 @@ export default function ProfilePage() {
                       </div>
 
                       <div>
-                        <div className={`flex justify-between py-3 border-t border-b mb-6 font-mono text-[11px] font-bold rounded-xl px-4 ${isDark ? 'border-slate-800/80 text-slate-400 bg-slate-900/50' : 'border-slate-200 text-slate-500 bg-slate-50'} shadow-inner`}>
+                        <div className={`flex justify-between py-3 border-t border-b mb-6 font-mono text-[11px] font-bold rounded-xl px-4 border ${metallicBorder} ${bgMain} shadow-inner`}>
                           <div className="flex flex-col gap-1">
-                            <span className={`text-[9px] uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Time</span>
-                            <span className={isDark ? 'text-slate-200' : 'text-slate-700'}>{algo.timeComplexity}</span>
+                            <span className={`text-[9px] uppercase tracking-widest ${textSecondary}`}>Time</span>
+                            <span className={textPrimary}>{algo.timeComplexity}</span>
                           </div>
-                          <div className={`w-px h-auto ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
+                          <div className={`w-px h-auto ${metallicBorder}`}></div>
                           <div className="flex flex-col gap-1 text-right">
-                            <span className={`text-[9px] uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Space</span>
-                            <span className={isDark ? 'text-slate-200' : 'text-slate-700'}>{algo.spaceComplexity}</span>
+                            <span className={`text-[9px] uppercase tracking-widest ${textSecondary}`}>Space</span>
+                            <span className={textPrimary}>{algo.spaceComplexity}</span>
                           </div>
                         </div>
 
                         <button
                           onClick={() => handleOpenInTracer(algo)}
-                          className={`w-full py-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm border ${
-                            isDark 
-                              ? 'bg-indigo-500/10 hover:bg-indigo-600 border-indigo-500/30 hover:border-indigo-500 text-indigo-400 hover:text-white' 
-                              : 'bg-indigo-50 hover:bg-indigo-600 border-indigo-200 hover:border-indigo-600 text-indigo-700 hover:text-white'
-                          }`}
+                          className={`w-full py-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm border ${accentBgLight} ${accentText} ${metallicBorder} hover:opacity-80`}
                         >
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"></path></svg>
                           <span>{isCompleted ? 'Review Algorithm' : 'Visualize Step-by-Step'}</span>
@@ -1236,7 +1270,7 @@ export default function ProfilePage() {
               </div>
 
               {filteredLibrary.length === 0 && (
-                <div className={`py-24 flex flex-col items-center justify-center text-center rounded-3xl ${metallicBorder} ${isDark ? 'bg-slate-900/30' : 'bg-slate-50'}`}>
+                <div className={`py-24 flex flex-col items-center justify-center text-center rounded-3xl border ${metallicBorder} ${bgMain}`}>
                   <span className="text-5xl mb-5 opacity-50">📭</span>
                   <h3 className="text-xl font-bold mb-2">No algorithms found</h3>
                   <p className={`text-sm font-medium max-w-sm ${textSecondary}`}>
@@ -1244,7 +1278,7 @@ export default function ProfilePage() {
                   </p>
                   <button 
                     onClick={() => { setLibSearchTerm(''); setLibCategory('All'); setLibDifficulty('All'); }}
-                    className={`mt-6 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors ${metallicBorder} ${hoverBg}`}
+                    className={`mt-6 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors border ${metallicBorder} ${hoverBg}`}
                   >
                     Clear Filters
                   </button>
@@ -1257,7 +1291,18 @@ export default function ProfilePage() {
           {/*    WORKSPACE VIEW       */}
           {/* ======================= */}
           {currentView === 'workspace' && (
-            <WorkspacePage isEmbedded={true} />
+            <WorkspacePage 
+              isEmbedded={true} 
+              isDark={isDark} 
+              themeColors={{
+                  bg: bgMain,
+                  panel: bgPanel,
+                  text: textPrimary,
+                  border: metallicBorder,
+                  accentBg: isDark ? '#38B2AC' : '#8C5A48',
+                  accentText: isDark ? '#38B2AC' : '#8C5A48'
+              }} 
+            />
           )}
 
         </main>
@@ -1265,9 +1310,9 @@ export default function ProfilePage() {
 
       {/* --- ROOT-LEVEL LOGOUT CONFIRMATION MODAL WITH BLUR --- */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-slate-950/50 backdrop-blur-md p-4 transition-all">
-          <div className={`w-full max-w-sm rounded-3xl p-8 flex flex-col gap-5 shadow-2xl transition-all ${isDark ? 'bg-[#131822] text-white border border-slate-800' : 'bg-white text-slate-900 border border-slate-200'}`}>
-            <div className="w-14 h-14 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center text-2xl border border-rose-500/20 shadow-inner">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 transition-all">
+          <div className={`w-full max-w-sm rounded-3xl p-8 flex flex-col gap-5 shadow-2xl transition-all border ${metallicBorder} ${bgPanel}`}>
+            <div className={`w-14 h-14 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center text-2xl border border-red-500/20 shadow-inner`}>
               🚪
             </div>
             <div>
@@ -1277,13 +1322,13 @@ export default function ProfilePage() {
             <div className="flex justify-end gap-3 mt-2">
               <button 
                 onClick={() => setShowLogoutConfirm(false)} 
-                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${metallicBorder} ${hoverBg}`}
+                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all border ${metallicBorder} ${hoverBg}`}
               >
                 Cancel
               </button>
               <button 
                 onClick={confirmLogout} 
-                className="px-5 py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-900/30 transition-all"
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold transition-all"
               >
                 Yes, Log Out
               </button>
@@ -1292,7 +1337,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* --- TUTORIAL/TOOLTIP COMPONENT REFERENCES OMITTED FOR BREVITY --- */}
     </div>
   );
 }
