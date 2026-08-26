@@ -1,29 +1,33 @@
 @import "tailwindcss";
+
 /* Media Query Fallbacks for SEO Audit Crawlers */
 @media screen and (max-width: 768px) {
   body {
     overflow-x: hidden;
   }
 }
+
 /* Custom Scrollbar for Webkit Browsers (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
-  width: 12px;
+  width: 6px;  /* Changed from 12px to make it thin globally */
+  height: 6px; /* Added height for horizontal scrollbars */
 }
 
 /* The track (background of the scrollbar) */
 ::-webkit-scrollbar-track {
-  background: #030014; /* Matches your main bg-[#030014] color */
+  background: transparent; /* Let your component background or theme track show through */
 }
 
 /* The draggable thumb */
 ::-webkit-scrollbar-thumb {
-  background: color( rgb(49, 45, 45));
+  background: rgba(100, 100, 100, 0.4);
   border-radius: 10px;
-  /* Adding a border that matches the track background creates a nice "padded" illusion */
-  border: 3px solid #030014; 
+  border: 2px solid transparent; 
+  background-clip: content-box;
 }
 
 /* Hover effect on the draggable thumb */
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #c084fc7e, #67e8f979, #f472b567);
+  background: rgba(150, 150, 150, 0.7);
+  background-clip: content-box;
 }

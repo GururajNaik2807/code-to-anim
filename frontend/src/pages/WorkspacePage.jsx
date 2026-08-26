@@ -11,11 +11,9 @@ import Visualizer from '../components/Visualizer';
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import { Helmet } from 'react-helmet-async'; 
 
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
 
-
-export default function WorkspacePage({ isEmbedded = false, themeColors = null }) {
+export default function WorkspacePage({ isEmbedded = false, themeColors = null, theme = null }) {
   const location = useLocation();
   const navigate = useNavigate(); 
   
@@ -24,6 +22,8 @@ export default function WorkspacePage({ isEmbedded = false, themeColors = null }
 
   const { user, openAuthModal } = useAuth(); 
   const { currentTheme, changeTheme } = useTheme();
+  
+  // Keep isDark for backwards compatibility with children components if needed
   const isDark = currentTheme === 'dark';
 
   const DEFAULT_CODE = `# Welcome to the CodeToAnim Workspace.
@@ -75,7 +75,7 @@ print("Final Sorted Array:", arr)`;
   // --- Save Modal & Acknowledgement Card State ---
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveFileName, setSaveFileName] = useState("");
-  const [savedToast, setSavedToast] = useState(null); // Holds name of successfully saved algorithm
+  const [savedToast, setSavedToast] = useState(null); 
 
   const autoPlayRef = useRef(null);
   const completionCheckRef = useRef(null);
@@ -208,10 +208,8 @@ print("Final Sorted Array:", arr)`;
       });
       if (error) throw error;
       
-      // Trigger Acknowledgement Toast Card
       setSavedToast(saveFileName);
-      setTimeout(() => setSavedToast(null), 4000); // Auto hide after 4 seconds
-
+      setTimeout(() => setSavedToast(null), 4000); 
     } catch (error) {
       setErrorMessage("Failed to save code: " + error.message);
     } finally {
@@ -301,20 +299,44 @@ print("Final Sorted Array:", arr)`;
   const activeLineNumber = currentStep?.line ?? null;
   const consoleOutput = currentStep?.output ?? "";
 
-  // Dynamic colors synching with ProfilePage if embedded
-  const bgMain = themeColors?.bg || (isDark ? 'bg-[#0A0D14]' : 'bg-[#F5EBE1]');
-  const bgNav = themeColors?.panel || (isDark ? 'bg-[#10141D]' : 'bg-[#EFE8DE]');
-  const bgPanel = themeColors?.panel || (isDark ? 'bg-[#131822]' : 'bg-[#EFE8DE]');
-  const textPrimary = themeColors?.text || (isDark ? 'text-slate-100' : 'text-[#3E2723]');
-  const textSecondary = isDark ? 'text-slate-400' : 'text-[#765A51]';
-  const cleanBorder = themeColors ? `border ${themeColors.border}` : (isDark ? 'border border-slate-800/60' : 'border border-[#D7CCC8]');
+  // ==========================================
+  // --- EXACT 3-THEME COLOR MAPPINGS ---
+  // ==========================================
+  const THEME_OPTIONS = ['light', 'dark', 'coffee'];
+  const activeThemeName = THEME_OPTIONS.includes(theme || currentTheme) ? (theme || currentTheme) : 'dark';
 
-  // Action colors adapting to light/dark themes natively
-  const actionBtnClass = isDark 
-    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-purple-900/30' 
-    : 'bg-[#8C5A48] hover:opacity-80 shadow-md';
-  const accentTextClass = isDark ? 'text-purple-400' : 'text-[#8C5A48]';
-  const accentBorderHover = isDark ? 'hover:border-purple-500' : 'hover:border-[#8C5A48]';
+  const themeStyles = {
+    dark: {
+      bgMain: 'bg-[#0A1118]', bgNav: 'bg-[#111A22]', bgPanel: 'bg-[#111A22]', 
+      textPrimary: 'text-[#E2E8F0]', textSecondary: 'text-[#94A3B8]', metallicBorder: 'border-[#1E293B]',
+      actionBtnClass: 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-900/30',
+      accentTextClass: 'text-[#38B2AC]', accentBorderHover: 'hover:border-[#38B2AC]'
+    },
+    coffee: {
+      bgMain: 'bg-[#F5EBE1]', bgNav: 'bg-[#EFE8DE]', bgPanel: 'bg-[#EFE8DE]', 
+      textPrimary: 'text-[#3E2723]', textSecondary: 'text-[#765A51]', metallicBorder: 'border-[#D7CCC8]',
+      actionBtnClass: 'bg-[#8C5A48] hover:opacity-80 text-white shadow-md',
+      accentTextClass: 'text-[#8C5A48]', accentBorderHover: 'hover:border-[#8C5A48]'
+    },
+    light: {
+      bgMain: 'bg-[#FFFFFF]', bgNav: 'bg-[#D2F4F8]', bgPanel: 'bg-[#D2F4F8]', 
+      textPrimary: 'text-[#0F172A]', textSecondary: 'text-[#475569]', metallicBorder: 'border-[#BBE8ED]',
+      actionBtnClass: 'bg-[#00CED1] hover:opacity-80 text-white shadow-md',
+      accentTextClass: 'text-[#00CED1]', accentBorderHover: 'hover:border-[#00CED1]'
+    }
+  };
+
+  const activeStyle = themeStyles[activeThemeName];
+  const bgMain = isEmbedded && themeColors ? themeColors.bg : activeStyle.bgMain;
+  const bgNav = isEmbedded && themeColors ? themeColors.panel : activeStyle.bgNav;
+  const bgPanel = isEmbedded && themeColors ? themeColors.panel : activeStyle.bgPanel;
+  const textPrimary = isEmbedded && themeColors ? themeColors.text : activeStyle.textPrimary;
+  const textSecondary = activeStyle.textSecondary;
+  const cleanBorder = isEmbedded && themeColors ? `border ${themeColors.border}` : `border ${activeStyle.metallicBorder}`;
+  const actionBtnClass = activeStyle.actionBtnClass;
+  const accentTextClass = activeStyle.accentTextClass;
+  const accentBorderHover = activeStyle.accentBorderHover;
+  const logoBg = activeThemeName === 'dark' ? 'bg-gradient-to-br from-purple-600/20 to-indigo-600/20' : activeThemeName === 'light' ? 'bg-[#00CED1]/10' : 'bg-[#8C5A48]/10';
 
   return (
     <>
@@ -348,7 +370,8 @@ print("Final Sorted Array:", arr)`;
         }
       `}</style>
 
-      <div className={`${isEmbedded ? 'h-full w-full' : 'h-screen w-screen'} flex font-sans overflow-hidden ${bgMain} ${textPrimary}`}>
+      {/* Changed w-screen to w-full to avoid scrollbar layout shift bugs */}
+      <div className={`${isEmbedded ? 'h-full w-full' : 'h-screen w-full'} flex font-sans overflow-hidden ${bgMain} ${textPrimary}`}>
         <LoginModal />
 
         {/* --- SUCCESS ACKNOWLEDGEMENT TOAST CARD --- */}
@@ -418,9 +441,9 @@ print("Final Sorted Array:", arr)`;
         )}
 
         {!isEmbedded && (
-          <aside className={`hidden md:flex w-16 flex-shrink-0 ${cleanBorder} border-y-0 border-l-0 ${bgNav} flex-col items-center justify-between py-4 z-20 ws-mobile-hide`}>
+          <aside className={`hidden md:flex w-16 shrink-0 ${cleanBorder} border-y-0 border-l-0 ${bgNav} flex-col items-center justify-between py-4 z-20 ws-mobile-hide`}>
             <div className="flex flex-col items-center gap-6">
-              <Link to="/" className={`w-10 h-10 rounded-xl flex items-center justify-center p-2 hover:scale-105 transition-transform ${cleanBorder} ${isDark ? 'bg-gradient-to-br from-purple-600/20 to-indigo-600/20' : 'bg-[#8C5A48]/10'}`}>
+              <Link to="/" className={`w-10 h-10 rounded-xl flex items-center justify-center p-2 hover:scale-105 transition-transform ${cleanBorder} ${logoBg}`}>
                 <img src="/favicon.svg" alt="CodeAnim Logo" className="w-full h-full object-contain" />
               </Link>
 
@@ -547,14 +570,14 @@ print("Final Sorted Array:", arr)`;
           </header>
 
           <div className="flex-1 flex overflow-hidden relative ws-mobile-main-row">
-            <aside className={`group relative flex-shrink-0 ${cleanBorder} border-y-0 border-l-0 ${bgPanel} transition-[width,padding] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col justify-between overflow-hidden ws-mobile-desc-panel ${
+            <aside className={`group relative shrink-0 ${cleanBorder} border-y-0 border-l-0 ${bgPanel} transition-[width,padding] duration-500 ease-in-out flex flex-col justify-between overflow-hidden ws-mobile-desc-panel ${
               isDescriptionOpen ? "w-64 p-5" : "w-12 p-2 items-center ws-mobile-closed"
             }`}>
              
              {/* THE COOL TOGGLE BUTTON */}
              <button 
               onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
-              className={`absolute top-4 right-2.5 z-20 w-7 h-7 rounded-full ${cleanBorder} ${bgNav} flex items-center justify-center ${accentTextClass} transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hidden md:flex shadow-md ${isDark ? 'hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] hover:border-purple-500' : 'hover:shadow-md hover:border-[#8C5A48]'} ${isDescriptionOpen ? 'scale-100 hover:scale-110' : 'scale-90 hover:scale-110 rotate-180'}`}
+              className={`absolute top-4 right-2.5 z-20 w-7 h-7 rounded-full ${cleanBorder} ${bgNav} flex items-center justify-center ${accentTextClass} transition-all duration-500 ease-in-out hidden md:flex shadow-md ${isDark ? 'hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] hover:border-purple-500' : 'hover:shadow-md hover:border-[#8C5A48]'} ${isDescriptionOpen ? 'scale-100 hover:scale-110' : 'scale-90 hover:scale-110 rotate-180'}`}
               title={isDescriptionOpen ? "Collapse Description" : "Expand Description"}
              >
               <svg className="w-4 h-4 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
@@ -604,10 +627,9 @@ print("Final Sorted Array:", arr)`;
             </aside>
             <div className="flex-1 flex flex-col overflow-hidden ws-mobile-workspace-col">
               
-              {/* Added rounded-3xl, cleanBorder, and margin to create one unified floating box */}
               <div className={`flex-1 flex overflow-hidden relative ws-mobile-editor-row rounded-3xl m-4 ${cleanBorder} shadow-sm`}>
                 
-                <div className={`${isEditorOpen ? 'w-full md:w-1/2 lg:w-[45%] flex-shrink-0' : 'hidden'} flex flex-col h-full overflow-hidden transition-all`}>
+                <div className={`${isEditorOpen ? 'w-full md:w-1/2 lg:w-[45%] shrink-0' : 'hidden'} flex flex-col h-full overflow-hidden transition-all`}>
                   <Editor 
                     code={code} 
                     setCode={setCode} 
@@ -620,17 +642,19 @@ print("Final Sorted Array:", arr)`;
                     handleExecuteTrace={handleExecuteTrace} 
                     isLoading={isLoading} 
                     isDark={isDark}
+                    activeThemeName={activeThemeName} 
                     isEditorOpen={isEditorOpen}
                     setIsEditorOpen={setIsEditorOpen}
                   />
                 </div>
 
-                <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative bg-black/5 dark:bg-black/20 shadow-inner">
+                <div className={`flex-1 flex flex-col h-full min-w-0 overflow-hidden relative ${bgMain} shadow-inner`}>
                   <Visualizer 
                     steps={steps} 
                     currentStepIndex={currentStepIndex} 
                     errorMessage={errorMessage} 
                     isDark={isDark}
+                    activeThemeName={activeThemeName} 
                   />
                 </div>
                 
