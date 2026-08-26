@@ -1,55 +1,14 @@
-import React, { useEffect, useState, useMemo, memo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { motion } from 'framer-motion';
 import TutorialModal from './TutorialModal'; 
 import TooltipTour from './TooltipTour'; 
 import FeedbackWidget from './FeedbackWidget'; 
 
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import WorkspacePage from './WorkspacePage';
-
-// --- OPTIMIZATION: Ambient Neon Wave Background for Low-End Devices ---
-const AmbientBackground = memo(({ theme }) => {
-  let color1, color2;
-  
-  if (theme === 'dark') {
-    color1 = `rgba(37, 133, 139, 0.05)`; 
-    color2 = `rgba(20, 184, 166, 0.05)`;
-  } else if (theme === 'coffee') {
-    color1 = `rgba(118, 66, 48, 0.08)`; 
-    color2 = `rgba(168, 114, 91, 0.08)`;
-  } else {
-    // Light Mode Ambient (Cyan & Lavender)
-    color1 = `rgba(0, 206, 209, 0.05)`; 
-    color2 = `rgba(196, 181, 253, 0.05)`;
-  }
-
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      <motion.div
-        className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full"
-        style={{ backgroundColor: color1, filter: "blur(120px)", willChange: "transform" }}
-        animate={{ x: [0, 60, 0], y: [0, 40, 0], scale: [1, 1.2, 1] }}
-        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute top-[20%] right-[-10%] w-[50vw] h-[50vw] rounded-full"
-        style={{ backgroundColor: color2, filter: "blur(130px)", willChange: "transform" }}
-        animate={{ x: [0, -50, 0], y: [0, 70, 0], scale: [1, 1.3, 1] }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute bottom-[-20%] left-[20%] w-[70vw] h-[70vw] rounded-full"
-        style={{ backgroundColor: color1, filter: "blur(140px)", willChange: "transform" }}
-        animate={{ x: [0, 40, 0], y: [0, -60, 0], scale: [1, 1.1, 1] }}
-        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-      />
-    </div>
-  );
-});
 
 // --- Level System Definitions ---
 const HONORS = [
@@ -135,36 +94,59 @@ export default function ProfilePage() {
   const themeStyles = {
     dark: {
       bgMain: 'bg-[#0A1118]', bgPanel: 'bg-[#111A22]', textPrimary: 'text-[#E2E8F0]', textSecondary: 'text-[#94A3B8]',
+      scrollTrack: '[&::-webkit-scrollbar-track]:!bg-[#0A1118]',
       metallicBorder: 'border-[#1E293B]', hoverBg: 'hover:bg-[#1E293B]', hoverBorder: 'hover:border-[#38B2AC]', 
       accentText: 'text-[#38B2AC]', accentBg: 'bg-[#38B2AC]', accentBgLight: 'bg-[#38B2AC]/10',
       scrollThumb: '[&::-webkit-scrollbar-thumb]:bg-[#1E293B] hover:[&::-webkit-scrollbar-thumb]:bg-[#38B2AC]',
-      hexAccent: '#38B2AC', sidebarBg: 'border-r border-[#1E293B] bg-[#111A22]/95', sidebarText: 'text-[#E2E8F0]', sidebarTextSecondary: 'text-[#94A3B8]'
+      hexAccent: '#38B2AC', sidebarBg: 'border-r border-[#1E293B] bg-[#111A22]/95', sidebarText: 'text-[#E2E8F0]', sidebarTextSecondary: 'text-[#94A3B8]',
+      activeSidebar: 'bg-[#38B2AC]/10 text-[#38B2AC] shadow-inner',
+      inactiveSidebar: 'text-[#94A3B8] hover:bg-[#1E293B]'
     },
     coffee: {
       bgMain: 'bg-[#F5EBE1]', bgPanel: 'bg-[#EFE8DE]', textPrimary: 'text-[#3E2723]', textSecondary: 'text-[#765A51]',
+      scrollTrack: '[&::-webkit-scrollbar-track]:!bg-[#F5EBE1]',
       metallicBorder: 'border-[#D7CCC8]', hoverBg: 'hover:bg-[#E8DED4]', hoverBorder: 'hover:border-[#8C5A48]', 
       accentText: 'text-[#8C5A48]', accentBg: 'bg-[#8C5A48]', accentBgLight: 'bg-[#8C5A48]/10',
       scrollThumb: '[&::-webkit-scrollbar-thumb]:bg-[#D7CCC8] hover:[&::-webkit-scrollbar-thumb]:bg-[#8C5A48]',
-      hexAccent: '#8C5A48', sidebarBg: 'bg-[#8C5A48] border-none', sidebarText: 'text-white', sidebarTextSecondary: 'text-white/70'
+      hexAccent: '#8C5A48', sidebarBg: 'bg-[#8C5A48] border-none', sidebarText: 'text-white', sidebarTextSecondary: 'text-white/70',
+      activeSidebar: 'bg-white text-black shadow-md', // Fixed to black text for Coffee theme
+      inactiveSidebar: 'text-white/70 hover:bg-white/20 hover:text-white'
     },
     light: {
-      bgMain: 'bg-[#FFFFFF]', bgPanel: 'bg-[#D2F4F8]', textPrimary: 'text-[#0F172A]', textSecondary: 'text-[#475569]',
-      metallicBorder: 'border-[#BBE8ED]', hoverBg: 'hover:bg-[#C2EFF4]', hoverBorder: 'hover:border-[#C4B5FD]', 
-      accentText: 'text-[#00B4D8]', accentBg: 'bg-[#00CED1]', accentBgLight: 'bg-[#00CED1]/10',
-      scrollThumb: '[&::-webkit-scrollbar-thumb]:bg-[#BBE8ED] hover:[&::-webkit-scrollbar-thumb]:bg-[#00CED1]',
-      hexAccent: '#00CED1', sidebarBg: 'bg-[#00CED1] border-none', sidebarText: 'text-white', sidebarTextSecondary: 'text-white/80'
+      bgMain: 'bg-[#FFFFFF]', 
+      scrollTrack: '[&::-webkit-scrollbar-track]:!bg-[#FFFFFF]',
+      bgPanel: 'bg-[#D2F4F8]', 
+      textPrimary: 'text-[#0F172A]', 
+      textSecondary: 'text-[#475569]', 
+      metallicBorder: 'border-[#BBE8ED]', 
+      hoverBg: 'hover:bg-[#C4B5FD]/20', 
+      hoverBorder: 'hover:border-[#C4B5FD]', 
+      accentText: 'text-[#7C3AED]', 
+      accentBg: 'bg-[#00CED1]', 
+      accentBgLight: 'bg-[#C4B5FD]/20', 
+      scrollThumb: '[&::-webkit-scrollbar-thumb]:bg-[#BBE8ED] hover:[&::-webkit-scrollbar-thumb]:bg-[#C4B5FD]', 
+      hexAccent: '#00CED1', 
+      sidebarBg: 'bg-[#00CED1] border-none', 
+      sidebarText: 'text-[#0F172A]', 
+      sidebarTextSecondary: 'text-[#0F172A]/70',
+      activeSidebar: 'bg-white text-[#00CED1] shadow-md',
+      inactiveSidebar: 'text-[#0F172A]/70 hover:bg-white/20 hover:text-[#0F172A]'
     }
   };
 
   const activeTheme = themeStyles[activeThemeName];
-  const { bgMain, bgPanel, textPrimary, textSecondary, metallicBorder, hoverBg, hoverBorder, accentText, accentBg, accentBgLight, scrollThumb, hexAccent, sidebarBg, sidebarText, sidebarTextSecondary } = activeTheme;
+  const { bgMain, bgPanel, textPrimary, textSecondary, metallicBorder, hoverBg, hoverBorder, accentText, accentBg, accentBgLight, scrollThumb, scrollTrack, hexAccent, sidebarBg, sidebarText, sidebarTextSecondary, activeSidebar, inactiveSidebar } = activeTheme;
 
   const isDark = activeThemeName === 'dark';
 
   const scrollbarStyles = `
-    [&::-webkit-scrollbar]:w-1.5 
-    [&::-webkit-scrollbar-track]:bg-transparent 
+    [&::-webkit-scrollbar]:w-2
+    ${scrollTrack}
+    [&::-webkit-scrollbar-track]:rounded-full
     [&::-webkit-scrollbar-thumb]:rounded-full 
+    [&::-webkit-scrollbar-thumb]:border-2 
+    [&::-webkit-scrollbar-thumb]:border-transparent 
+    [&::-webkit-scrollbar-thumb]:bg-clip-content
     ${scrollThumb}
   `;
 
@@ -449,7 +431,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className={`h-screen w-screen flex flex-col items-center justify-center font-mono gap-4 ${bgMain} ${textPrimary}`}>
+      <div className={`h-screen w-full flex flex-col items-center justify-center font-mono gap-4 ${bgMain} ${textPrimary}`}>
         <div className={`w-10 h-10 border-4 border-t-transparent rounded-full animate-spin border-[${hexAccent}]`}></div>
         <p className={`text-sm tracking-widest uppercase font-bold animate-pulse ${accentText}`}>Loading Dashboard...</p>
       </div>
@@ -523,18 +505,28 @@ export default function ProfilePage() {
     );
   };
 
-  const activeSidebarClass = isDark ? `${accentBgLight} ${accentText} shadow-inner` : 'bg-white/20 text-white shadow-inner';
-  const inactiveSidebarClass = isDark ? `${textSecondary} ${hoverBg}` : `${sidebarTextSecondary} hover:bg-white/10 hover:text-white`;
+  // --- Layout Variables for Sidebar ---
+  const isCollapsed = !isSidebarHovered && !isMobile;
 
+  // Keep the height fixed and smoothly transition width and padding
+  const itemLayout = `relative flex items-center h-12 mx-auto transition-all duration-300 overflow-hidden ${
+    isCollapsed ? 'w-12 justify-center rounded-2xl' : 'w-[calc(100%-1.5rem)] justify-start px-4 rounded-xl'
+  }`;
+
+  const activeSidebarClass = activeSidebar;
+  const inactiveSidebarClass = inactiveSidebar;
+
+  // w-full instead of w-screen to fix global CSS scrollbar pushing layout!
   return (
-    <div className={`flex h-screen w-screen font-sans ${bgMain} ${textPrimary} overflow-hidden relative`}>
-      <AmbientBackground theme={activeThemeName} />
+    <div className={`flex h-screen w-full font-sans ${bgMain} ${textPrimary} overflow-hidden relative`}>
 
       <style>{`
         @keyframes scroll-left { 0% { transform: translateX(0%); } 100% { transform: translateX(-100%); } }
         .animate-scroll-left { animation: scroll-left 30s linear infinite; }
         .animate-scroll-left:hover { animation-play-state: paused; }
-        .sidebar-text { opacity: ${isMobile || isSidebarHovered ? '1' : '0'}; transition: opacity 0.2s ease-in-out; white-space: nowrap; overflow: hidden; }
+        
+        /* Subtle transition for text appearance */
+        .sidebar-text { transition: opacity 0.2s ease-in-out; white-space: nowrap; overflow: hidden; }
 
         @media (max-width: 768px) {
           .sidebar-container { position: absolute !important; height: 100% !important; z-index: 50 !important; box-shadow: 5px 0 20px rgba(0,0,0,0.5) !important; }
@@ -572,45 +564,58 @@ export default function ProfilePage() {
 
       {/* Sidebar Container */}
       <div 
-        className={`sidebar-container transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden relative z-20 rounded-3xl ${isMobile ? (isSidebarOpen ? 'w-64' : 'w-0') : (isSidebarHovered ? 'w-64' : 'w-20')}`}
+        className={`sidebar-container transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden relative z-20 rounded-r-[2rem] ${isMobile ? (isSidebarOpen ? 'w-64' : 'w-0') : (isSidebarHovered ? 'w-64' : 'w-20')}`}
         onMouseEnter={() => !isMobile && setIsSidebarHovered(true)}
         onMouseLeave={() => !isMobile && setIsSidebarHovered(false)}
       >
-        <aside className={`w-64 h-full ${sidebarBg} backdrop-blur-md flex flex-col justify-between overflow-y-auto ${scrollbarStyles}`}>
+        <aside className={`w-full h-full ${sidebarBg} backdrop-blur-md flex flex-col justify-between overflow-y-auto ${scrollbarStyles}`}>
           <div>
-            <Link to="/" className="h-16 flex items-center px-6 font-extrabold text-xl tracking-tight border-b border-transparent group transition-all">
-              <img src="/favicon.svg" alt="CodeToAnim Logo" className="w-7 h-7 mr-3 shrink-0 rounded-md object-contain group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" />
-              <span className={`sidebar-text ${sidebarText} transition-colors`}>CodeTo<span className="opacity-80">Anim</span></span>
+            <Link to="/" className={`h-16 flex items-center tracking-tight border-b border-transparent group transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'px-6'}`}>
+              <img 
+                src="/favicon.svg" 
+                alt="CodeToAnim Logo" 
+                className={`shrink-0 rounded-md object-contain transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 ${isCollapsed ? 'w-9 h-9' : 'w-7 h-7'}`} 
+              />
+              <span className={`font-extrabold text-xl whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[150px] opacity-100 ml-3'} ${sidebarText}`}>
+                CodeTo<span className="opacity-80">Anim</span>
+              </span>
             </Link>
-            
-            <div className="px-4 py-4">
+
+            <div className="py-4 border-b border-white/10">
               <button 
                 onClick={() => handleNavClick('dashboard')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                  currentView === 'dashboard' ? activeSidebarClass : inactiveSidebarClass
-                }`}
+                className={`font-bold transition-all duration-300 ${itemLayout} ${currentView === 'dashboard' ? activeSidebarClass : inactiveSidebarClass}`}
               >
-                <Icons.Home />
-                <span className="sidebar-text">Dashboard</span>
+                <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center"><Icons.Home /></div>
+                {/* Note: Removed ${sidebarText} so it arbs active/inactive class color naturally! */}
+                <span className={`text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[150px] opacity-100 ml-3'}`}>
+                  Dashboard
+                </span>
               </button>
             </div>
-            
-            <div className="px-4 pb-6">
+
+            <div className="py-6">
               {navLinks.map((group, idx) => (
-                <div key={idx} className="mt-6">
-                  <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-3 px-4 sidebar-text ${sidebarTextSecondary}`}>{group.section}</h4>
-                  <div className="space-y-1">
+                <div key={idx} className={idx > 0 ? "mt-6" : ""}>
+                  <h4 className={`text-[10px] font-bold uppercase tracking-widest mb-3 whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'text-center px-0 opacity-50' : 'px-6 opacity-100'} ${sidebarTextSecondary}`}>
+                    {isCollapsed ? '•••' : group.section}
+                  </h4>
+                  <div className="space-y-1.5">
                     {group.links.map((link, lIdx) => {
                       const activeClasses = link.isActive ? activeSidebarClass : inactiveSidebarClass;
                       return link.action ? (
-                        <button key={lIdx} onClick={link.action} className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeClasses}`}>
-                          {link.icon}
-                          <span className="sidebar-text">{link.name}</span>
+                        <button key={lIdx} onClick={link.action} className={`font-bold transition-all duration-300 ${itemLayout} ${activeClasses}`}>
+                          <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">{link.icon}</div>
+                          <span className={`text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[150px] opacity-100 ml-3'}`}>
+                            {link.name}
+                          </span>
                         </button>
                       ) : (
-                        <Link key={lIdx} to={link.path} className={`flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeClasses}`}>
-                          {link.icon}
-                          <span className="sidebar-text">{link.name}</span>
+                        <Link key={lIdx} to={link.path} className={`font-bold transition-all duration-300 ${itemLayout} ${activeClasses}`}>
+                          <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">{link.icon}</div>
+                          <span className={`text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[150px] opacity-100 ml-3'}`}>
+                            {link.name}
+                          </span>
                         </Link>
                       );
                     })}
@@ -619,15 +624,29 @@ export default function ProfilePage() {
               ))}
             </div>
           </div>
-          <div className={`p-4 ${isDark ? `border-t ${metallicBorder}` : 'border-none'}`}>
-            <button onClick={cycleTheme} className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-colors shadow-sm ${!isDark ? 'border-transparent hover:bg-white/10' : `border ${metallicBorder} ${hoverBg}`}`}>
-              <div className={`flex items-center gap-3 text-sm font-semibold ${!isDark ? 'text-white/80' : textSecondary}`}>
-                {activeThemeName === 'dark' && <Icons.Moon />}
-                {activeThemeName === 'light' && <Icons.Sun />}
-                {activeThemeName === 'coffee' && <span className="text-lg leading-none">☕</span>}
-                <span className={`sidebar-text ${sidebarText}`}>Theme</span>
+
+          <div className={`p-4 mt-auto ${isDark ? `border-t ${metallicBorder}` : 'border-none'}`}>
+            <button 
+              onClick={cycleTheme} 
+              className={`flex items-center h-12 mx-auto transition-all duration-300 overflow-hidden shadow-sm ${
+                isCollapsed 
+                  ? 'w-12 justify-center rounded-2xl bg-black/10 hover:bg-black/20' 
+                  : `w-[calc(100%-1rem)] px-4 justify-between rounded-xl ${!isDark ? 'bg-black/5 hover:bg-black/10' : `border ${metallicBorder} ${hoverBg}`}`
+              }`}
+            >
+              <div className={`flex items-center text-sm font-bold ${!isDark ? sidebarText : textSecondary}`}>
+                <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                  {activeThemeName === 'dark' && <Icons.Moon />}
+                  {activeThemeName === 'light' && <Icons.Sun />}
+                  {activeThemeName === 'coffee' && <span className="text-lg leading-none">☕</span>}
+                </div>
+                <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[100px] opacity-100 ml-3'} ${sidebarText}`}>
+                  Theme
+                </span>
               </div>
-              <span className={`sidebar-text text-xs font-medium capitalize ${sidebarTextSecondary}`}>{activeThemeName}</span>
+              <span className={`text-xs font-medium capitalize whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[60px] opacity-100'} ${sidebarTextSecondary}`}>
+                {activeThemeName}
+              </span>
             </button>
           </div>
         </aside>
