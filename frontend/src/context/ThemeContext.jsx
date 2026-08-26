@@ -4,11 +4,17 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
-  // Initialize state from localStorage, defaulting to 'dark'
+  // Initialize state from sessionStorage first, then localStorage, defaulting to 'dark'
   const [currentTheme, setCurrentTheme] = useState(() => {
     try {
+      const sessionTheme = sessionStorage.getItem('codeanim_session_theme');
       const savedTheme = localStorage.getItem('app_theme');
-      return savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'dark';
+      const validThemes = ['light', 'dark', 'coffee'];
+      
+      if (sessionTheme && validThemes.includes(sessionTheme)) return sessionTheme;
+      if (savedTheme && validThemes.includes(savedTheme)) return savedTheme;
+      
+      return 'dark';
     } catch (error) {
       return 'dark';
     }
@@ -16,26 +22,26 @@ export function ThemeProvider({ children }) {
 
   // Function to change the theme and persist it
   const changeTheme = (themeName) => {
-    if (themeName !== 'light' && themeName !== 'dark') return;
+    // Whitelist all 3 themes
+    if (!['light', 'dark', 'coffee'].includes(themeName)) return;
     
     setCurrentTheme(themeName);
     
     try {
       localStorage.setItem('app_theme', themeName);
+      // Keep session bucket in sync for the database tab-close optimization
+      sessionStorage.setItem('codeanim_session_theme', themeName);
+      sessionStorage.setItem('codeanim_theme_changed', 'true');
     } catch (error) {
-      console.warn('Could not save theme to localStorage:', error);
+      console.warn('Could not save theme to storage:', error);
     }
   };
 
-  // Optional: Apply a global class to the <body> if you ever want to use standard Tailwind dark mode (e.g. `dark:bg-gray-900`)
+  // Dynamically apply the current theme class to the <body> 
+  // while stripping out the inactive ones.
   useEffect(() => {
-    if (currentTheme === 'dark') {
-      document.body.classList.add('dark');
-      document.body.classList.remove('light');
-    } else {
-      document.body.classList.add('light');
-      document.body.classList.remove('dark');
-    }
+    document.body.classList.remove('light', 'dark', 'coffee');
+    document.body.classList.add(currentTheme);
   }, [currentTheme]);
 
   return (
