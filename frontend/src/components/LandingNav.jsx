@@ -82,9 +82,9 @@ export default function LandingNav() {
         {/* 2. CENTER: Navigation Links (Added Home) */}
         <nav className="hidden md:flex items-center justify-center gap-8">
           <Link to="/" className={getLinkClass('/')}>Home</Link>
-          <Link to="/learn" className={getLinkClass('/learn')}>Learn</Link>
-          <Link to="/workspace" className={getLinkClass('/workspace')}>Visualize</Link>
           <Link to="/algorithms" className={getLinkClass('/algorithms')}>Explore</Link>
+          <Link to="/workspace" className={getLinkClass('/workspace')}>Visualize</Link>
+          <Link to="/learn" className={getLinkClass('/learn')}>Learn</Link>
           <Link to="/about" className={getLinkClass('/about')}>About</Link>
         </nav>
 
@@ -165,9 +165,9 @@ export default function LandingNav() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-(--ink-line) bg-(--canvas-paper) px-6 py-4 flex flex-col gap-3 z-50 absolute w-full shadow-xl">
           <Link to="/" className={`py-2 ${getLinkClass('/')}`}>Home</Link>
+          <Link to="/algorithms" className={`py-2 ${getLinkClass('/algorithms')}`}>Explore</Link>
           <Link to="/learn" className={`py-2 ${getLinkClass('/learn')}`}>Learn</Link>
           <Link to="/workspace" className={`py-2 ${getLinkClass('/workspace')}`}>Visualize</Link>
-          <Link to="/algorithms" className={`py-2 ${getLinkClass('/algorithms')}`}>Explore</Link>
           <Link to="/about" className={`py-2 ${getLinkClass('/about')}`}>About</Link>
           
           {/* Mobile Auth Links */}

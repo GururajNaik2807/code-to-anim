@@ -15,6 +15,7 @@ The application intentionally has two experiences:
 - [Public and SEO mindset](#public-and-seo-mindset)
 - [Authenticated dashboard mindset](#authenticated-dashboard-mindset)
 - [State and data flow](#state-and-data-flow)
+- [GA4 analytics architecture](#ga4-analytics-architecture)
 - [Key modules](#key-modules)
 - [Local development](#local-development)
 - [Build and validation](#build-and-validation)
@@ -32,6 +33,7 @@ App.jsx
   |-- ThemeProvider        light, dark, and coffee themes
   |-- BrowserRouter        public routes and /profile entry point
   |-- GlobalTracker        authenticated learning-time tracking
+  |-- Analytics            GA4 page views and product events (planned)
   |
   +-- Public pages         Landing, Learn, Algorithms, Workspace, About, Community, etc.
   +-- ProfilePage          authenticated dashboard shell
@@ -77,6 +79,7 @@ frontend/
 - `context/` owns state needed across many pages. Keep page-specific data local unless multiple route surfaces genuinely need it.
 - `data/` is the source of truth for the static algorithm and lesson catalogs. Routes and filters should consume these exports rather than duplicate records.
 - `hooks/` contains lifecycle behavior independent of page layout. `useLearningTracker` records active learning time for the signed-in user.
+- `analytics/` should contain GA4 initialization, event names, and tracking helpers when analytics implementation begins. Keep analytics calls out of visual components where possible.
 
 ## Route map
 
@@ -157,6 +160,102 @@ The browser client reads:
 - `VITE_SUPABASE_ANON_KEY`
 
 Create these in a local `frontend/.env` file or through the deployment environment. The anon key is intended for browser use; never place a service-role key in the frontend.
+
+## GA4 analytics architecture
+
+GA4 should measure the learning journey across both application surfaces without becoming coupled to page markup. React Router is the source of truth for page views; meaningful user actions are tracked through a small, stable event vocabulary.
+
+### Recommended implementation boundary
+
+Add analytics as a cross-cutting layer under `src/analytics/`:
+
+```text
+src/analytics/
+|-- config.js                GA4 measurement ID and runtime enablement
+|-- analytics.js             initialize GA4 and expose safe tracking functions
+|-- events.js                event-name constants and parameter builders
++-- AnalyticsTracker.jsx     subscribes to React Router location changes
+```
+
+This directory does not exist yet. It is the recommended home for the GA4 implementation so pages do not each initialize Google Analytics independently.
+
+### Environment configuration
+
+Use a Vite public environment variable for the measurement ID:
+
+```env
+VITE_GA4_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+
+The measurement ID is not a secret, but it should be configured per environment. Keep analytics disabled when the variable is missing or when the user has not granted the required analytics consent.
+
+Do not send passwords, access tokens, email addresses, full user IDs, saved code, feedback text, or arbitrary source code to GA4. Prefer anonymous aggregate measurement.
+
+### SPA page-view model
+
+React Router changes the URL without reloading the document, so GA4 must receive one page view after each location change. Track the canonical route, not rendered text:
+
+| Route family | Recommended page category |
+| --- | --- |
+| `/` | Landing |
+| `/learn` | Learn hub |
+| `/learn/:category/:topic` | Lesson |
+| `/algorithms` | Algorithm library |
+| `/workspace` | Public workspace |
+| `/profile` | Authenticated dashboard |
+| `/about`, `/community`, `/leaderboard` | Public page |
+| `/p/:userId` | Public profile |
+
+Do not send query strings, Supabase tokens, recovery codes, or arbitrary `location.state` values as page-view parameters. For public profiles, use the route category only and never send `userId` to GA4.
+
+### Event naming convention
+
+Use lowercase `snake_case` event names and stable parameter names. Events should describe meaningful product actions, not clicks on particular CSS elements.
+
+| Event | When to send | Safe parameters |
+| --- | --- | --- |
+| `lesson_view` | A valid lesson is opened | `lesson_category`, `lesson_topic` |
+| `lesson_start_visualization` | A lesson opens in the workspace | `lesson_category`, `lesson_topic` |
+| `algorithm_search` | A search is submitted or meaningfully debounced | `result_count`, `search_surface` |
+| `algorithm_filter` | Library filters change | `category`, `difficulty`, `result_count` |
+| `workspace_run` | A trace request completes | `workspace_type`, `success`, `step_count_bucket` |
+| `workspace_save` | Code is saved successfully | `workspace_type` |
+| `algorithm_complete` | An algorithm or lesson is completed | `completion_type` |
+| `auth_start` | Login, sign-up, OAuth, or recovery begins | `method`, `auth_action` |
+| `auth_result` | An auth flow succeeds or fails | `method`, `auth_action`, `success` |
+| `feedback_submit` | Feedback is accepted by Supabase | `message_length_bucket` |
+
+Avoid high-cardinality parameters such as search text, user-entered titles, UUIDs, email addresses, code content, exception messages, or full URLs containing identifiers. Bucket values where practical, such as `0`, `1_10`, `11_50`, and `51_plus`.
+
+### Dashboard tracking
+
+`ProfilePage` is one route with multiple in-place views. Track view changes as virtual screen views or a single `dashboard_view_change` event, but do not pretend that every sidebar click is a new URL. The only recommended parameter is:
+
+```text
+view: dashboard | library | workspace | leaderboard | feedback
+```
+
+The persisted `codeanim_current_view` value is UI state, not an analytics identity. Do not include `localStorage` or `sessionStorage` contents in events.
+
+### Consent and privacy
+
+- Load GA4 only after analytics consent where consent is required.
+- Default to analytics disabled when consent state is unknown.
+- Provide a way to withdraw consent and stop future collection.
+- Configure GA4 data retention and Google Signals according to the product privacy policy.
+- Keep authentication, learning progress, and security logs in Supabase; GA4 is for aggregate product analytics.
+- Never use analytics events to authorize actions or enforce execution limits.
+
+### Validation checklist
+
+Before enabling GA4 in production:
+
+1. Confirm direct navigation and client-side navigation each produce one page view, not duplicates.
+2. Confirm `/profile` does not send email, UUIDs, code, feedback, or Supabase tokens.
+3. Test login, sign-up, recovery, lesson visualization, workspace execution, save, completion, and feedback events.
+4. Inspect events with GA4 DebugView in development or staging.
+5. Test with the measurement ID absent and with analytics consent denied; the app must continue working.
+6. Add automated tests around event names and parameter sanitization before expanding the vocabulary.
 
 ## Key modules
 

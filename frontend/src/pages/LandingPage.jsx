@@ -562,8 +562,8 @@ const LandingPage = () => {
             <div>
               <h4 className="text-(--ink) font-bold mb-4 text-xs font-mono uppercase tracking-wider">Community</h4>
               <ul className="space-y-2.5 text-(--ink-secondary) text-sm font-medium">
-                <li><a href="https://github.com/" target="_blank" rel="noopener noreferrer" className="hover:text-(--cobalt) transition-colors">GitHub Repository</a></li>
-                <li><a href="https://x.com/" target="_blank" rel="noopener noreferrer" className="hover:text-(--cobalt) transition-colors">Twitter / X</a></li>
+                {/* <li><a href="https://github.com/" target="_blank" rel="noopener noreferrer" className="hover:text-(--cobalt) transition-colors">GitHub Repository</a></li> */}
+                {/* <li><a href="https://x.com/" target="_blank" rel="noopener noreferrer" className="hover:text-(--cobalt) transition-colors">Twitter / X</a></li> */}
                 <li><Link to="/about" className="text-(--cobalt) transition-colors">About the Project</Link></li>
               </ul>
             </div>

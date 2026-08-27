@@ -577,7 +577,7 @@ export default function ProfilePage() {
               <img 
                 src="/favicon.svg" 
                 alt="CodeToAnim Logo" 
-                className={`shrink-0 rounded-md object-contain transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 ${isCollapsed ? 'w-9 h-9' : 'w-7 h-7'}`} 
+                className={`shrink-0 rounded-md object-contain transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 ${isCollapsed ? 'w-11 h-11' : 'w-7 h-7'}`} 
               />
               <span className={`font-extrabold text-xl whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[150px] opacity-100 ml-3'} ${sidebarText}`}>
                 CodeTo<span className="opacity-80">Anim</span>

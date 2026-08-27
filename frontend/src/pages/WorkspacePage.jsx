@@ -222,6 +222,8 @@ print("Final Sorted Array:", arr)`;
     }
   };
 
+// ... (inside WorkspacePage.jsx)
+
   const handleExecuteTrace = async () => {
     if (code.length > MAX_CODE_LENGTH) {
       setErrorMessage(`Code is too large. Please keep it under ${MAX_CODE_LENGTH.toLocaleString()} characters.`);
@@ -239,7 +241,11 @@ print("Final Sorted Array:", arr)`;
         }
       } catch (err) {}
 
-      if (execData.count >= 3) return openAuthModal('Daily execution limit reached (3/3 runs used). Sign up for more executions!');
+      // UPDATED: 3 execution limit message for guests
+      if (execData.count >= 3) {
+        return openAuthModal('3 execution limit is over. Sign up to execute more!');
+      }
+      
       execData.count += 1;
       execData.date = today;
       localStorage.setItem('guest_exec_data', JSON.stringify(execData));
@@ -249,7 +255,8 @@ print("Final Sorted Array:", arr)`;
         const { data: canExecute, error } = await supabase.rpc('can_user_execute', { p_user_id: user.id });
         if (error) throw error;
         if (!canExecute) {
-          setLimitMessage("You've hit your limit of 10 executions for today! You're making great progress. Come back tomorrow or upgrade to premium for unlimited runs.");
+          // UPDATED: 10 execution limit message for logged-in users
+          setLimitMessage("Your 10 execution limit is reached. Come back tomorrow!");
           setShowLimitModal(true);
           return; 
         }
@@ -257,6 +264,8 @@ print("Final Sorted Array:", arr)`;
         console.error("Error checking premium status or daily limit:", err);
       }
     }
+
+// ... (rest of the function remains the same)
 
     setIsLoading(true);
     setIsPlaying(false);

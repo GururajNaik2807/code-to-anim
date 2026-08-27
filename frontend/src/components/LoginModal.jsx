@@ -41,7 +41,7 @@ const GoogleIcon = () => (
 );
 
 export default function LoginModal() {
-  const { isAuthModalOpen, closeAuthModal } = useAuth();
+  const { isAuthModalOpen, closeAuthModal, modalMessage } = useAuth();
   const navigate = useNavigate();
 
   const [mode, setMode] = useState(AUTH_MODE.LOGIN);
@@ -197,31 +197,31 @@ export default function LoginModal() {
     <AnimatePresence>
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-          {/* Backdrop */}
+          {/* Backdrop - Stronger blur and opacity */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
             onClick={handleClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/70 backdrop-blur-md"
           />
 
-          {/* Modal Card */}
+          {/* Modal Card - Narrower max-width for compact look */}
           <motion.div
             ref={modalRef}
             initial={{ opacity: 0, scale: 0.98, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, y: 8 }} transition={{ duration: 0.2 }}
-            className="relative w-full max-w-[420px] my-8 z-10"
+            className="relative w-full max-w-[400px] my-8 z-10"
           >
-            <div className="w-full bg-(--canvas-paper) border border-(--ink-line-strong) rounded-2xl p-7 shadow-2xl text-(--ink) font-sans">
+            <div className="w-full bg-(--canvas-paper) border border-(--ink-line-strong) rounded-2xl p-6 shadow-2xl text-(--ink) font-sans">
               
               <button
                 type="button"
                 onClick={handleClose}
-                className="absolute top-5 right-5 text-(--ink-muted) hover:text-(--ink) transition-colors"
+                className="absolute top-4 right-4 text-(--ink-muted) hover:text-(--ink) transition-colors"
               >
                 ✕
               </button>
 
-              <div className="mb-6 text-center">
-                <img src="/favicon.svg" alt="Logo" className="w-8 h-8 mx-auto mb-3 opacity-90" />
+              <div className="mb-5 text-center">
+                <img src="/favicon.svg" alt="Logo" className="w-7 h-7 mx-auto mb-2 opacity-90" />
                 <h2 className="text-xl font-bold tracking-tight text-(--ink)">
                   {mode === AUTH_MODE.LOGIN && 'Log in to CodeToAnim'}
                   {mode === AUTH_MODE.SIGNUP && 'Create your account'}
@@ -229,8 +229,14 @@ export default function LoginModal() {
                 </h2>
               </div>
 
+              {modalMessage && !successNotice && (
+                <div className="p-3 mb-4 text-sm text-(--cobalt) bg-(--cobalt-tint) border border-(--cobalt)/30 rounded-lg font-medium text-center shadow-inner">
+                  {modalMessage}
+                </div>
+              )}
+
               {errorMsg && (
-                <div className="p-3 mb-5 text-sm text-(--vermilion) bg-(--vermilion-tint) border border-(--vermilion)/30 rounded-lg font-medium">
+                <div className="p-3 mb-4 text-sm text-(--vermilion) bg-(--vermilion-tint) border border-(--vermilion)/30 rounded-lg font-medium">
                   {errorMsg}
                 </div>
               )}
@@ -240,42 +246,14 @@ export default function LoginModal() {
                   <div className="w-12 h-12 rounded-full bg-(--teal-tint) text-(--teal) flex items-center justify-center mx-auto mb-4 border border-(--teal)/30">
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                   </div>
-                  <p className="text-sm text-(--ink-secondary) mb-6 font-medium">{successNotice}</p>
+                  <p className="text-sm text-(--ink-secondary) mb-5 font-medium">{successNotice}</p>
                   <button onClick={handleClose} className="w-full py-2.5 bg-(--canvas-tint) hover:bg-(--canvas-dark) text-(--ink) text-sm font-bold rounded-lg border border-(--ink-line) transition-colors">
                     Close Window
                   </button>
                 </div>
               ) : (
                 <>
-                  {/* OAuth Buttons */}
-                  {mode !== AUTH_MODE.FORGOT && (
-                    <div className="flex flex-col gap-3 mb-6">
-                      <button 
-                        onClick={() => handleOAuth('github')} 
-                        disabled={loading || lockoutTimer > 0}
-                        type="button" 
-                        className="w-full flex items-center justify-center gap-3 py-2.5 bg-[#24292E] hover:bg-[#2C3137] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors border border-transparent shadow-sm"
-                      >
-                        <GithubIcon /> Continue with GitHub
-                      </button>
-                      <button 
-                        onClick={() => handleOAuth('google')} 
-                        disabled={loading || lockoutTimer > 0}
-                        type="button" 
-                        className="w-full flex items-center justify-center gap-3 py-2.5 bg-white hover:bg-gray-50 disabled:opacity-50 text-gray-900 text-sm font-medium rounded-lg transition-colors border border-gray-200 shadow-sm"
-                      >
-                        <GoogleIcon /> Continue with Google
-                      </button>
-                      
-                      <div className="flex items-center my-2">
-                        <div className="flex-1 border-t border-(--ink-line)"></div>
-                        <span className="px-3 text-xs text-(--ink-muted) font-semibold uppercase tracking-wider">or email</span>
-                        <div className="flex-1 border-t border-(--ink-line)"></div>
-                      </div>
-                    </div>
-                  )}
-
-                  <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                  <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                     <div>
                       <label className="block text-sm font-bold text-(--ink) mb-1.5">Email address</label>
                       <input
@@ -348,12 +326,47 @@ export default function LoginModal() {
                       {getLoadingLabel()}
                     </button>
                   </form>
+
+                  {/* Compact OAuth Buttons below form */}
+                  {mode !== AUTH_MODE.FORGOT && (
+                    <>
+                      <div className="flex items-center my-5">
+                        <div className="flex-1 border-t border-(--ink-line)"></div>
+                        <span className="px-3 text-xs text-(--ink-muted) font-semibold uppercase tracking-wider">OR</span>
+                        <div className="flex-1 border-t border-(--ink-line)"></div>
+                      </div>
+
+                      <div className="text-center mb-2">
+                        <p className="text-sm font-bold text-(--ink) mb-3">Or continue with:</p>
+                        <div className="flex items-center justify-center gap-4">
+                          <button 
+                            onClick={() => handleOAuth('github')} 
+                            disabled={loading || lockoutTimer > 0}
+                            type="button" 
+                            className="w-12 h-12 flex items-center justify-center bg-white hover:bg-gray-50 text-gray-900 rounded-xl transition-colors border border-gray-200 shadow-sm disabled:opacity-50"
+                            title="Continue with GitHub"
+                          >
+                            <GithubIcon />
+                          </button>
+                          <button 
+                            onClick={() => handleOAuth('google')} 
+                            disabled={loading || lockoutTimer > 0}
+                            type="button" 
+                            className="w-12 h-12 flex items-center justify-center bg-white hover:bg-gray-50 rounded-xl transition-colors border border-gray-200 shadow-sm disabled:opacity-50"
+                            title="Continue with Google"
+                          >
+                            <GoogleIcon />
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 
               {/* Footer Links */}
               {!successNotice && (
-                <div className="mt-6 text-center text-sm font-medium text-(--ink-secondary)">
+                <div className="mt-5 text-center text-sm font-medium text-(--ink-secondary)">
                   {mode === AUTH_MODE.LOGIN ? (
                     <p>Don't have an account? <button onClick={() => { setMode(AUTH_MODE.SIGNUP); setErrorMsg(''); }} disabled={loading} className="text-(--cobalt) hover:text-(--cobalt-dark) font-bold ml-1 disabled:opacity-50">Sign up</button></p>
                   ) : (

@@ -1,5 +1,7 @@
+// Visualizer.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { filterVariables, calculateTreeBounds, calculateGraphLayout } from './layoutEngine';
 
 export default function Visualizer({ 
   steps, 
@@ -31,7 +33,6 @@ export default function Visualizer({
   const currentStep = steps[currentStepIndex];
   const variables = currentStep?.variables || {};
   const layout = currentStep?.visual_layout || { type: 'none' };
-  
   const callStack = currentStep?.call_stack || [{ name: 'module', file: 'main.py', line: currentStep?.line || 1 }];
 
   // --- 3-Theme Active Flags ---
@@ -57,7 +58,6 @@ export default function Visualizer({
   const activeStyle = themeStyles[activeThemeName] || themeStyles.dark;
   const { bgPanel, bgContent, textPrimary, textSecondary, metallicBorder, scrollTrack, scrollThumb } = activeStyle;
 
-  // Global scrollbar configuration for this component (thin & themed)
   const customScrollbar = `
     [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5
     ${scrollTrack}
@@ -69,15 +69,11 @@ export default function Visualizer({
     ${scrollThumb}
   `;
 
-  const variableEntries = Object.entries(variables).filter(([_, val]) => {
-      if (typeof val === 'string') return !(val.startsWith("<class") || val.startsWith("<function") || val.startsWith("<method") || val.startsWith("<module"));
-      return true;
-  });
+  // Extracted logic call
+  const variableEntries = filterVariables(variables);
 
   return (
     <div className={`w-full h-full flex flex-col ${bgPanel}`}>
-      
-      {/* Canvas Tab Header (Breakpoints removed) */}
       <div className={`h-10 border-b ${metallicBorder} flex items-center justify-between px-4 text-xs font-bold`}>
         <div className="flex gap-6 h-full pt-1">
           {['VISUALIZATION', 'VARIABLES', 'CALL STACK'].map((tab) => (
@@ -96,7 +92,6 @@ export default function Visualizer({
         </div>
       </div>
 
-      {/* Main Canvas Content */}
       <div className={`flex-1 flex flex-col p-6 overflow-auto gap-6 ${customScrollbar}`}>
         {errorMessage && (
           <div className={`p-3 rounded-lg text-xs font-mono shadow-md border ${metallicBorder} ${isDark ? 'bg-red-950/80 text-red-300' : 'bg-red-100 text-red-700'}`}>
@@ -104,13 +99,11 @@ export default function Visualizer({
           </div>
         )}
 
-        {/* --- TAB: VISUALIZATION (Dashboard View) --- */}
+        {/* --- TAB: VISUALIZATION --- */}
         {activeTab === 'VISUALIZATION' && (
           <>
-            {/* CONTAINER REF ATTACHED HERE */}
             <div ref={containerRef} className={`flex-1 p-4 sm:p-6 rounded-2xl border ${metallicBorder} flex flex-col items-center justify-center min-h-[280px] relative overflow-hidden ${bgContent} shadow-inner`}>
               
-              {/* Header pinned to absolute top so it doesn't offset calculations */}
               <div className="absolute top-4 left-4 right-4 flex justify-between items-center text-[10px] sm:text-xs font-mono font-bold z-10">
                 <span className={`uppercase tracking-wider ${isDark ? 'text-purple-600' : isLight ? 'text-[#7C3AED]' : 'text-[#8C5A48]'}`}>
                   {layout.type !== 'none' ? `${layout.type}: ${layout.key || ''}` : 'Canvas'}
@@ -118,7 +111,7 @@ export default function Visualizer({
                 <span className={textSecondary}>STEP {steps.length > 0 ? currentStepIndex + 1 : 0} / {steps.length}</span>
               </div>
 
-              {/* 1. ARRAY LAYOUT RENDERER */}
+              {/* ARRAY */}
               {layout.type === 'array' && (
                 <div className={`flex gap-3 items-end py-6 overflow-x-auto max-w-full my-auto ${customScrollbar}`}>
                   <AnimatePresence mode="popLayout">
@@ -148,17 +141,9 @@ export default function Visualizer({
                 </div>
               )}
 
-              {/* 2. TREE LAYOUT RENDERER (Centered & Responsive) */}
+              {/* TREE */}
               {layout.type === 'tree' && (() => {
-                let minX = 0, maxX = 0, minY = 0, maxY = 0;
-                if (layout.nodes && layout.nodes.length > 0) {
-                  minX = Math.min(...layout.nodes.map(n => n.x || 0));
-                  maxX = Math.max(...layout.nodes.map(n => n.x || 0));
-                  minY = Math.min(...layout.nodes.map(n => n.y || 0));
-                  maxY = Math.max(...layout.nodes.map(n => n.y || 0));
-                }
-                const treeCenterX = (minX + maxX) / 2;
-                const treeCenterY = (minY + maxY) / 2;
+                const { treeCenterX, treeCenterY } = calculateTreeBounds(layout.nodes);
 
                 return (
                   <div className={`relative w-full h-full min-h-[16rem] flex items-center justify-center flex-1 overflow-hidden ${customScrollbar}`}>
@@ -214,62 +199,15 @@ export default function Visualizer({
                 );
               })()}
               
-              {/* 3. LINKED LIST LAYOUT RENDERER */}
-              {layout.type === 'linked_list' && (
-                <div className={`flex items-center gap-4 overflow-x-auto p-6 my-auto max-w-full ${customScrollbar}`}>
-                  {layout.nodes?.map((node, idx) => (
-                    <div key={`ll-${idx}`} className="flex items-center gap-4 flex-shrink-0">
-                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-base shadow-md font-mono border ${metallicBorder} ${
-                        isDark ? 'bg-indigo-950 text-indigo-200 border-indigo-500' : isLight ? 'bg-[#00CED1] text-white border-[#00B4D8]' : 'bg-[#8C5A48] text-white'
-                      }`}>
-                        {node.val}
-                      </div>
-                      {idx < layout.nodes.length - 1 && (
-                        <span className={`font-bold text-xl ${isDark ? 'text-purple-500' : isLight ? 'text-[#7C3AED]' : 'text-[#8C5A48]'}`}>→</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 4. DICTIONARY / HASHMAP LAYOUT RENDERER */}
-              {layout.type === 'dict' && (
-                <div className={`flex flex-wrap gap-2 items-center justify-center py-4 my-auto overflow-auto ${customScrollbar}`}>
-                  {layout.entries?.map((entry, idx) => (
-                    <div key={`dict-${idx}`} className={`px-3 py-2 rounded-xl flex items-center gap-2 font-mono text-xs border ${metallicBorder} ${isDark ? 'bg-slate-900 text-slate-200' : isLight ? 'bg-[#D2F4F8] text-[#0F172A]' : 'bg-white text-slate-800'}`}>
-                      <span className={`font-bold ${isDark ? 'text-purple-400' : isLight ? 'text-[#7C3AED]' : 'text-[#8C5A48]'}`}>{entry.key}:</span>
-                      <span>{entry.val}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* 5. GRAPH LAYOUT RENDERER (Adaptive Bounds & Scaling) */}
+              {/* GRAPH */}
               {layout.type === 'graph' && (() => {
-                const nodesCount = layout.nodes?.length || 0;
-                
-                const nodeSize = nodesCount > 8 ? 32 : nodesCount > 5 ? 40 : 48; 
-                const padding = nodeSize + 24; 
-                
-                const availableWidth = Math.max(120, dimensions.width - padding * 2);
-                const availableHeight = Math.max(120, dimensions.height - padding * 2);
-                
-                const radius = Math.min(availableWidth, availableHeight) / 2;
-
-                const positionedNodes = layout.nodes?.map((node, idx) => {
-                  const angle = (idx / nodesCount) * 2 * Math.PI - Math.PI / 2;
-                  return {
-                    ...node,
-                    x: radius * Math.cos(angle),
-                    y: radius * Math.sin(angle)
-                  };
-                }) || [];
+                const { positionedNodes, nodeSize } = calculateGraphLayout(layout.nodes, dimensions);
 
                 return (
                   <div className={`relative w-full h-full min-h-[16rem] flex items-center justify-center flex-1 overflow-hidden ${customScrollbar}`}>
                     <div className="relative w-0 h-0 flex items-center justify-center">
                       <svg className="absolute overflow-visible pointer-events-none" style={{ left: 0, top: 0 }}>
-                        {positionedNodes.map((node) => {
+                        {positionedNodes.makeNodeEdges?.() || positionedNodes.map((node) => {
                           const neighbors = Array.isArray(node.neighbors) 
                             ? node.neighbors 
                             : Object.keys(node.neighbors || {});
@@ -335,125 +273,13 @@ export default function Visualizer({
                 );
               })()}
 
-              {/* 6. VERTICAL STACK LAYOUT RENDERER */}
-              {layout.type === 'stack' && (
-                <div className={`flex flex-col-reverse items-center justify-end h-full w-full pt-4 pb-2 relative z-0 ${customScrollbar}`}>
-                  <div className={`w-40 h-2 rounded-full mt-2 shadow-md shrink-0 ${isDark ? 'bg-slate-700' : isLight ? 'bg-[#BBE8ED]' : 'bg-slate-300'}`}></div>
-                  <div className={`flex flex-col-reverse gap-2 items-center w-full overflow-y-auto px-4 pb-1 ${customScrollbar}`}>
-                    <AnimatePresence mode="popLayout">
-                      {layout.data.map((val, idx) => {
-                        const pointingKeys = layout.pointers?.filter(p => p.index === idx).map(p => p.key) || [];
-                        return (
-                          <motion.div 
-                            key={`stack-${idx}`} 
-                            layout 
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            className="relative flex justify-center w-full"
-                          >
-                            <div className={`w-32 h-12 rounded-xl flex items-center justify-center text-sm font-bold font-mono shadow-md border-b-4 shrink-0 border ${metallicBorder} transition-all ${
-                              idx === layout.data.length - 1 
-                                ? (isDark ? 'bg-purple-600 border-purple-800 text-white' : isLight ? 'bg-[#00CED1] border-[#00B4D8] text-white' : 'bg-[#8C5A48] border-[#765A51] text-white') 
-                                : (isDark ? 'bg-slate-800 border-slate-900 text-slate-200' : isLight ? 'bg-white border-[#BBE8ED] text-[#0F172A]' : 'bg-white border-[#D7CCC8] text-[#3E2723]')
-                            }`}>
-                              {val}
-                            </div>
-                            
-                            {pointingKeys.length > 0 && (
-                              <div className="absolute left-[calc(50%+4.5rem)] top-1/2 -translate-y-1/2 flex items-center z-10">
-                                <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md whitespace-nowrap border ${metallicBorder} ${isDark ? 'bg-amber-600 text-white' : isLight ? 'bg-[#7C3AED] text-white' : 'bg-[#EFE8DE] text-[#8C5A48]'}`}>
-                                  ← {pointingKeys.join(', ')}
-                                </span>
-                              </div>
-                            )}
-                          </motion.div>
-                        );
-                      })}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              )}
-
               {layout.type === 'none' && (
                 <div className={`my-auto text-xs font-mono font-semibold ${textSecondary}`}>Execute a trace to render visual state.</div>
               )}
             </div>
 
-            {/* 7. HORIZONTAL QUEUE (TUNNEL) LAYOUT RENDERER */}
-            {layout.type === 'queue' && (
-              <div className={`relative w-full flex justify-center mb-auto min-h-[160px] ${customScrollbar}`}>
-                <div className="relative w-[90%] max-w-2xl h-24 flex items-center px-4">
-                  <div className={`absolute inset-0 w-full h-full border-t-4 border-b-4 pointer-events-none rounded-sm ${isDark ? 'border-slate-600' : isLight ? 'border-[#BBE8ED]' : 'border-[#D7CCC8]'}`}></div>
-                  <div className={`relative w-full h-full flex items-center gap-4 overflow-x-auto z-10 px-2 py-4 ${customScrollbar}`}>
-                    <AnimatePresence mode="popLayout">
-                      {layout.data.map((val, idx) => {
-                        const pointingKeys = layout.pointers?.filter(p => p.index === idx).map(p => p.key) || [];
-                        return (
-                          <motion.div 
-                            key={`queue-${val}-${idx}`} 
-                            layout 
-                            initial={{ opacity: 0, x: 50, scale: 0.8 }}
-                            animate={{ opacity: 1, x: 0, scale: 1 }}
-                            exit={{ opacity: 0, x: -50, scale: 0.8 }}
-                            className="relative flex justify-center items-center shrink-0 w-14 h-14"
-                          >
-                            {pointingKeys.length > 0 && (
-                              <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center justify-center whitespace-nowrap z-20">
-                                <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md border ${metallicBorder} ${isDark ? 'bg-amber-600 text-white' : isLight ? 'bg-[#7C3AED] text-white' : 'bg-[#EFE8DE] text-[#8C5A48]'}`}>
-                                  ↓ {pointingKeys.join(', ')}
-                                </span>
-                              </div>
-                            )}
-
-                            <div className={`w-full h-full rounded-xl flex items-center justify-center text-sm font-bold font-mono shadow-md border-b-4 border ${metallicBorder} transition-all ${
-                              idx === 0 
-                                ? (isDark ? 'bg-emerald-600 border-emerald-800 text-white' : isLight ? 'bg-[#00CED1] border-[#00B4D8] text-white' : 'bg-[#8C5A48] border-[#765A51] text-white') 
-                                : (isDark ? 'bg-slate-800 border-slate-900 text-slate-200' : isLight ? 'bg-white border-[#BBE8ED] text-[#0F172A]' : 'bg-white border-[#D7CCC8] text-[#3E2723]')
-                            }`}>
-                              {val}
-                            </div>
-                            
-                            <span className={`absolute -bottom-7 left-1/2 -translate-x-1/2 text-[10px] font-mono font-bold ${textSecondary}`}>
-                              [{idx}]
-                            </span>
-                          </motion.div>
-                        );
-                      })}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* 8. HASH SET LAYOUT RENDERER */}
-              {layout.type === 'set' && (
-                <div className={`flex flex-col items-center justify-center my-auto p-4 w-full overflow-auto ${customScrollbar}`}>
-                  <div className={`p-5 rounded-2xl border ${metallicBorder} border-dashed flex flex-wrap gap-3 items-center justify-center max-w-lg ${isDark ? 'bg-slate-900/50 border-purple-500/40' : isLight ? 'bg-[#D2F4F8]/50 border-[#00CED1]/40' : 'bg-[#8C5A48]/5 border-[#8C5A48]/30'}`}>
-                    <AnimatePresence>
-                      {layout.data?.map((val, idx) => (
-                        <motion.div
-                          key={`set-${val}-${idx}`}
-                          initial={{ scale: 0.5, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          exit={{ scale: 0.5, opacity: 0 }}
-                          className={`px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold shadow-md border ${metallicBorder} ${
-                            isDark ? 'bg-purple-950 text-purple-200 border-purple-500/60' : isLight ? 'bg-[#00CED1] text-white border-[#00B4D8]' : 'bg-[#8C5A48] text-white'
-                          }`}
-                        >
-                          {val}
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                    {(!layout.data || layout.data.length === 0) && (
-                      <span className={`text-xs font-mono italic ${textSecondary}`}>Empty Set ∅</span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-            {/* Bottom 2 Mini Panels (Variables & Call Stack split 50/50) */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Bottom 2 Mini Panels */}
+            <div className="grid grid-cols-2 gap-4 mt-6">
               <div className={`p-4 rounded-2xl border ${metallicBorder} ${bgPanel}`}>
                 <div className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-cyan-400' : isLight ? 'text-[#00CED1]' : 'text-[#8C5A48]'}`}>VARIABLES</div>
                 <div className={`space-y-2 font-mono text-xs overflow-y-auto max-h-32 pr-1 ${customScrollbar}`}>

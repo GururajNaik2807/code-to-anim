@@ -21,6 +21,11 @@ frontend/dist-ssr/
 dist/
 
 # ==========================================
+# Protected Source Backups (Local Only)
+# ==========================================
+frontend/src/Visualizer-main/
+
+# ==========================================
 # Logs & Environment Files
 # ==========================================
 logs
