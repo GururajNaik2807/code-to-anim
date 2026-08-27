@@ -14,6 +14,9 @@ import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import { Helmet } from 'react-helmet-async'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
+const MAX_CODE_LENGTH = 20000;
+const MAX_SAVE_TITLE_LENGTH = 120;
+const TRACE_TIMEOUT_MS = 10000;
 
 export default function WorkspacePage({ isEmbedded = false, themeColors = null, theme = null }) {
   const location = useLocation();
@@ -197,19 +200,20 @@ print("Final Sorted Array:", arr)`;
   };
 
   const confirmSaveCode = async () => {
-    if (!saveFileName.trim()) return; 
+    const normalizedTitle = saveFileName.trim().slice(0, MAX_SAVE_TITLE_LENGTH);
+    if (!normalizedTitle || !user?.id || code.length > MAX_CODE_LENGTH) return;
     
     setIsLoading(true);
     setShowSaveModal(false);
     try {
       const { error } = await supabase.rpc('save_user_code', {
         p_user_id: user.id,
-        p_title: saveFileName,
+        p_title: normalizedTitle,
         p_code: code
       });
       if (error) throw error;
       
-      setSavedToast(saveFileName);
+      setSavedToast(normalizedTitle);
       setTimeout(() => setSavedToast(null), 4000); 
     } catch (error) {
       setErrorMessage("Failed to save code: " + error.message);
@@ -219,6 +223,11 @@ print("Final Sorted Array:", arr)`;
   };
 
   const handleExecuteTrace = async () => {
+    if (code.length > MAX_CODE_LENGTH) {
+      setErrorMessage(`Code is too large. Please keep it under ${MAX_CODE_LENGTH.toLocaleString()} characters.`);
+      return;
+    }
+
     if (!user) {
       const today = new Date().toDateString(); 
       let execData = { count: 0, date: today };
@@ -253,12 +262,15 @@ print("Final Sorted Array:", arr)`;
     setIsPlaying(false);
     setErrorMessage(null);
     const executableCode = code.replace(/if\s+__name__\s*==\s*['"]__main__['"]\s*:/g, "if True: # forced main "); 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TRACE_TIMEOUT_MS);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/trace`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: executableCode }),
+        signal: controller.signal,
       });
 
       const data = await response.json();
@@ -271,8 +283,11 @@ print("Final Sorted Array:", arr)`;
         setErrorMessage(data.detail || data.error || "Execution trace failed.");
       }
     } catch (err) {
-      setErrorMessage(`Could not connect to backend server`);
+      setErrorMessage(err.name === 'AbortError'
+        ? 'Execution timed out. Please try a smaller or simpler program.'
+        : 'Could not connect to backend server');
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };
@@ -430,6 +445,7 @@ print("Final Sorted Array:", arr)`;
                 type="text" 
                 value={saveFileName}
                 onChange={(e) => setSaveFileName(e.target.value)}
+                  maxLength={MAX_SAVE_TITLE_LENGTH}
                 placeholder="e.g. Optimized Bubble Sort"
                 className={`w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all ${t('bg-[#0A0D14] border border-slate-800 focus:border-indigo-500 text-white', 'bg-white/50 border border-[#D7CCC8] focus:border-[#8C5A48] text-[#3E2723]', 'bg-(--canvas-tint) border border-(--ink-line) focus:border-(--cobalt) text-(--ink)')}`}
                 autoFocus
@@ -531,22 +547,7 @@ print("Final Sorted Array:", arr)`;
                 </Link>
               ) : null}
 
-              {!user ? (
-                <>
-                  <button 
-                    onClick={() => openAuthModal('Log in to save your custom algorithms!')} 
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${t('text-slate-300 hover:text-white', 'text-[#765A51] hover:text-[#3E2723]', 'text-(--ink-secondary) hover:text-(--ink)')}`}
-                  >
-                    Log In
-                  </button>
-                  <button 
-                    onClick={() => openAuthModal('Sign up to track your progress and save code!')} 
-                    className={`px-4 py-1.5 text-white text-xs font-bold rounded-lg transition-all ${actionBtnClass}`}
-                  >
-                    Sign Up
-                  </button>
-                </>
-              ) : (
+              {user ? (
                 <>
                   {algoMetadata.id && (
                     <button 
@@ -566,7 +567,7 @@ print("Final Sorted Array:", arr)`;
                     💾 Save Code
                   </button>
                 </>
-              )}
+              ) : null}
               
               <button onClick={handleExecuteTrace} disabled={isLoading} className={`px-4 py-1.5 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${cleanBorder} ${actionBtnClass}`}>
                 <span>▷</span>

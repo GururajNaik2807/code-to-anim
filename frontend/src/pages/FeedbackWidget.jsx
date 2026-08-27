@@ -2,19 +2,21 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 
+const MAX_FEEDBACK_LENGTH = 2000;
+
 export default function FeedbackWidget({ user, isDark, metallicBorder, textSecondary, bgPanel }) {
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async () => {
-    // Prevent submission if empty or if no user is signed in
-    if (!feedbackText.trim() || !user?.id) return;
+    const normalizedMessage = feedbackText.trim().slice(0, MAX_FEEDBACK_LENGTH);
+    if (!normalizedMessage || !user?.id) return;
     
     setIsSubmitting(true);
     try {
       const { error } = await supabase.from('feedback').insert([
-        { user_id: user.id, message: feedbackText }
+        { user_id: user.id, message: normalizedMessage }
       ]);
       
       if (error) throw error;
@@ -43,6 +45,7 @@ export default function FeedbackWidget({ user, isDark, metallicBorder, textSecon
       <textarea
         value={feedbackText}
         onChange={(e) => setFeedbackText(e.target.value)}
+        maxLength={MAX_FEEDBACK_LENGTH}
         placeholder="Share your thoughts, report a bug, or suggest a feature..."
         className={`w-full h-24 p-3 rounded-xl text-xs font-medium resize-none ${metallicBorder} shadow-inner transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50 ${
           isDark 

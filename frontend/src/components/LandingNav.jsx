@@ -7,6 +7,7 @@ import { supabase } from '../supabaseClient';
 export default function LandingNav() {
   const { user, openAuthModal } = useAuth();
   const location = useLocation();
+  const isWorkspace = location.pathname.startsWith('/workspace');
   
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -34,29 +35,31 @@ export default function LandingNav() {
     await supabase.auth.signOut();
   };
 
-  // Helper to determine active link appearance (Pill design)
+  // Keep the site rail visually distinct from the workspace toolbar.
   const getLinkClass = (path) => {
     const isActive = location.pathname.startsWith(path);
-    return `px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+    return `px-3 py-1.5 rounded-md text-[13px] font-semibold transition-all ${
       isActive 
-        ? "bg-(--canvas-dark) text-(--cobalt) shadow-inner border border-(--ink-line)" 
+        ? isWorkspace && path === '/workspace'
+          ? "bg-(--cobalt) text-white shadow-sm"
+          : "bg-(--canvas-dark) text-(--cobalt) shadow-inner border border-(--ink-line)"
         : "text-(--ink-secondary) hover:text-(--ink) hover:bg-(--canvas-tint) border border-transparent"
     }`;
   };
 
   return (
-    <header className="w-full shrink-0 bg-(--canvas-paper)/85 backdrop-blur-xl border-b border-(--ink-line) sticky top-0 z-50 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.08)]">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex justify-between items-center">
+    <header className={`w-full shrink-0 bg-(--canvas-paper)/95 backdrop-blur-xl border-b border-(--ink-line) sticky top-0 z-50 ${isWorkspace ? 'shadow-none' : 'shadow-[0_4px_20px_-10px_rgba(0,0,0,0.08)]'}`}>
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-14 flex justify-between items-center">
         
         {/* Left Side: Logo & Navigation */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6 min-w-0">
           <Link to="/" className="flex items-center gap-2.5 group">
             <img 
               src="/favicon.svg" 
               alt="CodeToAnim Logo" 
-              className="w-7 h-7 object-contain transition-transform group-hover:scale-105 drop-shadow-sm"
+              className="w-6 h-6 object-contain transition-transform group-hover:scale-105 drop-shadow-sm"
             />
-            <span className="text-xl font-extrabold tracking-tight text-(--ink) leading-none mt-0.5">
+            <span className="text-lg sm:text-xl font-extrabold tracking-tight text-(--ink) leading-none mt-0.5">
               CodeTo<span className="text-(--cobalt)">Anim</span>
             </span>
           </Link>
@@ -64,7 +67,7 @@ export default function LandingNav() {
           {/* Vertical Divider for Visual Separation */}
           <div className="hidden md:block w-px h-6 bg-(--ink-line) mx-2"></div>
 
-          <nav className="hidden md:flex items-center gap-2">
+          <nav className="hidden md:flex items-center gap-1 p-1 rounded-lg bg-(--canvas-tint)/60 border border-(--ink-line)">
             <Link to="/learn" className={getLinkClass('/learn')}>Learn</Link>
             <Link to="/workspace" className={getLinkClass('/workspace')}>Visualize</Link>
             <Link to="/algorithms" className={getLinkClass('/algorithms')}>Explore</Link>
@@ -73,12 +76,12 @@ export default function LandingNav() {
         </div>
 
         {/* Right Side: Auth & Profile */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
           {user ? (
             <div className="relative" ref={dropdownRef}>
               <button 
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="w-9 h-9 rounded-lg bg-(--canvas) border border-(--ink-line-strong) flex items-center justify-center text-(--ink) font-bold text-sm hover:bg-(--canvas-tint) hover:border-(--cobalt) hover:text-(--cobalt) transition-all shadow-sm"
+                className="w-8 h-8 rounded-md bg-(--canvas) border border-(--ink-line) flex items-center justify-center text-(--ink) font-bold text-sm hover:bg-(--canvas-tint) hover:border-(--cobalt) hover:text-(--cobalt) transition-all shadow-sm"
               >
                 {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
               </button>
@@ -115,24 +118,24 @@ export default function LandingNav() {
                 )}
               </AnimatePresence>
             </div>
-          ) : (
+          ) : !isWorkspace ? (
             <div className="flex items-center gap-3">
               <Link to="/auth" className="text-sm font-bold text-(--ink-secondary) hover:text-(--ink) px-3 py-2 transition-colors hidden sm:block">
                 Sign In
               </Link>
               <button 
                 onClick={() => openAuthModal ? openAuthModal() : window.location.href='/auth'} 
-                className="px-5 py-2 rounded-lg font-bold text-sm bg-(--cobalt) text-white hover:bg-(--cobalt-dark) transition-all shadow-sm border border-transparent"
+                className="px-4 py-1.5 rounded-md font-bold text-sm bg-(--cobalt) text-white hover:bg-(--cobalt-dark) transition-all shadow-sm border border-transparent"
               >
                 Sign Up
               </button>
             </div>
-          )}
+          ) : null}
 
           {/* Mobile menu toggle */}
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-            className="md:hidden p-2 rounded-lg border border-(--ink-line) text-(--ink) bg-(--canvas-paper) hover:bg-(--canvas-tint) transition-colors"
+            className="md:hidden p-1.5 rounded-md border border-(--ink-line) text-(--ink) bg-(--canvas-paper) hover:bg-(--canvas-tint) transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {mobileMenuOpen ? (
@@ -152,7 +155,7 @@ export default function LandingNav() {
           <Link to="/workspace" className={`text-sm font-semibold py-2 px-3 rounded-lg ${location.pathname.startsWith('/workspace') ? 'bg-(--canvas-dark) text-(--cobalt)' : 'text-(--ink-secondary) hover:bg-(--canvas-tint)'}`}>Visualize</Link>
           <Link to="/algorithms" className={`text-sm font-semibold py-2 px-3 rounded-lg ${location.pathname.startsWith('/algorithms') ? 'bg-(--canvas-dark) text-(--cobalt)' : 'text-(--ink-secondary) hover:bg-(--canvas-tint)'}`}>Explore</Link>
           <Link to="/about" className={`text-sm font-semibold py-2 px-3 rounded-lg ${location.pathname.startsWith('/about') ? 'bg-(--canvas-dark) text-(--cobalt)' : 'text-(--ink-secondary) hover:bg-(--canvas-tint)'}`}>About</Link>
-          {!user && (
+          {!user && !isWorkspace && (
             <Link to="/auth" className="text-sm font-bold py-2 px-3 mt-2 rounded-lg bg-(--cobalt-tint) text-(--cobalt) text-center">Sign In / Sign Up</Link>
           )}
         </div>

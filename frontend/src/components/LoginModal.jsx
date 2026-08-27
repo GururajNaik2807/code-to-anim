@@ -283,6 +283,7 @@ export default function LoginModal() {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        maxLength={320}
                         required
                         disabled={loading || lockoutTimer > 0}
                         placeholder="name@work-email.com"
@@ -305,6 +306,7 @@ export default function LoginModal() {
                             type={showPassword ? 'text' : 'password'}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            maxLength={128}
                             required
                             disabled={loading || lockoutTimer > 0}
                             placeholder="••••••••"
@@ -325,6 +327,7 @@ export default function LoginModal() {
                             type={showConfirmPassword ? 'text' : 'password'}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
+                            maxLength={128}
                             required
                             disabled={loading || lockoutTimer > 0}
                             placeholder="••••••••"

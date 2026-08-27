@@ -18,6 +18,8 @@ const HONORS = [
   "System Sage", "Kernel Knight", "Tech Titan", "Silicon Deity", "CodeAnim Legend"
 ];
 
+const MAX_DISPLAY_NAME_LENGTH = 80;
+
 const calculateLevelInfo = (totalXP) => {
   let level = 1;
   const maxLevel = 20;
@@ -315,17 +317,18 @@ export default function ProfilePage() {
   };
 
   const handleSaveProfile = async () => {
-    if (!user?.id) return;
-    const { error } = await supabase.from('profiles').update({ display_name: editName }).eq('id', user.id);
+    const normalizedName = editName.trim().slice(0, MAX_DISPLAY_NAME_LENGTH);
+    if (!user?.id || !normalizedName) return;
+    const { error } = await supabase.from('profiles').update({ display_name: normalizedName }).eq('id', user.id);
     if (!error) {
-      setProfile({ ...profile, display_name: editName });
+      setProfile({ ...profile, display_name: normalizedName });
       setIsEditing(false);
       
       const CACHE_KEY = `codeanim_dashboard_${user.id}`;
       const cachedString = sessionStorage.getItem(CACHE_KEY);
       if(cachedString) {
         const parsedCache = JSON.parse(cachedString);
-        parsedCache.data.profile.display_name = editName;
+        parsedCache.data.profile.display_name = normalizedName;
         sessionStorage.setItem(CACHE_KEY, JSON.stringify(parsedCache));
       }
     }
@@ -738,7 +741,7 @@ export default function ProfilePage() {
                   <div className="flex-1 min-w-0 max-w-full">
                     {isEditing ? (
                       <div className="flex items-center gap-2 mb-1 justify-center md:justify-start flex-wrap">
-                        <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className={`text-xl md:text-2xl font-black bg-transparent border-b-2 ${metallicBorder} w-40 outline-none focus:border-b-4 focus:border-[${hexAccent}] ${textPrimary}`} autoFocus />
+                        <input type="text" value={editName} maxLength={MAX_DISPLAY_NAME_LENGTH} onChange={(e) => setEditName(e.target.value)} className={`text-xl md:text-2xl font-black bg-transparent border-b-2 ${metallicBorder} w-40 outline-none focus:border-b-4 focus:border-[${hexAccent}] ${textPrimary}`} autoFocus />
                         <button onClick={handleSaveProfile} className={`text-xs font-bold ${accentBg} text-white px-3 py-1 rounded-lg shadow-md hover:opacity-80 transition-colors`}>Save</button>
                         <button onClick={() => setIsEditing(false)} className={`text-xs font-bold px-3 py-1 rounded-lg border ${metallicBorder} ${hoverBg} transition-colors`}>Cancel</button>
                       </div>
