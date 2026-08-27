@@ -131,7 +131,7 @@ export default function ProfilePage() {
       sidebarBg: 'bg-[#00CED1] border-none', 
       sidebarText: 'text-[#0F172A]', 
       sidebarTextSecondary: 'text-[#0F172A]/70',
-      activeSidebar: 'bg-white text-[#00CED1] shadow-md',
+      activeSidebar: 'bg-white text-black shadow-md', // <-- Changed to text-black
       inactiveSidebar: 'text-[#0F172A]/70 hover:bg-white/20 hover:text-[#0F172A]'
     }
   };
@@ -376,6 +376,7 @@ export default function ProfilePage() {
         metadata: {
           id: algo.id, type: 'algorithm', algorithmTitle: algo.title, strategy: algo.category,
           category: algo.category, difficulty: algo.difficulty, description: algo.description,
+          insight: algo.insight, // Injecting the insight payload here
           language: 'Python 3', complexityTime: algo.timeComplexity, complexitySpace: algo.spaceComplexity
         }
       } 

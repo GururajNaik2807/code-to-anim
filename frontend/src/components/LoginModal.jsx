@@ -264,7 +264,7 @@ export default function LoginModal() {
                         maxLength={320}
                         required
                         disabled={loading || lockoutTimer > 0}
-                        placeholder="name@work-email.com"
+                        placeholder="name@gmail.com"
                         className="w-full px-3.5 py-2.5 bg-(--canvas-tint) border border-(--ink-line) focus:border-(--cobalt) focus:ring-1 focus:ring-(--cobalt) rounded-lg text-sm text-(--ink) placeholder-(--ink-muted) outline-none transition-all disabled:opacity-50 shadow-inner"
                       />
                     </div>
