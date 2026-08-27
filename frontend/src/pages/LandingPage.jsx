@@ -25,7 +25,8 @@ const staggerContainer = {
 };
 
 const LandingPage = () => {
-  const { user } = useAuth();
+  // Added openAuthModal so we can trigger the signup modal directly from the CTA
+  const { user, openAuthModal } = useAuth();
   
   // Interactive Live Algorithm State for Signature Demo
   const [stepIndex, setStepIndex] = useState(0);
@@ -479,7 +480,7 @@ const LandingPage = () => {
             </div>
           </section>
 
-          {/* SECTION 5: FINAL CTA */}
+          {/* SECTION 5: FINAL CTA WITH SIGNUP ENHANCEMENT */}
           <section className="w-full py-28 px-6 bg-(--cobalt) text-white border-t border-(--ink-line-strong)">
             <div className="max-w-4xl mx-auto text-center relative z-10">
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-tight">
@@ -489,7 +490,8 @@ const LandingPage = () => {
               <p className="text-white/80 text-lg sm:text-xl max-w-xl mx-auto mb-10 font-normal leading-relaxed">
                 Step inside the studio. Write algorithms in Python and explore their physical execution step by step.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
                 <Link to={user ? "/profile" : "/workspace"} className="w-full sm:w-auto">
                   <button className="w-full sm:w-auto bg-(--yellow) hover:bg-[#E5B540] text-(--ink) font-bold py-4 px-10 rounded-lg transition-colors text-base shadow-sm">
                     Start Visualizing Free →
@@ -501,6 +503,22 @@ const LandingPage = () => {
                   </button>
                 </Link>
               </div>
+
+              {/* NEW: Explicit Signup CTA for unauthenticated users[cite: 11] */}
+              {!user && (
+                <div className="max-w-2xl mx-auto bg-white/10 border border-white/20 rounded-2xl p-8 backdrop-blur-sm shadow-xl">
+                  <h3 className="text-2xl font-bold text-white mb-3 tracking-tight">Unlock the Full Experience</h3>
+                  <p className="text-white/80 text-base mb-8 leading-relaxed">
+                    Create a free account to save your custom algorithms, track your progress across interactive lessons, and manage everything from a centralized dashboard.
+                  </p>
+                  <button 
+                    onClick={() => openAuthModal ? openAuthModal('Sign up to track your progress and save code!') : window.location.href='/auth'}
+                    className="bg-white text-(--cobalt) hover:bg-(--canvas-paper) font-bold py-3 px-8 rounded-lg transition-colors shadow-md w-full sm:w-auto"
+                  >
+                    Sign Up for Free
+                  </button>
+                </div>
+              )}
             </div>
           </section>
 

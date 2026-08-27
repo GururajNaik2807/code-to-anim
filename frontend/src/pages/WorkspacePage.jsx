@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../supabaseClient';
 import LoginModal from '../components/LoginModal';
-import LandingNav from '../components/LandingNav'; // Global Nav Component
+import LandingNav from '../components/LandingNav';
 
 import Editor from '../components/Editor';
 import Visualizer from '../components/Visualizer';
@@ -342,13 +342,11 @@ print("Final Sorted Array:", arr)`;
 
   const activeStyle = themeStyles[activeThemeName];
   
-  // Helper to route classnames: canonical variables vs embedded theme colors
   const t = (embeddedDark, embeddedLight, directClass) => {
     if (!isEmbedded) return directClass;
     return isDark ? embeddedDark : embeddedLight;
   };
 
-  // Base layout overrides based on isEmbedded
   const bgMain = !isEmbedded ? 'bg-(--canvas)' : (themeColors ? themeColors.bg : activeStyle.bgMain);
   const bgNav = !isEmbedded ? 'bg-(--canvas-paper)' : (themeColors ? themeColors.panel : activeStyle.bgNav);
   const bgPanel = !isEmbedded ? 'bg-(--canvas-paper)' : (themeColors ? themeColors.panel : activeStyle.bgPanel);
@@ -366,7 +364,6 @@ print("Final Sorted Array:", arr)`;
         <meta name="description" content={algoMetadata.description} />
       </Helmet>
 
-      {/* Global CSS variables injected ONLY when NOT embedded */}
       {!isEmbedded && (
         <style>{`
           :root {
@@ -419,10 +416,8 @@ print("Final Sorted Array:", arr)`;
       <div className={`${isEmbedded ? 'h-full w-full' : 'h-screen w-full'} flex flex-col font-sans overflow-hidden ${bgMain} ${textPrimary}`}>
         <LoginModal />
 
-        {/* --- 1. GLOBAL TOP NAV BAR (Hidden when embedded) --- */}
         {!isEmbedded && <LandingNav />}
 
-        {/* --- SUCCESS ACKNOWLEDGEMENT TOAST CARD --- */}
         {savedToast && (
           <div className="fixed bottom-6 right-6 z-[300] flex items-center gap-3 bg-(--teal) text-white px-5 py-3 rounded-2xl shadow-xl animate-[bounce_0.5s_ease-in-out]">
             <span className="text-xl">✅</span>
@@ -433,7 +428,6 @@ print("Final Sorted Array:", arr)`;
           </div>
         )}
 
-        {/* --- SAVE MODAL --- */}
         {showSaveModal && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className={`w-full max-w-sm rounded-3xl p-8 flex flex-col gap-4 shadow-2xl transition-all ${t('bg-[#131822] text-white border border-slate-800', 'bg-[#F5EBE1] text-[#3E2723] border border-[#D7CCC8]', 'bg-(--canvas-paper) text-(--ink) border border-(--ink-line)')}`}>
@@ -445,7 +439,7 @@ print("Final Sorted Array:", arr)`;
                 type="text" 
                 value={saveFileName}
                 onChange={(e) => setSaveFileName(e.target.value)}
-                  maxLength={MAX_SAVE_TITLE_LENGTH}
+                maxLength={MAX_SAVE_TITLE_LENGTH}
                 placeholder="e.g. Optimized Bubble Sort"
                 className={`w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all ${t('bg-[#0A0D14] border border-slate-800 focus:border-indigo-500 text-white', 'bg-white/50 border border-[#D7CCC8] focus:border-[#8C5A48] text-[#3E2723]', 'bg-(--canvas-tint) border border-(--ink-line) focus:border-(--cobalt) text-(--ink)')}`}
                 autoFocus
@@ -491,7 +485,6 @@ print("Final Sorted Array:", arr)`;
 
         <div className="flex-1 flex flex-col overflow-hidden">
           
-          {/* --- 2. RESTORED SECONDARY WORKSPACE TOOLBAR --- */}
           <header className={`h-14 ${cleanBorder} border-x-0 border-t-0 ${bgNav} flex items-center justify-between px-6 z-10 ws-mobile-header`}>
             <div className="flex items-center gap-3">
               {isEmbedded && (
@@ -501,7 +494,6 @@ print("Final Sorted Array:", arr)`;
                 </div>
               )}
 
-              {/* Theme-Adaptive Header Badge */}
               <div className={`flex items-center gap-2 ${cleanBorder} rounded-lg px-3 py-1 text-xs font-semibold ${t('bg-slate-900/60 text-slate-100', 'bg-black/5 text-[#3E2723]', 'bg-(--canvas-tint) text-(--ink)')}`}>
                 <span>{algoMetadata.algorithmTitle}</span>
                 <span className={`px-1.5 py-0.5 rounded text-[10px] ${t('bg-purple-950 text-purple-300 border border-purple-800/60', 'bg-[#8C5A48]/10 text-[#8C5A48] border border-[#8C5A48]/30', 'bg-(--cobalt-tint) text-(--cobalt) border border-(--cobalt)/30')}`}>

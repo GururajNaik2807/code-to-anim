@@ -17,6 +17,7 @@ import Leaderboard from './pages/Leaderboard';
 import LoginModal from './components/LoginModal';
 import ResetPassword from './pages/ResetPassword';
 import About from './pages/About'; // <-- Added About import
+import PatchHistory from './pages/PatchHistory';
 
 import { useLearningTracker } from './hooks/useLearningTracker'; 
 
@@ -118,6 +119,7 @@ export default function App() {
             <Route path="/learn" element={<LearnHub />} />
             <Route path="/algorithms" element={<AlgorithmLibrary />} />
             <Route path="/about" element={<About />} /> {/* <-- Added About route */}
+            <Route path="/patch-history" element={<PatchHistory />} />
             
             <Route path="/learn/:category/:topic" element={<LessonPage />} />
             <Route path="/p/:userId" element={<PublicProfileCard />} />
