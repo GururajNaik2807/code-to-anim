@@ -7,27 +7,55 @@
   }
 }
 
-/* Custom Scrollbar for Webkit Browsers (Chrome, Edge, Safari) */
+/* ========================================================
+   1. INNER SCROLLBARS (Visualizer, Editor, Panels - Thin)
+   Applies to all inner scrollable containers by default
+   ======================================================== */
 ::-webkit-scrollbar {
-  width: 6px;  /* Changed from 12px to make it thin globally */
-  height: 6px; /* Added height for horizontal scrollbars */
+  width: 6px;  /* Thin for inner panes */
+  height: 6px;
 }
 
-/* The track (background of the scrollbar) */
 ::-webkit-scrollbar-track {
-  background: transparent; /* Let your component background or theme track show through */
+  background: transparent; 
 }
 
-/* The draggable thumb */
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 100, 100, 0.4);
+  background: rgba(100, 100, 100, 0.3);
   border-radius: 10px;
-  border: 2px solid transparent; 
+  border: 1px solid transparent; 
   background-clip: content-box;
 }
 
-/* Hover effect on the draggable thumb */
 ::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.6);
+  background-clip: content-box;
+}
+
+
+/* ========================================================
+   2. MAIN PAGE SCROLLBAR (Global/Outer Frame - Thick)
+   Targets only the main curved screen container & body
+   ======================================================== */
+body::-webkit-scrollbar,
+html::-webkit-scrollbar,
+.app-screen-frame::-webkit-scrollbar {
+  width: 14px;  /* Thicker for main page navigation */
+  height: 14px;
+}
+
+body::-webkit-scrollbar-thumb,
+html::-webkit-scrollbar-thumb,
+.app-screen-frame::-webkit-scrollbar-thumb {
+  background: rgba(100, 100, 100, 0.4);
+  border-radius: 10px;
+  border: 3px solid transparent; /* Creates a nice padding margin around the thick thumb */
+  background-clip: content-box;
+}
+
+body::-webkit-scrollbar-thumb:hover,
+html::-webkit-scrollbar-thumb:hover,
+.app-screen-frame::-webkit-scrollbar-thumb:hover {
   background: rgba(150, 150, 150, 0.7);
   background-clip: content-box;
 }

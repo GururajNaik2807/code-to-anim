@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext'; 
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../supabaseClient';
 import LoginModal from '../components/LoginModal';
+import LandingNav from '../components/LandingNav'; // Global Nav Component
 
 import Editor from '../components/Editor';
 import Visualizer from '../components/Visualizer';
@@ -21,9 +23,8 @@ export default function WorkspacePage({ isEmbedded = false, themeColors = null, 
   const algoQueryId = searchParams.get('algo');
 
   const { user, openAuthModal } = useAuth(); 
-  const { currentTheme, changeTheme } = useTheme();
+  const { currentTheme } = useTheme();
   
-  // Keep isDark for backwards compatibility with children components if needed
   const isDark = currentTheme === 'dark';
 
   const DEFAULT_CODE = `# Welcome to the CodeToAnim Workspace.
@@ -287,8 +288,6 @@ print("Final Sorted Array:", arr)`;
     navigate('/workspace', { replace: true, state: {} });
   };
 
-  const toggleTheme = () => changeTheme(isDark ? 'light' : 'dark');
-
   const handleFirstStep = () => { setIsPlaying(false); setCurrentStepIndex(0); };
   const handlePrevStep = () => { setIsPlaying(false); setCurrentStepIndex((prev) => Math.max(0, prev - 1)); };
   const handleTogglePlay = () => { if (steps.length > 0) setIsPlaying(!isPlaying); };
@@ -327,16 +326,23 @@ print("Final Sorted Array:", arr)`;
   };
 
   const activeStyle = themeStyles[activeThemeName];
-  const bgMain = isEmbedded && themeColors ? themeColors.bg : activeStyle.bgMain;
-  const bgNav = isEmbedded && themeColors ? themeColors.panel : activeStyle.bgNav;
-  const bgPanel = isEmbedded && themeColors ? themeColors.panel : activeStyle.bgPanel;
-  const textPrimary = isEmbedded && themeColors ? themeColors.text : activeStyle.textPrimary;
-  const textSecondary = activeStyle.textSecondary;
-  const cleanBorder = isEmbedded && themeColors ? `border ${themeColors.border}` : `border ${activeStyle.metallicBorder}`;
-  const actionBtnClass = activeStyle.actionBtnClass;
-  const accentTextClass = activeStyle.accentTextClass;
-  const accentBorderHover = activeStyle.accentBorderHover;
-  const logoBg = activeThemeName === 'dark' ? 'bg-gradient-to-br from-purple-600/20 to-indigo-600/20' : activeThemeName === 'light' ? 'bg-[#00CED1]/10' : 'bg-[#8C5A48]/10';
+  
+  // Helper to route classnames: canonical variables vs embedded theme colors
+  const t = (embeddedDark, embeddedLight, directClass) => {
+    if (!isEmbedded) return directClass;
+    return isDark ? embeddedDark : embeddedLight;
+  };
+
+  // Base layout overrides based on isEmbedded
+  const bgMain = !isEmbedded ? 'bg-(--canvas)' : (themeColors ? themeColors.bg : activeStyle.bgMain);
+  const bgNav = !isEmbedded ? 'bg-(--canvas-paper)' : (themeColors ? themeColors.panel : activeStyle.bgNav);
+  const bgPanel = !isEmbedded ? 'bg-(--canvas-paper)' : (themeColors ? themeColors.panel : activeStyle.bgPanel);
+  const textPrimary = !isEmbedded ? 'text-(--ink)' : (themeColors ? themeColors.text : activeStyle.textPrimary);
+  const textSecondary = !isEmbedded ? 'text-(--ink-secondary)' : activeStyle.textSecondary;
+  const cleanBorder = !isEmbedded ? 'border border-(--ink-line)' : (themeColors ? `border ${themeColors.border}` : `border ${activeStyle.metallicBorder}`);
+  const actionBtnClass = !isEmbedded ? 'bg-(--cobalt) hover:bg-(--cobalt-dark) text-white shadow-sm' : activeStyle.actionBtnClass;
+  const accentTextClass = !isEmbedded ? 'text-(--cobalt)' : activeStyle.accentTextClass;
+  const accentBorderHover = !isEmbedded ? 'hover:border-(--cobalt)' : activeStyle.accentBorderHover;
 
   return (
     <>
@@ -345,9 +351,34 @@ print("Final Sorted Array:", arr)`;
         <meta name="description" content={algoMetadata.description} />
       </Helmet>
 
+      {/* Global CSS variables injected ONLY when NOT embedded */}
+      {!isEmbedded && (
+        <style>{`
+          :root {
+            --canvas: #F5F0E6;
+            --canvas-paper: #FCFAF5;
+            --canvas-tint: #EFE8DA;
+            --canvas-dark: #ECE4D4;
+            --ink: #191816;
+            --ink-secondary: #4A463F;
+            --ink-muted: #7A7468;
+            --ink-line: #D9D2C3;
+            --ink-line-strong: #191816;
+            --cobalt: #2457C5;
+            --cobalt-dark: #1A3F91;
+            --cobalt-tint: #EBF1FD;
+            --teal: #16756F;
+            --teal-tint: #E8F4F3;
+            --vermilion: #D94F3D;
+            --vermilion-tint: #FCEFEA;
+            --yellow: #F2C14E;
+            --yellow-tint: #FEF9EB;
+          }
+        `}</style>
+      )}
+
       <style>{`
         @media (max-width: 768px) {
-          .ws-mobile-hide { display: none !important; }
           .ws-mobile-header { height: auto !important; flex-direction: column !important; padding: 8px 12px !important; gap: 8px !important; }
           .ws-mobile-header > div { width: 100% !important; justify-content: space-between !important; }
           .ws-mobile-header .header-actions { justify-content: center !important; flex-wrap: wrap !important; gap: 6px !important; }
@@ -370,17 +401,19 @@ print("Final Sorted Array:", arr)`;
         }
       `}</style>
 
-      {/* Changed w-screen to w-full to avoid scrollbar layout shift bugs */}
-      <div className={`${isEmbedded ? 'h-full w-full' : 'h-screen w-full'} flex font-sans overflow-hidden ${bgMain} ${textPrimary}`}>
+      <div className={`${isEmbedded ? 'h-full w-full' : 'h-screen w-full'} flex flex-col font-sans overflow-hidden ${bgMain} ${textPrimary}`}>
         <LoginModal />
+
+        {/* --- 1. GLOBAL TOP NAV BAR (Hidden when embedded) --- */}
+        {!isEmbedded && <LandingNav />}
 
         {/* --- SUCCESS ACKNOWLEDGEMENT TOAST CARD --- */}
         {savedToast && (
-          <div className="fixed bottom-6 right-6 z-[300] flex items-center gap-3 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-xl animate-[bounce_0.5s_ease-in-out]">
+          <div className="fixed bottom-6 right-6 z-[300] flex items-center gap-3 bg-(--teal) text-white px-5 py-3 rounded-2xl shadow-xl animate-[bounce_0.5s_ease-in-out]">
             <span className="text-xl">✅</span>
             <div>
               <h4 className="font-bold text-sm">Algorithm Saved!</h4>
-              <p className="text-xs text-emerald-100">"{savedToast}" successfully stored to profile.</p>
+              <p className="text-xs text-white/80">"{savedToast}" successfully stored to profile.</p>
             </div>
           </div>
         )}
@@ -388,7 +421,7 @@ print("Final Sorted Array:", arr)`;
         {/* --- SAVE MODAL --- */}
         {showSaveModal && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className={`w-full max-w-sm rounded-3xl p-8 flex flex-col gap-4 shadow-2xl transition-all ${isDark ? 'bg-[#131822] text-white border border-slate-800' : 'bg-[#F5EBE1] text-[#3E2723] border border-[#D7CCC8]'}`}>
+            <div className={`w-full max-w-sm rounded-3xl p-8 flex flex-col gap-4 shadow-2xl transition-all ${t('bg-[#131822] text-white border border-slate-800', 'bg-[#F5EBE1] text-[#3E2723] border border-[#D7CCC8]', 'bg-(--canvas-paper) text-(--ink) border border-(--ink-line)')}`}>
               <div>
                 <h3 className="text-xl font-bold mb-1">Save Algorithm</h3>
                 <p className={`text-xs ${textSecondary}`}>Give your custom script a memorable name to easily find it in your profile library.</p>
@@ -398,13 +431,13 @@ print("Final Sorted Array:", arr)`;
                 value={saveFileName}
                 onChange={(e) => setSaveFileName(e.target.value)}
                 placeholder="e.g. Optimized Bubble Sort"
-                className={`w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all ${isDark ? 'bg-[#0A0D14] border border-slate-800 focus:border-indigo-500 text-white' : 'bg-white/50 border border-[#D7CCC8] focus:border-[#8C5A48] text-[#3E2723]'}`}
+                className={`w-full px-4 py-3 rounded-xl text-sm font-medium outline-none transition-all ${t('bg-[#0A0D14] border border-slate-800 focus:border-indigo-500 text-white', 'bg-white/50 border border-[#D7CCC8] focus:border-[#8C5A48] text-[#3E2723]', 'bg-(--canvas-tint) border border-(--ink-line) focus:border-(--cobalt) text-(--ink)')}`}
                 autoFocus
               />
               <div className="flex justify-end gap-3 mt-4">
                 <button 
                   onClick={() => setShowSaveModal(false)} 
-                  className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${isDark ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-black/5 text-[#765A51]'}`}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${t('hover:bg-slate-800 text-slate-300', 'hover:bg-black/5 text-[#765A51]', 'hover:bg-(--canvas-tint) text-(--ink-secondary)')}`}
                 >
                   Cancel
                 </button>
@@ -422,8 +455,8 @@ print("Final Sorted Array:", arr)`;
 
         {showLimitModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-            <div className={`relative w-full max-w-md rounded-3xl p-8 flex flex-col items-center text-center transform transition-all ${cleanBorder} ${isDark ? 'bg-[#131822] text-white' : 'bg-[#F5EBE1] text-[#3E2723] shadow-xl'}`}>
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-4 shadow-inner ${isDark ? 'bg-purple-500/10 text-purple-600 border border-purple-500/30' : 'bg-[#8C5A48]/10 border border-[#8C5A48]/30'}`}>
+            <div className={`relative w-full max-w-md rounded-3xl p-8 flex flex-col items-center text-center transform transition-all ${cleanBorder} ${t('bg-[#131822] text-white', 'bg-[#F5EBE1] text-[#3E2723] shadow-xl', 'bg-(--canvas-paper) text-(--ink) shadow-xl')}`}>
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-4 shadow-inner ${t('bg-purple-500/10 text-purple-600 border border-purple-500/30', 'bg-[#8C5A48]/10 border border-[#8C5A48]/30', 'bg-(--vermilion-tint) text-(--vermilion) border border-(--vermilion)/30')}`}>
                 ⏳
               </div>
               <h2 className="text-2xl font-black mb-2 tracking-tight">Daily Limit Reached</h2>
@@ -440,52 +473,32 @@ print("Final Sorted Array:", arr)`;
           </div>
         )}
 
-        {!isEmbedded && (
-          <aside className={`hidden md:flex w-16 shrink-0 ${cleanBorder} border-y-0 border-l-0 ${bgNav} flex-col items-center justify-between py-4 z-20 ws-mobile-hide`}>
-            <div className="flex flex-col items-center gap-6">
-              <Link to="/" className={`w-10 h-10 rounded-xl flex items-center justify-center p-2 hover:scale-105 transition-transform ${cleanBorder} ${logoBg}`}>
-                <img src="/favicon.svg" alt="CodeAnim Logo" className="w-full h-full object-contain" />
-              </Link>
-
-              <nav className="flex flex-col gap-3">
-                <Link to="/profile" className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${cleanBorder} ${actionBtnClass}`}>
-                  {user?.email?.[0]?.toUpperCase() || 'U'}
-                </Link>
-              </nav>
-            </div>
-
-            <button 
-              onClick={toggleTheme} 
-              className={`w-10 h-10 rounded-xl ${cleanBorder} flex items-center justify-center text-lg hover:bg-slate-800/10 transition-colors bg-black/5 dark:bg-white/5`}
-              title={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
-            >
-              {isDark ? '🌙' : '☀️'}
-            </button>
-          </aside>
-        )}
-
         <div className="flex-1 flex flex-col overflow-hidden">
+          
+          {/* --- 2. RESTORED SECONDARY WORKSPACE TOOLBAR --- */}
           <header className={`h-14 ${cleanBorder} border-x-0 border-t-0 ${bgNav} flex items-center justify-between px-6 z-10 ws-mobile-header`}>
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <img src="/favicon.svg" alt="Logo" className="w-5 h-5 object-contain" />
-                <span className={`font-extrabold text-sm tracking-tight ${accentTextClass}`}>CodeToAnim <span className="text-[17px] text-slate-500 font-mono">Workspace</span></span>
-              </div>
+              {isEmbedded && (
+                <div className="flex items-center gap-2">
+                  <img src="/favicon.svg" alt="Logo" className="w-5 h-5 object-contain" />
+                  <span className={`font-extrabold text-sm tracking-tight ${accentTextClass}`}>CodeToAnim <span className={`text-[17px] font-mono ${!isEmbedded ? 'text-(--ink-muted)' : 'text-slate-500'}`}>Workspace</span></span>
+                </div>
+              )}
 
               {/* Theme-Adaptive Header Badge */}
-              <div className={`flex items-center gap-2 ${cleanBorder} rounded-lg px-3 py-1 text-xs font-semibold ${isDark ? 'bg-slate-900/60 text-slate-100' : 'bg-black/5 text-[#3E2723]'}`}>
+              <div className={`flex items-center gap-2 ${cleanBorder} rounded-lg px-3 py-1 text-xs font-semibold ${t('bg-slate-900/60 text-slate-100', 'bg-black/5 text-[#3E2723]', 'bg-(--canvas-tint) text-(--ink)')}`}>
                 <span>{algoMetadata.algorithmTitle}</span>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] ${isDark ? 'bg-purple-950 text-purple-300 border border-purple-800/60' : 'bg-[#8C5A48]/10 text-[#8C5A48] border border-[#8C5A48]/30'}`}>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] ${t('bg-purple-950 text-purple-300 border border-purple-800/60', 'bg-[#8C5A48]/10 text-[#8C5A48] border border-[#8C5A48]/30', 'bg-(--cobalt-tint) text-(--cobalt) border border-(--cobalt)/30')}`}>
                   {algoMetadata.strategy || 'Lesson'}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-3 header-actions">
-              <div className={`hidden md:flex items-center p-1 rounded-lg ${cleanBorder} ${isDark ? 'bg-slate-900/60' : 'bg-black/5'}`}>
+              <div className={`hidden md:flex items-center p-1 rounded-lg ${cleanBorder} ${t('bg-slate-900/60', 'bg-black/5', 'bg-(--canvas-tint)')}`}>
                 <button
                   onClick={() => setIsEditorOpen(true)}
-                  className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${isEditorOpen ? (isDark ? 'bg-slate-700 text-white shadow-sm' : 'bg-white text-slate-900 shadow-sm border border-[#D7CCC8]') : `text-slate-500 hover:text-slate-700 dark:hover:text-slate-300`}`}
+                  className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${isEditorOpen ? t('bg-slate-700 text-white shadow-sm', 'bg-white text-slate-900 shadow-sm border border-[#D7CCC8]', 'bg-(--canvas-paper) text-(--ink) shadow-sm border border-(--ink-line)') : `text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 ${!isEmbedded && 'text-(--ink-muted) hover:text-(--ink)'}`}`}
                   title="Show Code & Visualizer"
                 >
                   Split
@@ -495,7 +508,7 @@ print("Final Sorted Array:", arr)`;
                     setIsEditorOpen(false);
                     setIsDescriptionOpen(false);
                   }}
-                  className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${!isEditorOpen ? (isDark ? 'bg-indigo-600 text-white shadow-sm' : 'bg-[#8C5A48] text-white shadow-sm') : `text-slate-500 hover:text-slate-700 dark:hover:text-slate-300`}`}
+                  className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${!isEditorOpen ? t('bg-indigo-600 text-white shadow-sm', 'bg-[#8C5A48] text-white shadow-sm', 'bg-(--cobalt) text-white shadow-sm') : `text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 ${!isEmbedded && 'text-(--ink-muted) hover:text-(--ink)'}`}`}
                   title="Maximize Visualizer Space"
                 >
                   Visualize Only
@@ -505,7 +518,7 @@ print("Final Sorted Array:", arr)`;
               {algoMetadata.type !== 'sandbox' && (
                  <button 
                   onClick={handleResetSandbox} 
-                  className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold hover:border-amber-500 hover:text-amber-500 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-black/5'}`}
+                  className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold transition-colors ${t('bg-slate-900/60 hover:border-amber-500 hover:text-amber-500', 'bg-black/5 hover:border-amber-500 hover:text-amber-500', 'bg-(--canvas) hover:bg-(--canvas-tint) text-(--ink)')}`}
                   title="Clear workspace and return to Sandbox"
                 >
                   🔄 Reset Sandbox
@@ -513,15 +526,8 @@ print("Final Sorted Array:", arr)`;
               )}
 
               {incomingLessonUrl ? (
-                <Link to={incomingLessonUrl} className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold transition-colors ${accentBorderHover} ${accentTextClass} ${isDark ? 'bg-slate-900/60' : 'bg-black/5'}`}>
+                <Link to={incomingLessonUrl} className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold transition-colors ${accentBorderHover} ${accentTextClass} ${t('bg-slate-900/60', 'bg-black/5', 'bg-(--canvas) hover:bg-(--canvas-tint)')}`}>
                   ← Back to Lesson
-                </Link>
-              ) : !isEmbedded ? (
-                <Link 
-                  to="/algorithms" 
-                  className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold ${accentBorderHover} transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-black/5'}`}
-                >
-                  📚 Algorithm Library
                 </Link>
               ) : null}
 
@@ -529,7 +535,7 @@ print("Final Sorted Array:", arr)`;
                 <>
                   <button 
                     onClick={() => openAuthModal('Log in to save your custom algorithms!')} 
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${isDark ? 'text-slate-300 hover:text-white' : 'text-[#765A51] hover:text-[#3E2723]'}`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${t('text-slate-300 hover:text-white', 'text-[#765A51] hover:text-[#3E2723]', 'text-(--ink-secondary) hover:text-(--ink)')}`}
                   >
                     Log In
                   </button>
@@ -548,15 +554,15 @@ print("Final Sorted Array:", arr)`;
                       disabled={isCompleting || isCompleted}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${cleanBorder} ${
                         isCompleted 
-                          ? (isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-600/60' : 'bg-emerald-50 text-emerald-700 border-emerald-300')
-                          : `hover:border-emerald-500 hover:text-emerald-500 ${isDark ? 'bg-slate-900/60' : 'bg-black/5'}`
+                          ? t('bg-emerald-950/50 text-emerald-400 border-emerald-600/60', 'bg-emerald-50 text-emerald-700 border-emerald-300', 'bg-(--teal-tint) text-(--teal) border-(--teal)/30')
+                          : `hover:border-emerald-500 hover:text-emerald-500 ${t('bg-slate-900/60', 'bg-black/5', 'bg-(--canvas) hover:bg-(--canvas-tint)')}`
                       }`}
                     >
                       {isCompleting ? '⏳ Saving...' : isCompleted ? '✅ Completed' : '🏆 Mark Complete'}
                     </button>
                   )}
                   
-                  <button onClick={handleSaveCodeClick} className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold hover:border-blue-600 transition-colors ${isDark ? 'bg-slate-900/60' : 'bg-black/5'}`}>
+                  <button onClick={handleSaveCodeClick} className={`px-3 py-1.5 ${cleanBorder} rounded-lg text-xs font-semibold hover:border-blue-600 transition-colors ${t('bg-slate-900/60', 'bg-black/5', 'bg-(--canvas) hover:bg-(--canvas-tint) text-(--ink)')}`}>
                     💾 Save Code
                   </button>
                 </>
@@ -574,28 +580,25 @@ print("Final Sorted Array:", arr)`;
               isDescriptionOpen ? "w-64 p-5" : "w-12 p-2 items-center ws-mobile-closed"
             }`}>
              
-             {/* THE COOL TOGGLE BUTTON */}
              <button 
               onClick={() => setIsDescriptionOpen(!isDescriptionOpen)}
-              className={`absolute top-4 right-2.5 z-20 w-7 h-7 rounded-full ${cleanBorder} ${bgNav} flex items-center justify-center ${accentTextClass} transition-all duration-500 ease-in-out hidden md:flex shadow-md ${isDark ? 'hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] hover:border-purple-500' : 'hover:shadow-md hover:border-[#8C5A48]'} ${isDescriptionOpen ? 'scale-100 hover:scale-110' : 'scale-90 hover:scale-110 rotate-180'}`}
+              className={`absolute top-4 right-2.5 z-20 w-7 h-7 rounded-full ${cleanBorder} ${bgNav} flex items-center justify-center ${accentTextClass} transition-all duration-500 ease-in-out hidden md:flex shadow-md ${t('hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] hover:border-purple-500', 'hover:shadow-md hover:border-[#8C5A48]', 'hover:shadow-md hover:border-(--cobalt) hover:bg-(--canvas-tint)')} ${isDescriptionOpen ? 'scale-100 hover:scale-110' : 'scale-90 hover:scale-110 rotate-180'}`}
               title={isDescriptionOpen ? "Collapse Description" : "Expand Description"}
              >
               <svg className="w-4 h-4 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
             </button>
 
-              {/* CLOSED STATE: Animated Text */}
               <div className={`flex flex-col items-center gap-6 mt-14 cursor-pointer closed-desc-inner transition-all duration-500 ${isDescriptionOpen ? 'opacity-0 absolute pointer-events-none translate-y-8' : 'opacity-100 translate-y-0 delay-200'}`} onClick={() => setIsDescriptionOpen(true)}>
                 <span className={`text-[10px] font-bold uppercase font-mono tracking-widest ${textSecondary} [writing-mode:vertical-lr] rotate-180 closed-text group-hover:${accentTextClass} transition-colors duration-300`}>
                   DESCRIPTION
                 </span>
               </div>
               
-              {/* OPEN STATE: Animated Content */}
               <div className={`space-y-5 overflow-y-auto pr-2 w-full transition-all duration-500 ${!isDescriptionOpen ? 'opacity-0 absolute pointer-events-none -translate-x-8' : 'opacity-100 translate-x-0 delay-150'}`}>
                 <div>
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>CURRENT ALGORITHM</span>
                   <h2 className="text-lg font-bold mt-1 tracking-tight">{algoMetadata.algorithmTitle}</h2>
-                  <span className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-semibold border shadow-sm ${isDark ? 'bg-purple-950 text-purple-300 border-purple-800/60' : 'bg-[#8C5A48]/10 text-[#8C5A48] border-[#8C5A48]/30'}`}>
+                  <span className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-semibold border shadow-sm ${t('bg-purple-950 text-purple-300 border-purple-800/60', 'bg-[#8C5A48]/10 text-[#8C5A48] border-[#8C5A48]/30', 'bg-(--cobalt-tint) text-(--cobalt) border-(--cobalt)/30')}`}>
                     {algoMetadata.strategy || 'Standard'}
                   </span>
                   <p className={`text-xs ${textSecondary} mt-3 leading-relaxed`}>
@@ -605,7 +608,7 @@ print("Final Sorted Array:", arr)`;
 
                 <div>
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>LANGUAGE</span>
-                  <div className={`mt-1 ${cleanBorder} rounded-lg p-2 text-xs font-medium flex items-center gap-2 ${isDark ? 'bg-slate-900/50' : 'bg-black/5'}`}>
+                  <div className={`mt-1 ${cleanBorder} rounded-lg p-2 text-xs font-medium flex items-center gap-2 ${t('bg-slate-900/50', 'bg-black/5', 'bg-(--canvas-tint)')}`}>
                     <span>🐍</span> {algoMetadata.language || 'Python 3'}
                   </div>
                 </div>
@@ -613,14 +616,14 @@ print("Final Sorted Array:", arr)`;
                 {algoMetadata.exampleInput && (
                   <div>
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>EXAMPLE INPUT</span>
-                    <pre className={`mt-1 p-2 rounded-lg ${cleanBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-white/50 text-[#3E2723]'}`}>{algoMetadata.exampleInput}</pre>
+                    <pre className={`mt-1 p-2 rounded-lg ${cleanBorder} font-mono text-xs ${t('bg-slate-950 text-slate-300', 'bg-white/50 text-[#3E2723]', 'bg-(--canvas) text-(--ink-secondary)')}`}>{algoMetadata.exampleInput}</pre>
                   </div>
                 )}
 
                 {algoMetadata.exampleOutput && (
                   <div>
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>EXAMPLE OUTPUT</span>
-                    <pre className={`mt-1 p-2 rounded-lg ${cleanBorder} font-mono text-xs ${isDark ? 'bg-slate-950 text-slate-300' : 'bg-white/50 text-[#3E2723]'}`}>{algoMetadata.exampleOutput}</pre>
+                    <pre className={`mt-1 p-2 rounded-lg ${cleanBorder} font-mono text-xs ${t('bg-slate-950 text-slate-300', 'bg-white/50 text-[#3E2723]', 'bg-(--canvas) text-(--ink-secondary)')}`}>{algoMetadata.exampleOutput}</pre>
                   </div>
                 )}
               </div>
@@ -663,23 +666,23 @@ print("Final Sorted Array:", arr)`;
               <footer className={`h-16 ${cleanBorder} border-x-0 border-b-0 ${bgNav} flex items-center justify-between px-8 z-10 ws-mobile-footer`}>
                 <div className={`font-mono text-xs ${textSecondary} flex items-center gap-2 flex-1 overflow-x-auto whitespace-nowrap`}>
                   <span className={`${accentTextClass} font-bold`}>OUTPUT:</span>
-                  <span className="text-emerald-500 font-semibold truncate">
+                  <span className={`${!isEmbedded ? 'text-(--teal)' : 'text-emerald-500'} font-semibold truncate`}>
                     {consoleOutput.trim() ? consoleOutput : '> Stream empty...'}
                   </span>
                 </div>
 
-                <div className={`flex items-center gap-2 p-1.5 rounded-2xl ${cleanBorder} ${isDark ? 'bg-slate-950/80 shadow-inner' : 'bg-black/5 shadow-sm'}`}>
+                <div className={`flex items-center gap-2 p-1.5 rounded-2xl ${cleanBorder} ${t('bg-slate-950/80 shadow-inner', 'bg-black/5 shadow-sm', 'bg-(--canvas-tint) shadow-inner')}`}>
                   <button 
                     onClick={handleFirstStep} 
                     disabled={steps.length === 0 || currentStepIndex === 0} 
-                    className={`p-2 rounded-xl ${textSecondary} hover:${textPrimary} hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all border-transparent`}
+                    className={`p-2 rounded-xl ${textSecondary} hover:${textPrimary} ${t('hover:bg-white dark:hover:bg-slate-800/60', 'hover:bg-white', 'hover:bg-(--canvas) hover:shadow-sm')} disabled:opacity-30 transition-all border-transparent`}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
                   </button>
                   <button 
                     onClick={handlePrevStep} 
                     disabled={steps.length === 0 || currentStepIndex === 0} 
-                    className={`p-2 rounded-xl ${textSecondary} hover:${textPrimary} hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all border-transparent`}
+                    className={`p-2 rounded-xl ${textSecondary} hover:${textPrimary} ${t('hover:bg-white dark:hover:bg-slate-800/60', 'hover:bg-white', 'hover:bg-(--canvas) hover:shadow-sm')} disabled:opacity-30 transition-all border-transparent`}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
                   </button>
@@ -688,7 +691,7 @@ print("Final Sorted Array:", arr)`;
                     disabled={steps.length === 0} 
                     className={`w-11 h-11 rounded-xl flex items-center justify-center text-white transition-all ${
                       isPlaying 
-                        ? (isDark ? 'bg-amber-600 hover:bg-amber-500' : 'bg-amber-700 hover:bg-amber-600') 
+                        ? t('bg-amber-600 hover:bg-amber-500', 'bg-amber-700 hover:bg-amber-600', 'bg-(--vermilion) hover:bg-(--vermilion)/90 shadow-md')
                         : actionBtnClass
                     } disabled:opacity-40`}
                   >
@@ -701,23 +704,23 @@ print("Final Sorted Array:", arr)`;
                   <button 
                     onClick={handleNextStep} 
                     disabled={steps.length === 0 || currentStepIndex === steps.length - 1} 
-                    className={`p-2 rounded-xl ${textSecondary} hover:${textPrimary} hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all border-transparent`}
+                    className={`p-2 rounded-xl ${textSecondary} hover:${textPrimary} ${t('hover:bg-white dark:hover:bg-slate-800/60', 'hover:bg-white', 'hover:bg-(--canvas) hover:shadow-sm')} disabled:opacity-30 transition-all border-transparent`}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
                   </button>
                   <button 
                     onClick={handleLastStep} 
                     disabled={steps.length === 0 || currentStepIndex === steps.length - 1} 
-                    className={`p-2 rounded-xl ${textSecondary} hover:${textPrimary} hover:bg-white dark:hover:bg-slate-800/60 disabled:opacity-30 transition-all border-transparent`}
+                    className={`p-2 rounded-xl ${textSecondary} hover:${textPrimary} ${t('hover:bg-white dark:hover:bg-slate-800/60', 'hover:bg-white', 'hover:bg-(--canvas) hover:shadow-sm')} disabled:opacity-30 transition-all border-transparent`}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
                   </button>
                 </div>
 
                 <div className={`font-mono text-xs ${textSecondary} flex items-center gap-3`}>
-                  <div className={`w-32 h-1.5 rounded-full overflow-hidden ${cleanBorder} ${isDark ? 'bg-slate-900' : 'bg-black/10'}`}>
+                  <div className={`w-32 h-1.5 rounded-full overflow-hidden ${cleanBorder} ${t('bg-slate-900', 'bg-black/10', 'bg-(--ink-line)')}`}>
                     <div 
-                      className={`h-full transition-all duration-300 rounded-full ${isDark ? 'bg-gradient-to-r from-purple-600 to-indigo-600' : 'bg-[#8C5A48]'}`}
+                      className={`h-full transition-all duration-300 rounded-full ${t('bg-gradient-to-r from-purple-600 to-indigo-600', 'bg-[#8C5A48]', 'bg-(--cobalt)')}`}
                       style={{ width: `${steps.length > 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0}%` }}
                     ></div>
                   </div>

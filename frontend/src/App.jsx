@@ -7,7 +7,7 @@ import { HelmetProvider } from 'react-helmet-async';
 
 import LandingPage from './pages/LandingPage';
 import WorkspacePage from './pages/WorkspacePage';
-import AlgorithmLibrary from './pages/AlgorithmLibrary'; // <-- Added this import
+import AlgorithmLibrary from './pages/AlgorithmLibrary';
 import LearnHub from './pages/LearnHub';
 import LessonPage from './pages/LessonPage';
 import ProfilePage from './pages/ProfilePage';
@@ -16,6 +16,7 @@ import CommunityPage from './pages/CommunityPage';
 import Leaderboard from './pages/Leaderboard'; 
 import LoginModal from './components/LoginModal';
 import ResetPassword from './pages/ResetPassword';
+import About from './pages/About'; // <-- Added About import
 
 import { useLearningTracker } from './hooks/useLearningTracker'; 
 
@@ -102,6 +103,7 @@ export default function App() {
       <ThemeProvider>
         <Router>
           
+          
           {/* INITIALIZE TIME TRACKER HERE */}
           <GlobalTracker />
           
@@ -114,9 +116,8 @@ export default function App() {
             <Route path="/workspace" element={<WorkspacePage />} />
             
             <Route path="/learn" element={<LearnHub />} />
-            
-            {/* <-- Updated this route to point to the new component --> */}
             <Route path="/algorithms" element={<AlgorithmLibrary />} />
+            <Route path="/about" element={<About />} /> {/* <-- Added About route */}
             
             <Route path="/learn/:category/:topic" element={<LessonPage />} />
             <Route path="/p/:userId" element={<PublicProfileCard />} />
