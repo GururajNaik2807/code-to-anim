@@ -6,20 +6,25 @@ import JavaScriptObfuscator from 'javascript-obfuscator';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Define paths
-const sourceDir = path.join(__dirname, 'src', 'Visualizer-main');
-const targetDir = path.join(__dirname, 'src', 'components');
+const backupDir = path.join(__dirname, 'src', 'Visualizer-main');
+const activeDir = path.join(__dirname, 'src', 'components');
 
-console.log('🔒 Starting obfuscation process...');
+// Determine if we are running in Vercel/Production or Local
+const hasBackup = fs.existsSync(backupDir);
+const sourceDir = hasBackup ? backupDir : activeDir;
 
-// 1. Light Obfuscation for Visualizer.jsx
-// We skip the obfuscator here because it cannot parse JSX tags. 
-// Instead, we just copy it over and let Vite natively minify it during the build!
-fs.copyFileSync(path.join(sourceDir, 'Visualizer.jsx'), path.join(targetDir, 'Visualizer.jsx'));
-console.log('✅ Visualizer.jsx copied (Vite will handle light minification)');
+console.log(`🔒 Starting obfuscation process (Source: ${hasBackup ? 'Visualizer-main' : 'src/components'})...`);
 
-// 2. Medium Obfuscation for layoutEngine.js (Pure JS)
-const logicCode = fs.readFileSync(path.join(sourceDir, 'layoutEngine.js'), 'utf8');
+// 1. Visualizer.jsx
+if (hasBackup) {
+  fs.copyFileSync(path.join(sourceDir, 'Visualizer.jsx'), path.join(activeDir, 'Visualizer.jsx'));
+  console.log('✅ Visualizer.jsx copied');
+}
+
+// 2. Medium Obfuscation for layoutEngine.js
+const logicPath = path.join(sourceDir, 'layoutEngine.js');
+const logicCode = fs.readFileSync(logicPath, 'utf8');
+
 const obfuscatedLogic = JavaScriptObfuscator.obfuscate(logicCode, {
     compact: true,
     controlFlowFlattening: true,
@@ -30,5 +35,6 @@ const obfuscatedLogic = JavaScriptObfuscator.obfuscate(logicCode, {
     stringArrayEncoding: ['base64'],
     renameGlobals: false,
 });
-fs.writeFileSync(path.join(targetDir, 'layoutEngine.js'), obfuscatedLogic.getObfuscatedCode());
+
+fs.writeFileSync(path.join(activeDir, 'layoutEngine.js'), obfuscatedLogic.getObfuscatedCode());
 console.log('✅ layoutEngine.js obfuscated (Medium Settings)');
