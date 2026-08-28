@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import TutorialModal from './TutorialModal'; 
 import TooltipTour from './TooltipTour'; 
 import FeedbackWidget from './FeedbackWidget'; 
+import { trackEvent, trackPageView } from '../utils/analytics'; // Imported GA4 helpers
 
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import WorkspacePage from './WorkspacePage';
@@ -43,7 +44,7 @@ const calculateLevelInfo = (totalXP) => {
 
 // --- Custom SVG Icons ---
 const Icons = {
-  Home: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
+  Home: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
   Workspace: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>,
   Library: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>,
   Leaderboard: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
@@ -87,9 +88,6 @@ export default function ProfilePage() {
   const { currentTheme, changeTheme } = useTheme(); 
   const { openAuthModal } = useAuth();
   
-  // ==========================================
-  // --- EXACT 3-THEME COLOR MAPPINGS ---
-  // ==========================================
   const THEME_OPTIONS = ['light', 'dark', 'coffee'];
   const activeThemeName = THEME_OPTIONS.includes(currentTheme) ? currentTheme : 'dark';
   
@@ -163,9 +161,6 @@ export default function ProfilePage() {
     ${scrollThumb}
   `;
 
-  // ==========================================
-  // --- SESSION BUCKET & TAB-CLOSE SYNC ---
-  // ==========================================
   const cycleTheme = () => {
     const currentIndex = THEME_OPTIONS.indexOf(activeThemeName);
     const nextTheme = THEME_OPTIONS[(currentIndex + 1) % THEME_OPTIONS.length];
@@ -173,6 +168,8 @@ export default function ProfilePage() {
     changeTheme(nextTheme); 
     sessionStorage.setItem('codeanim_session_theme', nextTheme);
     sessionStorage.setItem('codeanim_theme_changed', 'true'); 
+
+    trackEvent('change_theme', { theme: nextTheme });
   };
 
   useEffect(() => {
@@ -203,8 +200,6 @@ export default function ProfilePage() {
     };
   }, [user?.id]);
 
-
-  // --- Event Listeners & Lifecycle ---
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
@@ -316,6 +311,8 @@ export default function ProfilePage() {
     sessionStorage.removeItem(`codeanim_dashboard_${user?.id}`);
     sessionStorage.removeItem('profile_loaded');
     
+    trackEvent('logout');
+
     setTimeout(async () => {
       await supabase.auth.signOut();
       navigate('/');
@@ -335,6 +332,8 @@ export default function ProfilePage() {
       setProfile({ ...profile, display_name: normalizedName });
       setIsEditing(false);
       
+      trackEvent('update_profile', { feature: 'display_name' });
+
       const CACHE_KEY = `codeanim_dashboard_${user.id}`;
       const cachedString = sessionStorage.getItem(CACHE_KEY);
       if(cachedString) {
@@ -350,6 +349,7 @@ export default function ProfilePage() {
     const shareUrl = `${window.location.origin}/p/${user.id}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
       setShareText('Link Copied! 🔗');
+      trackEvent('share_profile', { user_id: user.id });
       setTimeout(() => setShareText('Share Profile'), 2000);
     });
   };
@@ -379,6 +379,8 @@ export default function ProfilePage() {
   }, [libSearchTerm, libCategory, libDifficulty]);
 
   const handleOpenInTracer = (algo) => {
+    trackEvent('search_select_algorithm', { algorithm_id: algo.id, algorithm_title: algo.title });
+    
     setHeaderSearchTerm('');
     setIsHeaderSearchOpen(false);
     navigate('/profile', { 
@@ -387,7 +389,7 @@ export default function ProfilePage() {
         metadata: {
           id: algo.id, type: 'algorithm', algorithmTitle: algo.title, strategy: algo.category,
           category: algo.category, difficulty: algo.difficulty, description: algo.description,
-          insight: algo.insight, // Injecting the insight payload here
+          insight: algo.insight, 
           language: 'Python 3', complexityTime: algo.timeComplexity, complexitySpace: algo.spaceComplexity
         }
       } 
@@ -475,6 +477,11 @@ export default function ProfilePage() {
   const handleNavClick = (view) => {
     setCurrentView(view);
     localStorage.setItem('codeanim_current_view', view);
+    
+    // GA4 Navigation Event Track
+    trackEvent('nav_click', { view_name: view, view_mode: 'embedded' });
+    trackPageView(`/profile/${view}`, { view_mode: 'embedded', tab_name: view });
+
     if (isMobile) setIsSidebarOpen(false);
   };
 
@@ -520,18 +527,13 @@ export default function ProfilePage() {
     );
   };
 
-  // --- Layout Variables for Sidebar ---
   const isCollapsed = !isSidebarHovered && !isMobile;
-
-  // Keep the height fixed and smoothly transition width and padding
   const itemLayout = `relative flex items-center h-12 mx-auto transition-all duration-300 overflow-hidden ${
     isCollapsed ? 'w-12 justify-center rounded-2xl' : 'w-[calc(100%-1.5rem)] justify-start px-4 rounded-xl'
   }`;
-
   const activeSidebarClass = activeSidebar;
   const inactiveSidebarClass = inactiveSidebar;
 
-  // w-full instead of w-screen to fix global CSS scrollbar pushing layout!
   return (
     <div className={`flex h-screen w-full font-sans ${bgMain} ${textPrimary} overflow-hidden relative`}>
 
@@ -540,7 +542,6 @@ export default function ProfilePage() {
         .animate-scroll-left { animation: scroll-left 30s linear infinite; }
         .animate-scroll-left:hover { animation-play-state: paused; }
         
-        /* Subtle transition for text appearance */
         .sidebar-text { transition: opacity 0.2s ease-in-out; white-space: nowrap; overflow: hidden; }
 
         @media (max-width: 768px) {
@@ -577,7 +578,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Sidebar Container */}
       <div 
         className={`sidebar-container transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden relative z-20 rounded-r-[2rem] ${isMobile ? (isSidebarOpen ? 'w-64' : 'w-0') : (isSidebarHovered ? 'w-64' : 'w-20')} ${sidebarContainer}`}
         onMouseEnter={() => !isMobile && setIsSidebarHovered(true)}
@@ -602,7 +602,6 @@ export default function ProfilePage() {
                 className={`font-bold transition-all duration-300 ${itemLayout} ${currentView === 'dashboard' ? activeSidebarClass : inactiveSidebarClass}`}
               >
                 <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center"><Icons.Home /></div>
-                {/* Note: Removed ${sidebarText} so it arbs active/inactive class color naturally! */}
                 <span className={`text-sm whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[150px] opacity-100 ml-3'}`}>
                   Dashboard
                 </span>
@@ -854,7 +853,12 @@ export default function ProfilePage() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {savedCodes.filter(c => (c.title || '').toLowerCase().includes(searchQuery.toLowerCase())).slice(0,4).map((item) => (
-                        <div key={item.id} className={`border ${metallicBorder} ${hoverBorder} rounded-2xl p-5 ${hoverBg} cursor-pointer ${bgPanel}`} onClick={() => { navigate('/profile', { state: { presetCode: item.code_content } }); setCurrentView('workspace'); }}>
+                        <div key={item.id} className={`border ${metallicBorder} ${hoverBorder} rounded-2xl p-5 ${hoverBg} cursor-pointer ${bgPanel}`} 
+                          onClick={() => { 
+                            trackEvent('load_saved_algorithm', { title: item.title });
+                            navigate('/profile', { state: { presetCode: item.code_content } }); 
+                            setCurrentView('workspace'); 
+                          }}>
                           <h4 className="font-bold text-sm tracking-tight mb-3">{item.title}</h4>
                           <div className={`text-xs font-mono p-2 rounded-lg border ${metallicBorder} ${bgMain} line-clamp-2 h-10 mb-4 shadow-inner ${textSecondary}`}>{item.code_content?.substring(0, 50) || "Code snippet..."}</div>
                         </div>

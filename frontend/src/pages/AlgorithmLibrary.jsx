@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
-import LandingNav from '../components/LandingNav'; // 1. Imported the new Nav!
+import LandingNav from '../components/LandingNav';
+import { trackEvent } from '../utils/analytics';
 
 export default function AlgorithmLibrary({ 
   isEmbedded = false, 
@@ -11,7 +12,6 @@ export default function AlgorithmLibrary({
 }) {
   const navigate = useNavigate();
   
-  // Library Filter State
   const [libSearchTerm, setLibSearchTerm] = useState('');
   const [libCategory, setLibCategory] = useState('All');
   const [libDifficulty, setLibDifficulty] = useState('All');
@@ -36,7 +36,15 @@ export default function AlgorithmLibrary({
     });
   }, [libSearchTerm, libCategory, libDifficulty]);
 
-  // Helper for difficulty badge styling matching the canonical syntax
+  const handleTrackSelect = (algo) => {
+    trackEvent('select_algorithm', {
+      algorithm_id: algo.id,
+      algorithm_title: algo.title,
+      category: algo.category,
+      difficulty: algo.difficulty,
+    });
+  };
+
   const getDifficultyColors = (diff) => {
     if (diff === 'Easy') return 'bg-(--teal-tint) text-(--teal) border-(--teal)/30';
     if (diff === 'Medium') return 'bg-(--yellow-tint) text-[#B47C11] border-(--yellow)/50'; 
@@ -66,11 +74,9 @@ export default function AlgorithmLibrary({
         </p>
       </div>
 
-      {/* Filter and Search Bar */}
       <div className="flex flex-col gap-6 p-6 sm:p-8 rounded-xl bg-(--canvas-paper) border border-(--ink-line-strong) shadow-sm mb-12">
         <div className="flex flex-col lg:flex-row gap-5 items-center justify-between">
           
-          {/* Search Input */}
           <div className="relative w-full lg:w-96">
             <span className="absolute left-4 top-3 text-sm text-(--ink-muted)">🔍</span>
             <input 
@@ -82,7 +88,6 @@ export default function AlgorithmLibrary({
             />
           </div>
 
-          {/* Difficulty Toggle */}
           <div className="flex flex-wrap border border-(--ink-line) rounded-lg p-1.5 w-full lg:w-auto bg-(--canvas-tint) shadow-inner">
             {libDifficulties.map((diff) => (
               <button
@@ -102,7 +107,6 @@ export default function AlgorithmLibrary({
           </div>
         </div>
 
-        {/* Category Filters */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 border-t border-(--ink-line) pt-6">
           <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-(--ink-muted)">Topics:</span>
           <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 flex-1 hide-scrollbar">
@@ -123,7 +127,6 @@ export default function AlgorithmLibrary({
         </div>
       </div>
 
-      {/* Algorithm Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredLibrary.map((algo) => {
           const isCompleted = embeddedCompleted.has(algo.id);
@@ -161,7 +164,6 @@ export default function AlgorithmLibrary({
               </div>
 
               <div>
-                {/* Time & Space Complexity */}
                 <div className="flex justify-between py-3 border-y border-(--ink-line) mb-6 font-mono text-[11px] font-bold rounded-lg px-4 bg-(--canvas-tint) shadow-inner">
                   <div className="flex flex-col gap-1">
                     <span className="text-[9px] uppercase tracking-widest text-(--ink-muted)">Time</span>
@@ -174,10 +176,12 @@ export default function AlgorithmLibrary({
                   </div>
                 </div>
 
-                {/* CTA Button */}
                 {isEmbedded ? (
                   <button
-                    onClick={() => onEmbeddedOpen && onEmbeddedOpen(algo)}
+                    onClick={() => {
+                      handleTrackSelect(algo);
+                      if (onEmbeddedOpen) onEmbeddedOpen(algo);
+                    }}
                     className="w-full py-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm border bg-(--canvas) border-(--ink-line) text-(--ink) hover:bg-(--cobalt) hover:border-(--cobalt) hover:text-white group-hover:border-(--cobalt)"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"></path></svg>
@@ -186,6 +190,7 @@ export default function AlgorithmLibrary({
                 ) : (
                   <Link
                     to={targetUrl}
+                    onClick={() => handleTrackSelect(algo)}
                     state={{
                       presetCode: algo.code,
                       metadata: {
@@ -213,7 +218,6 @@ export default function AlgorithmLibrary({
         })}
       </div>
 
-      {/* Empty State */}
       {filteredLibrary.length === 0 && (
         <div className="py-24 flex flex-col items-center justify-center text-center rounded-xl border border-(--ink-line) bg-(--canvas-paper)">
           <span className="text-5xl mb-5 opacity-50">📭</span>
@@ -232,12 +236,10 @@ export default function AlgorithmLibrary({
     </div>
   );
 
-  // If embedded in the Workspace tool, just return the main content without Nav/Footer.
   if (isEmbedded) {
     return (
       <>
         <style>{`
-          /* Embedded Theme Variables Fallback */
           .embedded-lib-wrapper {
             --canvas: #F5F0E6;
             --canvas-paper: #FCFAF5;
@@ -264,7 +266,6 @@ export default function AlgorithmLibrary({
     );
   }
 
-  // Standalone Page Layout
   return (
     <>
       <style>{`
@@ -299,7 +300,6 @@ export default function AlgorithmLibrary({
           scrollbar-gutter: stable;
         }
 
-        /* Hide scrollbar for category filters */
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
         }
@@ -311,16 +311,12 @@ export default function AlgorithmLibrary({
 
       <div className="min-h-screen flex flex-col bg-(--canvas) text-(--ink) selection:bg-(--cobalt) selection:text-white font-sans overflow-x-hidden">
         
-        {/* Replaced entire header block with our new component */}
         <LandingNav />
 
         <main className="grow w-full z-10">
           {mainContent}
         </main>
 
-        {/* ========================================================
-            FOOTER
-            ======================================================== */}
         <footer className="w-full border-t border-(--ink-line) bg-(--canvas-paper) py-14 px-6" aria-label="Site Footer">
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-10">
             

@@ -12,6 +12,7 @@ import Visualizer from '../components/Visualizer';
 
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import { Helmet } from 'react-helmet-async'; 
+import { trackEvent, trackPageView } from '../utils/analytics'; // Imported analytics helper
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
 const MAX_CODE_LENGTH = 20000;
@@ -90,6 +91,13 @@ print("Final Sorted Array:", arr)`;
 
   const autoPlayRef = useRef(null);
   const completionCheckRef = useRef(null);
+
+  // --- Track Workspace Load ---
+  useEffect(() => {
+    trackPageView(isEmbedded ? '/profile/workspace' : '/workspace', {
+      view_mode: isEmbedded ? 'embedded' : 'standalone'
+    });
+  }, [isEmbedded]);
 
   useEffect(() => {
     if (algoQueryId) {
@@ -194,6 +202,12 @@ print("Final Sorted Array:", arr)`;
         p_type: algoMetadata.type || 'algorithm'
       });
       setIsCompleted(true);
+
+      trackEvent('mark_algorithm_complete', {
+        algorithm_id: String(algoMetadata.id),
+        algorithm_title: algoMetadata.algorithmTitle,
+        category: algoMetadata.category || 'General',
+      });
     } catch (error) {
       setErrorMessage("Failed to mark complete: " + error.message);
     } finally {
@@ -223,6 +237,10 @@ print("Final Sorted Array:", arr)`;
       
       setSavedToast(normalizedTitle);
       setTimeout(() => setSavedToast(null), 4000); 
+
+      trackEvent('save_code', {
+        title: normalizedTitle,
+      });
     } catch (error) {
       setErrorMessage("Failed to save code: " + error.message);
     } finally {
@@ -290,6 +308,13 @@ print("Final Sorted Array:", arr)`;
         setCurrentStepIndex(0);
         setIsEditing(false); 
         logCodeExecution(algoMetadata.algorithmTitle);
+
+        trackEvent('execute_trace', {
+          algorithm_title: algoMetadata.algorithmTitle || 'Custom Sandbox',
+          lines_of_code: code.split('\n').length,
+          is_preset: Boolean(algoMetadata.id),
+          view_mode: isEmbedded ? 'embedded' : 'standalone' 
+        });
       } else {
         setErrorMessage(data.detail || data.error || "Execution trace failed.");
       }

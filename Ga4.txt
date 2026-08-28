@@ -1,0 +1,116 @@
+# Google Analytics 4 (GA4) Implementation Progress Report
+
+**Project:** CodeToAnim
+
+**Implementation Date:** August 28, 2026
+
+**Tracking Engine:** GA4 Native Script (`gtag.js` / ID: `G-Y3NS33G6LY`)
+
+**Architecture Type:** Vite + React Single Page Application (SPA)
+
+---
+
+## 1. Overview & Core Architecture
+
+Today, we successfully integrated a end-to-end Google Analytics 4 (GA4) tracking pipeline tailored specifically for CodeToAnim’s Vite SPA architecture.
+
+Rather than relying on heavy third-party NPM packages, we implemented a zero-dependency, lightweight analytics helper (`src/utils/analytics.js`) and embedded the native GA4 script directly into `index.html`. This ensures zero performance degradation, minimal bundle size, and high reliability across all user devices.
+
+---
+
+## 2. SPA Route & Pageview Automation
+
+Standard GA4 implementations fail on React SPAs because route transitions do not trigger a full page refresh. To solve this:
+
+* **Global Route Tracker (`src/App.jsx`):** Created a `<RouteTracker/>` component mounted inside the main `<Router>` tree.
+* **Automatic Pageview Dispatches:** Uses React Router's `useLocation()` hook to capture every route switch (e.g., `/workspace`, `/learn`, `/algorithms`, `/profile`) and automatically dispatches standard `page_view` events to GA4.
+
+---
+
+## 3. Advanced Custom Events Inventory
+
+We mapped and wired **10 custom GA4 events** across the entire application to track high-value user interactions.
+
+### A. Execution Engine & Visualizer (`src/pages/WorkspacePage.jsx`)
+
+* **`execute_trace`**: Fires whenever a user successfully runs Python code through the execution backend.
+* *Tracked Parameters:* `algorithm_title`, `lines_of_code`, `is_preset` (Boolean), `view_mode` (`standalone` vs `embedded`).
+
+
+* **`mark_algorithm_complete`**: Fires when a user marks an algorithm or lesson as complete.
+* *Tracked Parameters:* `algorithm_id`, `algorithm_title`, `category`.
+
+
+* **`save_code`**: Fires when a custom code snippet is saved to a user's profile.
+* *Tracked Parameters:* `title`.
+
+
+* **`page_view` (Workspace Specific)**: Fires on mounting to differentiate execution modes.
+* *Tracked Parameters:* `page_path`, `view_mode`.
+
+
+
+### B. Algorithm Catalog (`src/pages/AlgorithmLibrary.jsx`)
+
+* **`select_algorithm`**: Fires when a user clicks "Visualize Step-by-Step" or "Review Algorithm" on any catalog card.
+* *Tracked Parameters:* `algorithm_id`, `algorithm_title`, `category`, `difficulty`.
+
+
+
+### C. Learning Hub & Curriculum (`src/pages/LearnHub.jsx`)
+
+* **`select_lesson`**: Fires when a user selects a Data Structure or Algorithm lesson card.
+* *Tracked Parameters:* `lesson_id`, `lesson_title`, `category`.
+
+
+
+### D. User Dashboard & Navigation (`src/pages/ProfilePage.jsx`)
+
+* **`nav_click`**: Tracks internal tab navigation inside the user dashboard.
+* *Tracked Parameters:* `view_name` (`workspace`, `library`, `leaderboard`, `feedback`), `view_mode` (`embedded`).
+
+
+* **`search_select_algorithm`**: Fires when a user selects an algorithm directly from the top header search bar dropdown.
+* *Tracked Parameters:* `algorithm_id`, `algorithm_title`.
+
+
+* **`load_saved_algorithm`**: Fires when a user launches one of their saved code snippets into the embedded workspace.
+* *Tracked Parameters:* `title`.
+
+
+* **`share_profile`**: Tracks clicks on the "Share Profile" button.
+* *Tracked Parameters:* `user_id`.
+
+
+* **`update_profile`**: Tracks when a user updates their profile details (such as display name).
+* *Tracked Parameters:* `feature`.
+
+
+* **`change_theme`**: Tracks theme toggles.
+* *Tracked Parameters:* `theme` (`dark`, `coffee`, `light`).
+
+
+* **`logout`**: Tracks account sign-outs.
+
+---
+
+## 4. GA4 Dashboard Configuration (Custom Definitions)
+
+To ensure all custom event parameters are accessible in standard GA4 reports and exploration funnels, the following **Custom Dimensions** were defined in the Google Analytics Admin Panel under **Data display > Custom definitions**:
+
+| Custom Dimension Name | Scope | Event Parameter | Purpose |
+| --- | --- | --- | --- |
+| **View Mode** | Event | `view_mode` | Differentiates standalone sandbox runs from embedded profile runs. |
+| **Algorithm Title** | Event | `algorithm_title` | Tracks which specific algorithms are executed or opened most often. |
+| **Category** | Event | `category` | Measures engagement across topics (Sorting, Trees, Linked Lists). |
+| **Difficulty** | Event | `difficulty` | Tracks popularity across Easy, Medium, and Hard challenges. |
+| **Tab Name** | Event | `tab_name` / `view_name` | Measures user retention across dashboard tabs. |
+| **Lesson Title** | Event | `lesson_title` | Identifies top-performing curriculum lessons. |
+
+---
+
+## 5. Analytics Efficiency & Health Assessment
+
+* **Single-Event Dispatch Model:** No duplicate events are sent per action. For example, a single code execution fires exactly one `execute_trace` event with contextual metadata attached.
+* **Low Latency:** Execution is completely asynchronous and safe—if a user's ad blocker prevents GA4 from loading, `analytics.js` fails gracefully without throwing errors or blocking UI rendering.
+* **Clean Data Hierarchy:** Events use consistent naming conventions and parameter schemas across all components.

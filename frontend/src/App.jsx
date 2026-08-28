@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { ThemeProvider } from './context/ThemeContext';
@@ -16,10 +16,22 @@ import CommunityPage from './pages/CommunityPage';
 import Leaderboard from './pages/Leaderboard'; 
 import LoginModal from './components/LoginModal';
 import ResetPassword from './pages/ResetPassword';
-import About from './pages/About'; // <-- Added About import
+import About from './pages/About';
 import PatchHistory from './pages/PatchHistory';
 
 import { useLearningTracker } from './hooks/useLearningTracker'; 
+import { trackPageView } from './utils/analytics';
+
+// Global router tracker to fire GA4 pageviews on route change
+function RouteTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    trackPageView(location.pathname + location.search);
+  }, [location]);
+
+  return null;
+}
 
 // Wrapper component to activate tracking when Auth is ready
 function GlobalTracker() {
@@ -56,35 +68,28 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true); 
   
-  // OPTIMIZATION: Ref guard to prevent double-firing in Strict Mode
   const streakUpdatedRef = useRef(null);
 
-  // --- OPTIMIZED: Fire-and-forget RPC call with strict blocking ---
   const triggerDailyStreak = async (userId) => {
-    // Block the request if there is no user, or if we already synced this user's streak
     if (!userId || streakUpdatedRef.current === userId) return;
     
-    // Lock the ref immediately to prevent race conditions
     streakUpdatedRef.current = userId; 
 
     try {
       await supabase.rpc('update_user_streak', { user_id_param: userId });
     } catch (err) {
       console.error("Streak calculation failed:", err);
-      // Reset the lock if the network request actually failed, allowing a retry later
       streakUpdatedRef.current = null; 
     }
   };
 
   useEffect(() => {
-    // 1. Initial Session Check
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       triggerDailyStreak(session?.user?.id); 
       setIsAuthLoading(false); 
     });
 
-    // 2. Auth State Listener (Catches logins and logouts)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -104,8 +109,9 @@ export default function App() {
       <ThemeProvider>
         <Router>
           
+          {/* GA4 ROUTE TRACKER */}
+          <RouteTracker />
           
-          {/* INITIALIZE TIME TRACKER HERE */}
           <GlobalTracker />
           
           <LoginModal />
@@ -113,12 +119,11 @@ export default function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             
-            {/* Public SEO-Indexed Workspace */}
             <Route path="/workspace" element={<WorkspacePage />} />
             
             <Route path="/learn" element={<LearnHub />} />
             <Route path="/algorithms" element={<AlgorithmLibrary />} />
-            <Route path="/about" element={<About />} /> {/* <-- Added About route */}
+            <Route path="/about" element={<About />} />
             <Route path="/patch-history" element={<PatchHistory />} />
             
             <Route path="/learn/:category/:topic" element={<LessonPage />} />
@@ -127,13 +132,11 @@ export default function App() {
             <Route path="/auth" element={<AuthRedirect />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             
-            {/* Private Profile (Hosts the Embedded Workspace) */}
             <Route 
               path="/profile" 
               element={
                 isAuthLoading ? (
                   <div className="min-h-screen bg-gray-950 flex justify-center items-center">
-                    {/* Optional: Add a spinner or loading text here */}
                   </div>
                 ) : session ? (
                   <ProfilePage />

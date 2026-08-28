@@ -4,13 +4,13 @@ import { LESSONS_DATABASE } from '../data/lessonsData';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabaseClient';
 import { Helmet } from 'react-helmet-async';
-import LandingNav from '../components/LandingNav'; // Import unified Nav
+import LandingNav from '../components/LandingNav'; 
+import { trackEvent } from '../utils/analytics'; // Imported analytics hook
 
 export default function LearnHub() {
   const { user } = useAuth();
   const [completedLessons, setCompletedLessons] = useState(new Set());
 
-  // Fetch completed lessons
   useEffect(() => {
     const fetchProgress = async () => {
       if (user) {
@@ -28,7 +28,6 @@ export default function LearnHub() {
     fetchProgress();
   }, [user]);
 
-  // Helper icons and metadata for rendering cards
   const CARD_ICONS = {
     'data-structures/array': '📊',
     'data-structures/linked-list': '🔗',
@@ -42,7 +41,6 @@ export default function LearnHub() {
     'algorithms/merge-sort': '🧩',
   };
 
-  // Convert LESSONS_DATABASE keys into array items
   const lessons = Object.keys(LESSONS_DATABASE).map((pathKey) => ({
     pathKey,
     routePath: `/learn/${pathKey}`,
@@ -50,9 +48,17 @@ export default function LearnHub() {
     ...LESSONS_DATABASE[pathKey],
   }));
 
-  // Group lessons by Data Structures vs Algorithms
   const dataStructures = lessons.filter((item) => item.category === 'Data Structures');
   const algorithms = lessons.filter((item) => item.category === 'Algorithms');
+
+  // Trigger GA4 tracking when selecting a lesson
+  const handleTrackLesson = (item) => {
+    trackEvent('select_lesson', {
+      lesson_id: item.pathKey,
+      lesson_title: item.title,
+      category: item.category,
+    });
+  };
 
   return (
     <>
@@ -61,7 +67,6 @@ export default function LearnHub() {
         <meta name="description" content="Master Data Structures and Algorithms with interactive, visual lessons." />
       </Helmet>
 
-      {/* Global Theme Injection */}
       <style>{`
         :root {
           --canvas: #F5F0E6;
@@ -87,13 +92,10 @@ export default function LearnHub() {
 
       <div className="min-h-screen bg-(--canvas) text-(--ink) font-sans flex flex-col selection:bg-(--cobalt) selection:text-white overflow-x-hidden">
         
-        {/* --- ONE SINGLE GLOBAL NAV COMPONENT --- */}
         <LandingNav />
 
-        {/* MAIN CONTENT */}
         <main className="max-w-7xl mx-auto w-full px-6 py-12 grow flex flex-col gap-16">
           
-          {/* Banner Section */}
           <section className="p-8 sm:p-12 rounded-xl border border-(--ink-line-strong) bg-(--canvas-paper) shadow-sm text-center max-w-4xl mx-auto flex flex-col items-center">
             <span className="px-3 py-1 rounded-md bg-(--cobalt-tint) text-(--cobalt) text-[10px] font-bold border border-(--cobalt)/30 font-mono uppercase tracking-wider mb-4">
               Interactive Curriculum
@@ -107,7 +109,6 @@ export default function LearnHub() {
             </p>
           </section>
 
-          {/* Data Structures Section */}
           <section>
             <div className="flex items-center gap-3 mb-8 border-b border-(--ink-line) pb-4">
               <h2 className="text-2xl sm:text-3xl font-bold text-(--ink) tracking-tight">Data Structures</h2>
@@ -123,6 +124,7 @@ export default function LearnHub() {
                   <Link
                     key={item.pathKey}
                     to={item.routePath}
+                    onClick={() => handleTrackLesson(item)}
                     className="p-6 sm:p-8 rounded-xl border border-(--ink-line) bg-(--canvas-paper) hover:border-(--cobalt) transition-all duration-300 group flex flex-col justify-between hover:shadow-xl hover:-translate-y-1"
                   >
                     <div>
@@ -159,7 +161,6 @@ export default function LearnHub() {
             </div>
           </section>
 
-          {/* Algorithms Section */}
           <section className="pb-16">
             <div className="flex items-center gap-3 mb-8 border-b border-(--ink-line) pb-4">
               <h2 className="text-2xl sm:text-3xl font-bold text-(--ink) tracking-tight">Algorithms</h2>
@@ -175,6 +176,7 @@ export default function LearnHub() {
                   <Link
                     key={item.pathKey}
                     to={item.routePath}
+                    onClick={() => handleTrackLesson(item)}
                     className="p-6 sm:p-8 rounded-xl border border-(--ink-line) bg-(--canvas-paper) hover:border-(--vermilion) transition-all duration-300 group flex flex-col justify-between hover:shadow-xl hover:-translate-y-1"
                   >
                     <div>
@@ -213,7 +215,6 @@ export default function LearnHub() {
 
         </main>
 
-        {/* FOOTER */}
         <footer className="w-full border-t border-(--ink-line) bg-(--canvas-paper) py-12 px-6" aria-label="Site Footer">
           <div className="max-w-7xl mx-auto text-xs text-(--ink-muted) flex flex-col sm:flex-row justify-between items-center gap-4">
             <p>© {new Date().getFullYear()} CodeToAnim Studio. Built for visual learners.</p>
