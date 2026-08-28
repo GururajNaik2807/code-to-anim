@@ -66,6 +66,7 @@ const About = () => {
           color: var(--ink);
           font-family: 'DM Sans', sans-serif;
           -webkit-font-smoothing: antialiased;
+          scrollbar-gutter: stable;
         }
       `}</style>
 

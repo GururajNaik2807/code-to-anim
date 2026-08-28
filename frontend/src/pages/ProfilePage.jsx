@@ -100,7 +100,10 @@ export default function ProfilePage() {
       metallicBorder: 'border-[#1E293B]', hoverBg: 'hover:bg-[#1E293B]', hoverBorder: 'hover:border-[#38B2AC]', 
       accentText: 'text-[#38B2AC]', accentBg: 'bg-[#38B2AC]', accentBgLight: 'bg-[#38B2AC]/10',
       scrollThumb: '[&::-webkit-scrollbar-thumb]:bg-[#1E293B] hover:[&::-webkit-scrollbar-thumb]:bg-[#38B2AC]',
-      hexAccent: '#38B2AC', sidebarBg: 'border-r border-[#1E293B] bg-[#111A22]/95', sidebarText: 'text-[#E2E8F0]', sidebarTextSecondary: 'text-[#94A3B8]',
+      hexAccent: '#38B2AC', 
+      sidebarBg: 'bg-[#111A22]/95', 
+      sidebarContainer: 'border-r border-[#1E293B]', 
+      sidebarText: 'text-[#E2E8F0]', sidebarTextSecondary: 'text-[#94A3B8]',
       activeSidebar: 'bg-[#38B2AC]/10 text-[#38B2AC] shadow-inner',
       inactiveSidebar: 'text-[#94A3B8] hover:bg-[#1E293B]'
     },
@@ -110,34 +113,42 @@ export default function ProfilePage() {
       metallicBorder: 'border-[#D7CCC8]', hoverBg: 'hover:bg-[#E8DED4]', hoverBorder: 'hover:border-[#8C5A48]', 
       accentText: 'text-[#8C5A48]', accentBg: 'bg-[#8C5A48]', accentBgLight: 'bg-[#8C5A48]/10',
       scrollThumb: '[&::-webkit-scrollbar-thumb]:bg-[#D7CCC8] hover:[&::-webkit-scrollbar-thumb]:bg-[#8C5A48]',
-      hexAccent: '#8C5A48', sidebarBg: 'bg-[#8C5A48] border-none', sidebarText: 'text-white', sidebarTextSecondary: 'text-white/70',
-      activeSidebar: 'bg-white text-black shadow-md', // Fixed to black text for Coffee theme
+      hexAccent: '#8C5A48', 
+      sidebarBg: 'bg-[#8C5A48]', 
+      sidebarContainer: 'border-r-0 shadow-[4px_0_24px_rgba(62,39,35,0.15)]', 
+      sidebarText: 'text-white', sidebarTextSecondary: 'text-white/70',
+      activeSidebar: 'bg-white text-black shadow-md',
       inactiveSidebar: 'text-white/70 hover:bg-white/20 hover:text-white'
     },
     light: {
-      bgMain: 'bg-[#FFFFFF]', 
-      scrollTrack: '[&::-webkit-scrollbar-track]:!bg-[#FFFFFF]',
-      bgPanel: 'bg-[#D2F4F8]', 
-      textPrimary: 'text-[#0F172A]', 
-      textSecondary: 'text-[#475569]', 
-      metallicBorder: 'border-[#BBE8ED]', 
-      hoverBg: 'hover:bg-[#C4B5FD]/20', 
-      hoverBorder: 'hover:border-[#C4B5FD]', 
-      accentText: 'text-[#7C3AED]', 
-      accentBg: 'bg-[#00CED1]', 
-      accentBgLight: 'bg-[#C4B5FD]/20', 
-      scrollThumb: '[&::-webkit-scrollbar-thumb]:bg-[#BBE8ED] hover:[&::-webkit-scrollbar-thumb]:bg-[#C4B5FD]', 
-      hexAccent: '#00CED1', 
-      sidebarBg: 'bg-[#00CED1] border-none', 
-      sidebarText: 'text-[#0F172A]', 
-      sidebarTextSecondary: 'text-[#0F172A]/70',
-      activeSidebar: 'bg-white text-black shadow-md', // <-- Changed to text-black
-      inactiveSidebar: 'text-[#0F172A]/70 hover:bg-white/20 hover:text-[#0F172A]'
+      bgMain: 'bg-[#F5F2EB]', 
+      scrollTrack: '[&::-webkit-scrollbar-track]:!bg-[#F5F2EB]',
+      bgPanel: 'bg-[#FFFEFA]', 
+      textPrimary: 'text-[#202124]', 
+      textSecondary: 'text-[#5E5B55]', 
+      metallicBorder: 'border-[#E8E3D8]', 
+      hoverBg: 'hover:bg-[#F1EEE7]', 
+      hoverBorder: 'hover:border-[#D9D1C4]', 
+      accentText: 'text-[#31599B]', 
+      accentBg: 'bg-[#31599B]', 
+      accentBgLight: 'bg-[#EAF0FA]', 
+      scrollThumb: '[&::-webkit-scrollbar-thumb]:bg-[#D9D1C4] hover:[&::-webkit-scrollbar-thumb]:bg-[#817D74]', 
+      hexAccent: '#31599B', 
+      sidebarBg: 'bg-[#F8F5EE]', 
+      sidebarContainer: 'border-r border-[#E8E3D8] shadow-[2px_0_15px_rgba(0,0,0,0.03)]', 
+      sidebarText: 'text-[#202124]', 
+      sidebarTextSecondary: 'text-[#5E5B55]',
+      activeSidebar: 'bg-[#EAF0FA] text-[#31599B] border border-[#C9D7EE] shadow-sm', 
+      inactiveSidebar: 'text-[#5E5B55] hover:bg-[#F1EEE7] hover:text-[#202124]'
     }
   };
 
-  const activeTheme = themeStyles[activeThemeName];
-  const { bgMain, bgPanel, textPrimary, textSecondary, metallicBorder, hoverBg, hoverBorder, accentText, accentBg, accentBgLight, scrollThumb, scrollTrack, hexAccent, sidebarBg, sidebarText, sidebarTextSecondary, activeSidebar, inactiveSidebar } = activeTheme;
+  const activeStyle = themeStyles[activeThemeName];
+  const { 
+    bgMain, bgPanel, textPrimary, textSecondary, metallicBorder, hoverBg, hoverBorder, 
+    accentText, accentBg, accentBgLight, scrollThumb, scrollTrack, hexAccent, 
+    sidebarBg, sidebarContainer, sidebarText, sidebarTextSecondary, activeSidebar, inactiveSidebar 
+  } = activeStyle;
 
   const isDark = activeThemeName === 'dark';
 
@@ -568,7 +579,7 @@ export default function ProfilePage() {
 
       {/* Sidebar Container */}
       <div 
-        className={`sidebar-container transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden relative z-20 rounded-r-[2rem] ${isMobile ? (isSidebarOpen ? 'w-64' : 'w-0') : (isSidebarHovered ? 'w-64' : 'w-20')}`}
+        className={`sidebar-container transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden relative z-20 rounded-r-[2rem] ${isMobile ? (isSidebarOpen ? 'w-64' : 'w-0') : (isSidebarHovered ? 'w-64' : 'w-20')} ${sidebarContainer}`}
         onMouseEnter={() => !isMobile && setIsSidebarHovered(true)}
         onMouseLeave={() => !isMobile && setIsSidebarHovered(false)}
       >
@@ -902,7 +913,17 @@ export default function ProfilePage() {
                 <h1 className="text-4xl font-black tracking-tight">We'd Love Your Feedback!</h1>
                 <p className={`text-sm font-medium ${textSecondary}`}>Help us improve CodeToAnim by sharing your thoughts.</p>
               </div>
-              <FeedbackWidget user={user} isDark={isDark} metallicBorder={metallicBorder} textSecondary={textSecondary} bgPanel={bgPanel} />
+              <FeedbackWidget 
+                user={user} 
+                isDark={isDark} 
+                metallicBorder={metallicBorder} 
+                textSecondary={textSecondary} 
+                bgPanel={bgPanel}
+                accentBg={accentBg}
+                accentText={accentText}
+                hoverBg={hoverBg}
+                textPrimary={textPrimary}
+              />
             </div>
           )}
 

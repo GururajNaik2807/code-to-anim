@@ -341,13 +341,17 @@ print("Final Sorted Array:", arr)`;
       accentTextClass: 'text-[#8C5A48]', accentBorderHover: 'hover:border-[#8C5A48]'
     },
     light: {
-      bgMain: 'bg-[#FFFFFF]', bgNav: 'bg-[#D2F4F8]', bgPanel: 'bg-[#D2F4F8]', 
-      textPrimary: 'text-[#0F172A]', textSecondary: 'text-[#475569]', metallicBorder: 'border-[#BBE8ED]',
-      actionBtnClass: 'bg-[#00CED1] hover:opacity-80 text-[#0F172A] shadow-md font-bold',
-      accentTextClass: 'text-[#00CED1]', accentBorderHover: 'hover:border-[#00CED1]'
+      bgMain: 'bg-[#F5F2EB]', // Warm application canvas
+      bgNav: 'bg-[#FFFEFA]', // Bright primary UI surfaces
+      bgPanel: 'bg-[#FFFEFA]', // Bright primary UI surfaces
+      textPrimary: 'text-[#202124]', 
+      textSecondary: 'text-[#5E5B55]', 
+      metallicBorder: 'border-[#E8E3D8]', // Subtle warm border
+      actionBtnClass: 'bg-[#31599B] hover:bg-[#274B85] text-white shadow-sm font-bold', // Primary action blue
+      accentTextClass: 'text-[#31599B]', 
+      accentBorderHover: 'hover:border-[#31599B]'
     }
   };
-
   const activeStyle = themeStyles[activeThemeName] || themeStyles.coffee;
   
   // Refactored helper function to correctly assign styling across all UI permutations
@@ -401,6 +405,9 @@ print("Final Sorted Array:", arr)`;
             --vermilion-tint: #FCEFEA;
             --yellow: #F2C14E;
             --yellow-tint: #FEF9EB;
+          }
+            body {
+            overflow-y: scroll !important;
           }
         `}</style>
       )}

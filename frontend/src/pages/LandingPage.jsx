@@ -97,6 +97,7 @@ const LandingPage = () => {
           color: var(--ink);
           font-family: 'DM Sans', sans-serif;
           -webkit-font-smoothing: antialiased;
+          overflow-y: scroll !important;
         }
 
         .font-mono {
@@ -104,7 +105,7 @@ const LandingPage = () => {
         }
       `}</style>
 
-      <div className="min-h-screen flex flex-col selection:bg-(--cobalt) selection:text-white relative overflow-x-hidden">
+      <div className="min-h-screen flex flex-col font-sans bg-(--canvas) text-(--ink) selection:bg-(--cobalt) selection:text-white relative overflow-x-hidden">
         
         {/* --- ONE SINGLE GLOBAL NAV COMPONENT --- */}
         <LandingNav />
