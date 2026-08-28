@@ -19,6 +19,7 @@
     <!-- Favicon Declarations (Coverage for all browsers & crawlers) -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
+
     <!-- Open Graph / Facebook / LinkedIn Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://code-to-anim.vercel.app/" />
@@ -33,8 +34,17 @@
     <meta name="twitter:description" content="Convert Python code into interactive step-by-step visual animations in real time." />
     <meta name="twitter:image" content="https://code-to-anim.vercel.app/og-image.png" />    
 
+    <!-- Google Analytics 4 (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y3NS33G6LY"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-Y3NS33G6LY');
+    </script>
+
     <!-- Schema.org JSON-LD Structured Data -->
-<!-- Schema.org JSON-LD Structured Data -->
     <script type="application/ld+json">
     [
       {
@@ -59,7 +69,6 @@
       }
     ]
     </script>
-
   </head>
   <body>
     <div id="root"></div>
