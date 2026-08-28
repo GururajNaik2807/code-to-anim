@@ -31,20 +31,21 @@ export default function PublicProfileCard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#090B10] flex items-center justify-center font-mono text-purple-400">
-        <span className="animate-pulse">Loading Profile Card...</span>
+      <div className="h-screen w-full flex flex-col items-center justify-center font-mono bg-[#F5F2EB] text-[#202124] overflow-hidden">
+        <div className="w-10 h-10 border-4 border-[#E8E3D8] border-t-[#31599B] rounded-full animate-spin"></div>
+        <span className="mt-4 text-xs font-bold tracking-widest uppercase text-[#5E5B55] animate-pulse">Loading Profile...</span>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-[#090B10] flex flex-col items-center justify-center font-sans text-white">
-        <div className="text-6xl mb-4">📭</div>
-        <h1 className="text-2xl font-bold mb-2">Profile Not Found</h1>
-        <p className="text-gray-400 mb-6">This user link is invalid or the profile no longer exists.</p>
-        <Link to="/" className="px-6 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold transition-colors">
-          Return to CodeAnim
+      <div className="h-screen w-full flex flex-col items-center justify-center font-sans bg-[#F5F2EB] text-[#202124] p-6 overflow-hidden">
+        <div className="text-5xl mb-4 opacity-50">📭</div>
+        <h1 className="text-2xl font-black mb-2 tracking-tight">Profile Not Found</h1>
+        <p className="text-[#817D74] mb-8 font-medium">This user link is invalid or the profile no longer exists.</p>
+        <Link to="/" className="px-6 py-3 bg-[#31599B] text-white hover:bg-[#274B85] rounded-xl font-bold transition-colors shadow-sm">
+          Return to CodeToAnim
         </Link>
       </div>
     );
@@ -53,83 +54,87 @@ export default function PublicProfileCard() {
   const displayName = profile.display_name || 'CodeToAnim User';
   const userInitial = displayName.charAt(0).toUpperCase();
   const joinYear = new Date(profile.created_at || Date.now()).getFullYear();
+  const currentLevel = profile.current_level || 1;
+  const xpNeeded = currentLevel * 500;
+  const progressPercent = Math.min(100, Math.max(0, ((profile.current_xp || 0) / xpNeeded) * 100));
 
   return (
-    <div className="min-h-screen bg-[#090B10] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-[#090B10] to-[#090B10] flex flex-col items-center justify-center p-6 font-sans overflow-hidden">
+    <div className="h-screen w-full bg-[#F5F2EB] flex flex-col items-center justify-center p-4 sm:p-6 font-sans overflow-hidden relative">
       
-      {/* Decorative Background Glows */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none"></div>
+      {/* Decorative Background Glows matching the warm light mode aesthetic */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none flex items-center justify-center">
+        <div className="absolute w-[600px] h-[600px] bg-[#EAF0FA] rounded-full blur-[100px] opacity-80 translate-x-1/3 -translate-y-1/4"></div>
+        <div className="absolute w-[500px] h-[500px] bg-[#FCEFEA] rounded-full blur-[100px] opacity-50 -translate-x-1/3 translate-y-1/4"></div>
+      </div>
 
       <motion.div 
-        initial={{ opacity: 0, y: 50, scale: 0.9 }}
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: "spring", bounce: 0.4, duration: 0.8 }}
-        className="relative z-10 w-full max-w-md"
+        className="relative z-10 w-full max-w-[400px]"
       >
-        {/* The Card */}
-        <div className="relative bg-[#121620]/80 backdrop-blur-xl border border-purple-500/30 rounded-3xl p-8 shadow-2xl shadow-purple-900/20 overflow-hidden group">
+        {/* The Profile Card */}
+        <div className="bg-[#FFFEFA] border border-[#E8E3D8] rounded-[2.5rem] p-6 sm:p-8 shadow-[0_8px_30px_rgba(35,30,20,0.06)] overflow-hidden relative group">
           
-          {/* Animated Card Border Glow */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/0 via-purple-500/10 to-indigo-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
-
-          <div className="flex flex-col items-center text-center">
+          <div className="flex flex-col items-center text-center relative z-10">
             
             {/* Avatar */}
-            <div className="relative mb-6">
-              <div className="absolute inset-0 bg-purple-500 blur-xl opacity-40 rounded-full"></div>
-              <div className="relative w-28 h-28 rounded-full border-4 border-purple-500 bg-gray-900 flex items-center justify-center text-5xl font-black text-white shadow-inner">
+            <div className="relative mb-5">
+              <div className="absolute inset-0 bg-[#EAF0FA] blur-xl rounded-full scale-150"></div>
+              <div className="relative w-24 h-24 rounded-full border-4 border-[#FFFEFA] bg-[#EAF0FA] flex items-center justify-center text-4xl font-black text-[#31599B] shadow-md">
                 {userInitial}
               </div>
-              <div className="absolute -bottom-2 -right-2 bg-indigo-600 border-2 border-[#121620] text-xs font-bold px-2 py-1 rounded-full text-white">
-                Lv. {profile.current_level || 1}
+              <div className="absolute -bottom-1 -right-1 bg-[#FFFEFA] p-1 rounded-full shadow-sm">
+                <div className="bg-[#31599B] text-[10px] font-bold px-2 py-0.5 rounded-full text-white tracking-wider">
+                  Lv. {currentLevel}
+                </div>
               </div>
             </div>
 
-            <h1 className="text-3xl font-black text-white tracking-tight mb-1">
+            <h1 className="text-2xl sm:text-3xl font-black text-[#202124] tracking-tight mb-1">
               {displayName}
             </h1>
-            <p className="text-purple-400 font-mono text-sm mb-8">
-              @{displayName.toLowerCase().replace(/\s/g, '')} • Member since {joinYear}
+            <p className="text-[#817D74] font-mono text-xs sm:text-sm mb-6 font-medium">
+              @{displayName.toLowerCase().replace(/\s/g, '')} • Since {joinYear}
             </p>
 
             {/* Stats Grid */}
-            <div className="w-full grid grid-cols-2 gap-4 mb-8">
-              <div className="bg-black/40 border border-gray-800 rounded-2xl p-4 flex flex-col items-center justify-center transition-colors hover:border-purple-500/50">
-                <span className="text-2xl mb-1">🧠</span>
-                <span className="text-2xl font-black text-white">{profile.algorithms_solved || 0}</span>
-                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mt-1">Algos Solved</span>
+            <div className="w-full grid grid-cols-2 gap-3 mb-6">
+              <div className="bg-[#F8F5EE] border border-[#E8E3D8] rounded-2xl p-3 flex flex-col items-center justify-center transition-colors hover:border-[#D9D1C4] hover:bg-[#F1EEE7]">
+                <span className="text-xl mb-1">🧠</span>
+                <span className="text-xl font-black text-[#202124]">{profile.algorithms_solved || 0}</span>
+                <span className="text-[9px] text-[#817D74] uppercase font-bold tracking-wider mt-0.5 text-center">Algos Solved</span>
               </div>
               
-              <div className="bg-black/40 border border-gray-800 rounded-2xl p-4 flex flex-col items-center justify-center transition-colors hover:border-indigo-500/50">
-                <span className="text-2xl mb-1">📚</span>
-                <span className="text-2xl font-black text-white">{profile.topics_explored || 0}</span>
-                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mt-1">Topics Learned</span>
+              <div className="bg-[#F8F5EE] border border-[#E8E3D8] rounded-2xl p-3 flex flex-col items-center justify-center transition-colors hover:border-[#D9D1C4] hover:bg-[#F1EEE7]">
+                <span className="text-xl mb-1">📚</span>
+                <span className="text-xl font-black text-[#202124]">{profile.topics_explored || 0}</span>
+                <span className="text-[9px] text-[#817D74] uppercase font-bold tracking-wider mt-0.5 text-center">Topics Learned</span>
               </div>
 
-              <div className="bg-black/40 border border-gray-800 rounded-2xl p-4 flex flex-col items-center justify-center transition-colors hover:border-emerald-500/50">
-                <span className="text-2xl mb-1">▶️</span>
-                <span className="text-2xl font-black text-white">{profile.total_executions || 0}</span>
-                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mt-1">Code Executions</span>
+              <div className="bg-[#F8F5EE] border border-[#E8E3D8] rounded-2xl p-3 flex flex-col items-center justify-center transition-colors hover:border-[#D9D1C4] hover:bg-[#F1EEE7]">
+                <span className="text-xl mb-1">▶️</span>
+                <span className="text-xl font-black text-[#202124]">{profile.total_executions || 0}</span>
+                <span className="text-[9px] text-[#817D74] uppercase font-bold tracking-wider mt-0.5 text-center">Executions</span>
               </div>
 
-              <div className="bg-black/40 border border-gray-800 rounded-2xl p-4 flex flex-col items-center justify-center transition-colors hover:border-orange-500/50">
-                <span className="text-2xl mb-1">🔥</span>
-                <span className="text-2xl font-black text-white">{profile.longest_streak || 0}</span>
-                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mt-1">Day Streak</span>
+              <div className="bg-[#F8F5EE] border border-[#E8E3D8] rounded-2xl p-3 flex flex-col items-center justify-center transition-colors hover:border-[#D9D1C4] hover:bg-[#F1EEE7]">
+                <span className="text-xl mb-1">🔥</span>
+                <span className="text-xl font-black text-[#202124]">{profile.longest_streak || 0}</span>
+                <span className="text-[9px] text-[#817D74] uppercase font-bold tracking-wider mt-0.5 text-center">Day Streak</span>
               </div>
             </div>
 
             {/* XP Bar */}
-            <div className="w-full text-left mb-2">
-              <div className="flex justify-between text-xs font-bold text-gray-400 mb-1">
-                <span>XP Progress</span>
-                <span className="text-purple-400">{profile.current_xp || 0} XP</span>
+            <div className="w-full text-left">
+              <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-1.5">
+                <span className="text-[#817D74]">XP Progress</span>
+                <span className="text-[#31599B]">{profile.current_xp || 0} / {xpNeeded} XP</span>
               </div>
-              <div className="h-2 w-full bg-gray-900 rounded-full overflow-hidden">
+              <div className="h-2.5 w-full bg-[#F5F2EB] border border-[#E8E3D8] rounded-full overflow-hidden shadow-inner">
                 <div 
-                  className="h-full bg-gradient-to-r from-purple-500 to-indigo-500"
-                  style={{ width: `${Math.min(100, Math.max(0, ((profile.current_xp || 0) / ((profile.current_level || 1) * 500)) * 100))}%` }}
+                  className="h-full bg-[#31599B] rounded-full transition-all duration-1000 ease-out"
+                  style={{ width: `${progressPercent}%` }}
                 ></div>
               </div>
             </div>
@@ -138,17 +143,17 @@ export default function PublicProfileCard() {
 
         {/* Call to Action Container */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
-          className="mt-8 text-center"
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="mt-6 text-center relative z-10"
         >
-          <p className="text-sm text-gray-400 mb-4">Want to master Data Structures & Algorithms?</p>
+          <p className="text-xs text-[#5E5B55] mb-3 font-medium">Want to master Data Structures & Algorithms?</p>
           <Link 
             to="/auth" 
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-black hover:bg-gray-200 rounded-xl font-extrabold text-lg transition-transform hover:scale-105 shadow-[0_0_40px_rgba(168,85,247,0.4)]"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#FFFEFA] text-[#202124] border border-[#E8E3D8] hover:bg-[#F1EEE7] hover:border-[#D9D1C4] rounded-xl font-bold text-sm transition-all shadow-sm"
           >
-            Join CodeToAnim Free 🚀
+            Join CodeToAnim For Free 
           </Link>
         </motion.div>
       </motion.div>
