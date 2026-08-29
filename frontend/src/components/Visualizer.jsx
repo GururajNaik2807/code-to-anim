@@ -32,6 +32,7 @@ export default function Visualizer({
   const variables = currentStep?.variables || {};
   const layout = currentStep?.visual_layout || { type: 'none' };
   const callStack = currentStep?.call_stack || [{ name: 'module', file: 'main.py', line: currentStep?.line || 1 }];
+  const output = currentStep?.output || ''; // NEW: Extract the captured output
 
   const isLight = activeThemeName === 'light';
   const isCoffee = activeThemeName === 'coffee';
@@ -76,7 +77,8 @@ export default function Visualizer({
     <div className={`w-full h-full flex flex-col ${bgPanel}`}>
       <div className={`h-10 border-b ${metallicBorder} flex items-center justify-between px-4 text-xs font-bold`}>
         <div className="flex gap-6 h-full pt-1">
-          {['VISUALIZATION', 'VARIABLES', 'CALL STACK'].map((tab) => (
+          {/* NEW: Added OUTPUT to the tab list */}
+          {['VISUALIZATION', 'VARIABLES', 'CALL STACK', 'OUTPUT'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -178,6 +180,7 @@ export default function Visualizer({
                   </AnimatePresence>
                 </div>
               )}
+              
               {/* TREE */}
               {layout.type === 'tree' && (() => {
                 const { treeCenterX, treeCenterY } = calculateTreeBounds(layout.nodes);
@@ -315,8 +318,8 @@ export default function Visualizer({
               )}
             </div>
 
-            {/* Bottom 2 Mini Panels */}
-            <div className="grid grid-cols-2 gap-4 mt-6">
+            {/* NEW: Bottom 3 Mini Panels (Upgraded from 2 to 3 to include Output) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
               <div className={`p-4 rounded-2xl border ${metallicBorder} ${bgContent}`}>
                 <div className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-cyan-400' : isLight ? 'text-[#31599B]' : 'text-[#8C5A48]'}`}>VARIABLES</div>
                 <div className={`space-y-2 font-mono text-xs overflow-y-auto max-h-32 pr-1 ${customScrollbar}`}>
@@ -338,6 +341,14 @@ export default function Visualizer({
                       &lt;{frame.name}&gt; {frame.file}:{frame.line}
                     </div>
                   ))}
+                </div>
+              </div>
+              
+              {/* NEW: OUTPUT mini panel */}
+              <div className={`p-4 rounded-2xl border ${metallicBorder} ${bgContent}`}>
+                <div className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-green-400' : isLight ? 'text-[#1E8E3E]' : 'text-[#558B2F]'}`}>OUTPUT</div>
+                <div className={`font-mono text-xs overflow-y-auto max-h-32 pr-1 whitespace-pre-wrap break-all ${textPrimary} ${customScrollbar}`}>
+                  {output || <span className={textSecondary}>Stream empty...</span>}
                 </div>
               </div>
             </div>
@@ -372,6 +383,16 @@ export default function Visualizer({
                   <span className="opacity-80">{frame.file} : Line {frame.line}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* NEW --- TAB: FULL OUTPUT VIEW --- */}
+        {activeTab === 'OUTPUT' && (
+          <div className={`flex-1 p-6 rounded-2xl border ${metallicBorder} ${bgContent} shadow-inner overflow-auto ${customScrollbar}`}>
+            <h2 className={`text-sm font-bold uppercase tracking-wider mb-6 ${isDark ? 'text-green-400' : isLight ? 'text-[#1E8E3E]' : 'text-[#558B2F]'}`}>Standard Output</h2>
+            <div className={`p-4 rounded-xl shadow-sm border ${metallicBorder} ${isDark ? 'bg-[#000000]/30 text-green-400' : isLight ? 'bg-[#FFFEFA] text-[#202124]' : 'bg-[#EFE8DE] text-[#3E2723]'} font-mono text-sm whitespace-pre-wrap min-h-[10rem]`}>
+              {output || <span className="opacity-50 italic">Stream empty...</span>}
             </div>
           </div>
         )}
