@@ -1136,11 +1136,11 @@ export default function ProfilePage() {
               }} 
             />
           )}
-          {currentView === 'admin' && (
+          {/* {currentView === 'admin' && (
             <div className="max-w-5xl mx-auto pb-10 mt-4">
               <AdminDashboard />
             </div>
-          )}
+          )} */}
 
         </main>
       </div>
