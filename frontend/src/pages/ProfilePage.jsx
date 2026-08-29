@@ -10,7 +10,9 @@ import { trackEvent, trackPageView } from '../utils/analytics';
 
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import WorkspacePage from './WorkspacePage';
-import LeetcodeProblems from './LeetcodeProblems'; 
+// import LeetcodeProblems from './LeetcodeProblems'; // <-- TEMPORARILY DISABLED
+import TesterEnrollment from './tester'; 
+import AdminDashboard from './AdminDashboard';
 
 // --- Level System Definitions ---
 const HONORS = [
@@ -35,7 +37,6 @@ const calculateLevelInfo = (totalXP) => {
   const currentLevelBaseXP = (level - 1) * level * 250;
   const nextLevelXP = isMax ? currentLevelBaseXP : level * (level + 1) * 250;
   
-  // FIX: Make the progress bar match the absolute text (total / nextLevel) instead of relative
   const progressPercent = isMax ? 100 : Math.min(100, Math.max(0, Math.round((totalXP / nextLevelXP) * 100)));
   const xpRemaining = isMax ? 0 : nextLevelXP - totalXP;
   
@@ -44,14 +45,15 @@ const calculateLevelInfo = (totalXP) => {
 
 // --- Custom SVG Icons ---
 const Icons = {
-  Library: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>,
+  Library: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
   LeetCode: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>, 
   Home: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2h-4a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zm10 0a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2h-4a2 2 0 01-2-2v-4z" /></svg>,
   Workspace: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>,
   Leaderboard: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6a2 2 0 012-2h2a2 2 0 012 2v13M4 19v-6a2 2 0 012-2h2a2 2 0 012 2v6m4 0v-4a2 2 0 012-2h2a2 2 0 012 2v4M3 21h18" /></svg>,
   Feedback: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
   Moon: () => <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>,
-  Sun: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+  Sun: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
+  Admin: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg> 
 };
 
 export default function ProfilePage() {
@@ -86,7 +88,7 @@ export default function ProfilePage() {
   const [isMobile, setIsMobile] = useState(false);
   
   const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0, date: '', count: 0 });
-  const [barsMounted, setBarsMounted] = useState(false); // FIX: Native CSS transition trigger
+  const [barsMounted, setBarsMounted] = useState(false); 
 
   const navigate = useNavigate();
   const { currentTheme, changeTheme } = useTheme(); 
@@ -225,7 +227,6 @@ export default function ProfilePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // FIX: Trigger Native CSS Animations after load
   useEffect(() => {
     if (!loading && currentView === 'dashboard') {
       const timer = setTimeout(() => setBarsMounted(true), 150);
@@ -421,9 +422,9 @@ export default function ProfilePage() {
       const count = activity ? activity.execution_count : 0;
       
       let alpha = '00';
-      if (count > 0 && count <= 2) alpha = '66'; // 40%
-      else if (count > 2 && count <= 5) alpha = 'B3'; // 70%
-      else if (count > 5) alpha = 'FF'; // 100%
+      if (count > 0 && count <= 2) alpha = '66'; 
+      else if (count > 2 && count <= 5) alpha = 'B3'; 
+      else if (count > 5) alpha = 'FF'; 
       
       return (
         <div 
@@ -513,14 +514,21 @@ export default function ProfilePage() {
     { section: 'WORKSPACE', links: [{ name: 'Workspace', action: () => handleNavClick('workspace'), icon: <Icons.Workspace />, isActive: currentView === 'workspace' }] },
     { section: 'LEARNING', links: [
       { name: 'Algorithm Library', action: () => handleNavClick('library'), icon: <Icons.Library />, isActive: currentView === 'library' },
+      // --- TEMPORARILY DISABLED LEETCODE ---
       // { name: 'LeetCode Problems', action: () => handleNavClick('leetcode'), icon: <Icons.LeetCode />, isActive: currentView === 'leetcode' } 
     ] },
     { section: 'COMMUNITY', links: [
       { name: 'Leaderboard', action: () => handleNavClick('leaderboard'), icon: <Icons.Leaderboard />, isActive: currentView === 'leaderboard' },
       { name: 'Give Feedback', action: () => handleNavClick('feedback'), icon: <Icons.Feedback />, isActive: currentView === 'feedback' }
-    ] }
+    ] },
+    ...(user?.email === 'gururajnaik2807@gmail.com' ? [{
+      section: 'ADMIN',
+      links: [
+        { name: 'Tester Requests', action: () => handleNavClick('admin'), icon: <Icons.Admin />, isActive: currentView === 'admin' }
+      ]
+    }] : [])
   ];
-
+  
   const top3 = leaderboardData.slice(0, 3);
   const restOfLeaderboard = leaderboardData.slice(3);
 
@@ -767,7 +775,8 @@ export default function ProfilePage() {
                 </div>
               </div>
               
-              <div className={`profile-card ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} rounded-3xl p-8 flex flex-col md:flex-row justify-between items-center shadow-sm relative overflow-hidden`}>
+              {/* REMOVED /90 backdrop-blur-md to fix Chromium repainting bugs */}
+              <div className={`profile-card ${bgPanel} border ${metallicBorder} rounded-3xl p-8 flex flex-col md:flex-row justify-between items-center shadow-sm relative overflow-hidden`}>
                 <div className={`absolute top-0 right-0 w-64 h-64 ${accentBgLight} rounded-full blur-3xl pointer-events-none opacity-50`}></div>
                 
                 <div className="profile-user-info flex items-center gap-6 relative z-10 w-full md:w-auto">
@@ -818,7 +827,7 @@ export default function ProfilePage() {
 
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 quick-stats-grid">
                 {quickStats.map((stat, i) => (
-                  <div key={i} className={`${bgPanel}/90 backdrop-blur-md border ${metallicBorder} ${hoverBorder} p-5 rounded-2xl shadow-sm flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 group`}>
+                  <div key={i} className={`${bgPanel} border ${metallicBorder} ${hoverBorder} p-5 rounded-2xl shadow-sm flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 group`}>
                     <div className="flex justify-between items-start mb-3"><div className={`p-2.5 rounded-xl shadow-inner border ${metallicBorder} ${bgMain} ${stat.color} group-hover:scale-110 transition-transform`}>{stat.icon}</div></div>
                     <div>
                       <h4 className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>{stat.label}</h4>
@@ -830,7 +839,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 dashboard-panels-grid">
-                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col relative`}>
+                <div className={`lg:col-span-1 ${bgPanel} border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col relative`}>
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-lg">Learning Activity</h3>
                     <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md border ${metallicBorder} ${bgMain} ${textSecondary}`}>12 Weeks</span>
@@ -838,7 +847,7 @@ export default function ProfilePage() {
                   <div className="grid grid-cols-12 gap-1.5 mb-6 flex-1 items-center relative">{generateHeatmap()}</div>
                 </div>
 
-                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col justify-between relative overflow-hidden`}>
+                <div className={`lg:col-span-1 ${bgPanel} border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col justify-between relative overflow-hidden`}>
                   <div className={`absolute top-0 right-0 w-32 h-32 ${accentBgLight} rounded-full blur-2xl`}></div>
                   <div><h3 className="font-bold text-lg mb-1">Continue Learning</h3><p className={`text-xs font-medium ${textSecondary}`}>Pick up where you left off</p></div>
                   {recentAlgo ? (
@@ -853,7 +862,7 @@ export default function ProfilePage() {
                   <button onClick={() => setCurrentView('library')} className={`w-full py-3 ${accentBg} hover:opacity-80 text-white text-sm font-bold rounded-xl shadow-md transition-all mt-6`}>Explore Library</button>
                 </div>
 
-                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
+                <div className={`lg:col-span-1 ${bgPanel} border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
                   <h3 className="font-bold text-lg mb-1">Topic Mastery</h3><p className={`text-xs font-medium ${textSecondary} mb-6`}>Progress across categories</p>
                   <div className="space-y-5 flex-1">
                     {algoProgressStats.map((topic, i) => (
@@ -875,7 +884,9 @@ export default function ProfilePage() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 dashboard-bottom-grid">
-                <div className={`lg:col-span-2 ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
+                
+                {/* --- FIX: Saved Algorithms uses solid bgPanel --- */}
+                <div className={`lg:col-span-2 ${bgPanel} border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col h-full`}>
                   <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-3"><h3 className="font-bold text-lg">Saved Algorithms</h3><span className={`px-2.5 py-0.5 rounded-md font-bold text-xs border ${metallicBorder} ${bgMain}`}>{savedCodes.length}</span></div>
                   </div>
@@ -904,13 +915,26 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-                <div className="space-y-6">
-                  <div className={`${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm`}>
+                <div className="flex flex-col gap-6 h-full">
+                  
+                  <TesterEnrollment 
+                    user={user} 
+                    bgPanel={bgPanel}
+                    bgMain={bgMain}
+                    metallicBorder={metallicBorder}
+                    accentBg={accentBg}
+                    accentText={accentText}
+                    textPrimary={textPrimary}
+                    textSecondary={textSecondary}
+                  />
+
+                  {/* --- Leaderboard uses solid bgPanel --- */}
+                  <div className={`${bgPanel} border ${metallicBorder} p-6 rounded-3xl shadow-sm flex-1 flex flex-col`}>
                     <div className="flex justify-between items-center mb-6">
                       <div className="flex items-center gap-2"><h3 className="font-bold text-lg">Top Ranked</h3><span className="text-amber-500 text-sm drop-shadow-md">🏆</span></div>
                       <button onClick={() => setCurrentView('leaderboard')} className={`text-xs font-bold ${accentText} hover:opacity-80 transition-colors`}>View All</button>
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-3 flex-1 flex flex-col justify-center">
                       {leaderboardData.length === 0 ? (
                         <div className={`text-sm font-medium ${textSecondary} text-center py-4`}>Loading ranks...</div>
                       ) : (
@@ -931,16 +955,6 @@ export default function ProfilePage() {
                           );
                         })
                       )}
-                    </div>
-                  </div>
-                  <div className={`${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm`}>
-                    <div className="flex justify-between items-center mb-6"><h3 className="font-bold text-lg">Badges</h3></div>
-                    <div className="flex justify-between items-center gap-2 flex-wrap">
-                      <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-pointer">👾</div>
-                      <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-pointer">🏅</div>
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-pointer">🎓</div>
-                      <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-xl shadow-sm hover:scale-110 transition-transform cursor-pointer">⭐</div>
-                      <div className={`w-10 h-10 rounded-xl border ${metallicBorder} ${bgMain} flex items-center justify-center text-xs font-black ${textSecondary} shadow-inner`}>+8</div>
                     </div>
                   </div>
                 </div>
@@ -982,7 +996,7 @@ export default function ProfilePage() {
                 </div>
               )}
               {restOfLeaderboard.length > 0 && (
-                <div className={`${bgPanel}/90 backdrop-blur-md border ${metallicBorder} rounded-3xl p-6 shadow-sm`}>
+                <div className={`${bgPanel} border ${metallicBorder} rounded-3xl p-6 shadow-sm`}>
                   <div className="overflow-x-auto scrollbar-thin">
                     <table className="w-full text-left border-collapse min-w-[500px]">
                       <thead>
@@ -1027,6 +1041,7 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {/* --- DISABLED LEETCODE FOR NOW ---
           {currentView === 'leetcode' && (
             <LeetcodeProblems 
               isEmbedded={true}
@@ -1034,6 +1049,7 @@ export default function ProfilePage() {
               onEmbeddedOpen={handleOpenInTracer} 
             />
           )}
+          */}
 
           {currentView === 'library' && (
             <div className="max-w-7xl mx-auto pb-10">
@@ -1042,7 +1058,7 @@ export default function ProfilePage() {
                 <p className={`text-sm font-medium ${textSecondary}`}>Explore and visualize {ALGORITHMS_DATABASE.length} computer science algorithms step-by-step.</p>
               </div>
 
-              <div className={`library-filters flex flex-col gap-5 p-6 rounded-3xl border ${metallicBorder} ${bgPanel}/90 backdrop-blur-md shadow-sm mb-8`}>
+              <div className={`library-filters flex flex-col gap-5 p-6 rounded-3xl border ${metallicBorder} ${bgPanel} shadow-sm mb-8`}>
                 <div className="flex flex-col lg:flex-row gap-5 items-center justify-between">
                   <div className="relative w-full lg:w-96">
                     <span className={`absolute left-4 top-3 text-sm ${textSecondary}`}>🔍</span>
@@ -1069,7 +1085,7 @@ export default function ProfilePage() {
                 {filteredLibrary.map((algo) => {
                   const isCompleted = completedAlgos.has(algo.id);
                   return (
-                    <div key={algo.id} className={`border rounded-3xl p-6 flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-xl group ${metallicBorder} ${hoverBorder} ${bgPanel}/90 backdrop-blur-md`}>
+                    <div key={algo.id} className={`border rounded-3xl p-6 flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-xl group ${metallicBorder} ${hoverBorder} ${bgPanel}`}>
                       <div>
                         <div className="flex justify-between items-start mb-5">
                           <div className="flex gap-2">
@@ -1119,6 +1135,11 @@ export default function ProfilePage() {
                   accentBg: hexAccent, accentText: hexAccent
               }} 
             />
+          )}
+          {currentView === 'admin' && (
+            <div className="max-w-5xl mx-auto pb-10 mt-4">
+              <AdminDashboard />
+            </div>
           )}
 
         </main>
