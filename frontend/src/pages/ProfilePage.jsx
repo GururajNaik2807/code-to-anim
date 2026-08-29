@@ -6,10 +6,11 @@ import { useAuth } from '../context/AuthContext';
 import TutorialModal from './TutorialModal'; 
 import TooltipTour from './TooltipTour'; 
 import FeedbackWidget from './FeedbackWidget'; 
-import { trackEvent, trackPageView } from '../utils/analytics'; // Imported GA4 helpers
+import { trackEvent, trackPageView } from '../utils/analytics'; 
 
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import WorkspacePage from './WorkspacePage';
+import LeetcodeProblems from './LeetcodeProblems'; 
 
 // --- Level System Definitions ---
 const HONORS = [
@@ -34,9 +35,8 @@ const calculateLevelInfo = (totalXP) => {
   const currentLevelBaseXP = (level - 1) * level * 250;
   const nextLevelXP = isMax ? currentLevelBaseXP : level * (level + 1) * 250;
   
-  const xpIntoLevel = totalXP - currentLevelBaseXP;
-  const xpNeededForLevel = nextLevelXP - currentLevelBaseXP;
-  const progressPercent = isMax ? 100 : Math.min(100, Math.max(0, Math.round((xpIntoLevel / xpNeededForLevel) * 100)));
+  // FIX: Make the progress bar match the absolute text (total / nextLevel) instead of relative
+  const progressPercent = isMax ? 100 : Math.min(100, Math.max(0, Math.round((totalXP / nextLevelXP) * 100)));
   const xpRemaining = isMax ? 0 : nextLevelXP - totalXP;
   
   return { level, honor: HONORS[level - 1] || "Legend", totalXP, nextLevelXP, progressPercent, xpRemaining, isMax };
@@ -44,10 +44,11 @@ const calculateLevelInfo = (totalXP) => {
 
 // --- Custom SVG Icons ---
 const Icons = {
-  Home: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
-  Workspace: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>,
   Library: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>,
-  Leaderboard: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
+  LeetCode: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>, 
+  Home: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2h-4a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zm10 0a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2h-4a2 2 0 01-2-2v-4z" /></svg>,
+  Workspace: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>,
+  Leaderboard: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6a2 2 0 012-2h2a2 2 0 012 2v13M4 19v-6a2 2 0 012-2h2a2 2 0 012 2v6m4 0v-4a2 2 0 012-2h2a2 2 0 012 2v4M3 21h18" /></svg>,
   Feedback: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
   Moon: () => <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>,
   Sun: () => <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
@@ -83,6 +84,9 @@ export default function ProfilePage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  
+  const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0, date: '', count: 0 });
+  const [barsMounted, setBarsMounted] = useState(false); // FIX: Native CSS transition trigger
 
   const navigate = useNavigate();
   const { currentTheme, changeTheme } = useTheme(); 
@@ -220,6 +224,15 @@ export default function ProfilePage() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // FIX: Trigger Native CSS Animations after load
+  useEffect(() => {
+    if (!loading && currentView === 'dashboard') {
+      const timer = setTimeout(() => setBarsMounted(true), 150);
+      return () => clearTimeout(timer);
+    }
+    setBarsMounted(false);
+  }, [loading, currentView]);
 
   useEffect(() => {
     let isMounted = true;
@@ -407,12 +420,23 @@ export default function ProfilePage() {
       const activity = dailyActivity.find(a => a.activity_date === dateStr);
       const count = activity ? activity.execution_count : 0;
       
-      let fillClass = bgPanel; 
-      if (count > 0 && count <= 2) fillClass = `${accentBg} opacity-40`;
-      if (count > 2 && count <= 5) fillClass = `${accentBg} opacity-70`;
-      if (count > 5) fillClass = `${accentBg}`;
+      let alpha = '00';
+      if (count > 0 && count <= 2) alpha = '66'; // 40%
+      else if (count > 2 && count <= 5) alpha = 'B3'; // 70%
+      else if (count > 5) alpha = 'FF'; // 100%
       
-      return <div key={i} className={`w-full aspect-square rounded-[2px] ${fillClass} transition-colors border ${metallicBorder}`} title={`${dateStr}: ${count} executions`}></div>;
+      return (
+        <div 
+          key={i} 
+          onMouseEnter={(e) => {
+            const rect = e.target.getBoundingClientRect();
+            setTooltip({ show: true, date: dateStr, count, x: rect.left + rect.width / 2, y: rect.top });
+          }}
+          onMouseLeave={() => setTooltip({ show: false, x: 0, y: 0, date: '', count: 0 })}
+          className={`w-full aspect-square rounded-[2px] transition-colors border ${metallicBorder} cursor-pointer hover:border-[${hexAccent}]`} 
+          style={{ backgroundColor: count > 0 ? `${hexAccent}${alpha}` : 'transparent' }}
+        ></div>
+      );
     });
   };
 
@@ -424,11 +448,11 @@ export default function ProfilePage() {
   };
 
   const algoProgressStats = [
-    { name: 'Sorting', icon: '📊', prog: calculateCategoryProgress('Sorting') },
-    { name: 'Searching', icon: '🔍', prog: calculateCategoryProgress('Searching') },
-    { name: 'Linked Lists', icon: '🔗', prog: calculateCategoryProgress('Linked Lists') },
-    { name: 'Strings', icon: '📝', prog: calculateCategoryProgress('Strings') },
-    { name: 'Trees', icon: '🌲', prog: calculateCategoryProgress('Trees') }
+    { name: 'Sorting', icon: '📊', prog: calculateCategoryProgress('Sorting'), color: 'bg-blue-500' },
+    { name: 'Searching', icon: '🔍', prog: calculateCategoryProgress('Searching'), color: 'bg-emerald-500' },
+    { name: 'Linked Lists', icon: '🔗', prog: calculateCategoryProgress('Linked Lists'), color: 'bg-purple-500' },
+    { name: 'Strings', icon: '📝', prog: calculateCategoryProgress('Strings'), color: 'bg-amber-500' },
+    { name: 'Trees', icon: '🌲', prog: calculateCategoryProgress('Trees'), color: 'bg-rose-500' }
   ];
 
   const recentAlgo = progressData.find(algo => algo.progress_percent < 100) || null;
@@ -487,7 +511,10 @@ export default function ProfilePage() {
 
   const navLinks = [
     { section: 'WORKSPACE', links: [{ name: 'Workspace', action: () => handleNavClick('workspace'), icon: <Icons.Workspace />, isActive: currentView === 'workspace' }] },
-    { section: 'LEARNING', links: [{ name: 'Algorithm Library', action: () => handleNavClick('library'), icon: <Icons.Library />, isActive: currentView === 'library' }] },
+    { section: 'LEARNING', links: [
+      { name: 'Algorithm Library', action: () => handleNavClick('library'), icon: <Icons.Library />, isActive: currentView === 'library' },
+      // { name: 'LeetCode Problems', action: () => handleNavClick('leetcode'), icon: <Icons.LeetCode />, isActive: currentView === 'leetcode' } 
+    ] },
     { section: 'COMMUNITY', links: [
       { name: 'Leaderboard', action: () => handleNavClick('leaderboard'), icon: <Icons.Leaderboard />, isActive: currentView === 'leaderboard' },
       { name: 'Give Feedback', action: () => handleNavClick('feedback'), icon: <Icons.Feedback />, isActive: currentView === 'feedback' }
@@ -774,7 +801,10 @@ export default function ProfilePage() {
                       <span className={textSecondary}>{levelInfo.totalXP.toLocaleString()} <span className="opacity-50">/ {levelInfo.nextLevelXP.toLocaleString()} XP</span></span>
                     </div>
                     <div className={`w-full h-2 rounded-full border ${metallicBorder} ${bgPanel} overflow-hidden shadow-inner`}>
-                      <div className={`h-full ${accentBg} rounded-full transition-all duration-700 ease-out`} style={{ width: `${levelInfo.progressPercent}%` }}></div>
+                      <div 
+                        className={`h-full ${accentBg} rounded-full transition-all duration-[1500ms] ease-out`} 
+                        style={{ width: barsMounted ? `${levelInfo.progressPercent}%` : '0%' }}
+                      ></div>
                     </div>
                     <p className={`text-[11px] font-semibold ${textSecondary} mt-2 text-center md:text-right`}>{levelInfo.isMax ? "Max Level Reached!" : `${levelInfo.xpRemaining.toLocaleString()} XP to level up`}</p>
                   </div>
@@ -800,12 +830,12 @@ export default function ProfilePage() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 dashboard-panels-grid">
-                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col`}>
+                <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col relative`}>
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-lg">Learning Activity</h3>
                     <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md border ${metallicBorder} ${bgMain} ${textSecondary}`}>12 Weeks</span>
                   </div>
-                  <div className="grid grid-cols-12 gap-1.5 mb-6 flex-1 items-center">{generateHeatmap()}</div>
+                  <div className="grid grid-cols-12 gap-1.5 mb-6 flex-1 items-center relative">{generateHeatmap()}</div>
                 </div>
 
                 <div className={`lg:col-span-1 ${bgPanel}/90 backdrop-blur-md border ${metallicBorder} p-6 rounded-3xl shadow-sm flex flex-col justify-between relative overflow-hidden`}>
@@ -829,7 +859,14 @@ export default function ProfilePage() {
                     {algoProgressStats.map((topic, i) => (
                       <div key={i} className="flex items-center justify-between group">
                         <div className="flex items-center gap-3 w-1/3"><span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm border ${metallicBorder} ${bgMain}`}>{topic.icon}</span><span className={`text-xs font-bold ${textSecondary}`}>{topic.name}</span></div>
-                        <div className="w-[45%]"><div className={`h-1.5 w-full rounded-full border ${metallicBorder} ${bgMain}`}><div className={`h-full ${accentBg} rounded-full`} style={{ width: `${topic.prog}%` }}></div></div></div>
+                        <div className="w-[45%]">
+                          <div className={`h-1.5 w-full rounded-full border ${metallicBorder} ${bgMain} overflow-hidden`}>
+                            <div 
+                              className={`h-full ${topic.color} rounded-full transition-all duration-[1500ms] ease-out`}
+                              style={{ width: barsMounted ? `${topic.prog}%` : '0%', transitionDelay: `${i * 100}ms` }}
+                            ></div>
+                          </div>
+                        </div>
                         <span className="text-xs font-black w-10 text-right">{topic.prog}%</span>
                       </div>
                     ))}
@@ -990,6 +1027,14 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {currentView === 'leetcode' && (
+            <LeetcodeProblems 
+              isEmbedded={true}
+              embeddedCompleted={completedAlgos} 
+              onEmbeddedOpen={handleOpenInTracer} 
+            />
+          )}
+
           {currentView === 'library' && (
             <div className="max-w-7xl mx-auto pb-10">
               <div className="text-center space-y-3 mb-10 mt-4">
@@ -1078,6 +1123,16 @@ export default function ProfilePage() {
 
         </main>
       </div>
+
+      {/* NEW: Global Heatmap Tooltip */}
+      {tooltip.show && (
+        <div 
+          className={`fixed z-[999] pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 px-3 py-2 rounded-lg text-xs font-bold shadow-xl border ${metallicBorder} ${bgPanel} ${textPrimary}`} 
+          style={{ left: tooltip.x, top: tooltip.y - 8 }}
+        >
+          <span className={accentText}>{tooltip.count}</span> executions on <span className="opacity-70">{tooltip.date}</span>
+        </div>
+      )}
 
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 transition-all">
