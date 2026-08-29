@@ -113,8 +113,8 @@ export default function Visualizer({
                 <span className={textSecondary}>STEP {steps.length > 0 ? currentStepIndex + 1 : 0} / {steps.length}</span>
               </div>
 
-              {/* ARRAY */}
-              {layout.type === 'array' && (
+{/* ARRAY / STACK / QUEUE */}
+              {['array', 'stack', 'queue'].includes(layout.type) && (
                 <div className={`flex gap-3 items-end py-6 overflow-x-auto max-w-full my-auto ${customScrollbar}`}>
                   <AnimatePresence mode="popLayout">
                     {layout.data.map((val, idx) => {
