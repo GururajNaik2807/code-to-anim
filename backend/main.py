@@ -186,6 +186,7 @@ def generate_visual_layout(clean_vars: dict, raw_vars: dict = None) -> dict:
         return best_candidate
 
     return {"type": "none"}
+
 def run_trace_worker(code_string):
     steps = []
     step_counter = 0
@@ -213,6 +214,10 @@ def run_trace_worker(code_string):
         
         if frame.f_code.co_name == '_execute_stash':
             return None
+            
+        # FIX: Immediately drop out of tracing if the function is from the standard library
+        if event == 'call' and frame.f_code.co_filename != '<string>':
+            return None
         
         if step_counter >= MAX_STEPS:
             raise RuntimeError(f"Execution stopped: Exceeded {MAX_STEPS} steps.")
@@ -232,8 +237,6 @@ def run_trace_worker(code_string):
                         pass
 
             layout_blueprint = generate_visual_layout(clean_vars, raw_vars)
-
-            layout_blueprint = generate_visual_layout(clean_vars)
             
             step_counter += 1
             steps.append({
@@ -277,15 +280,17 @@ def run_trace_worker(code_string):
         
         # FIX: Capture the absolute final state after exec finishes
         final_clean_vars = {}
+        final_raw_vars = {}
         for k, v in execution_scope.items():
             if not k.startswith('__') and k not in ['sys', 'time', '_execute_stash'] and not callable(v) and k not in stashed_vars:
+                final_raw_vars[k] = v
                 try:
                     final_clean_vars[k] = make_json_safe(v)
                 except Exception:
                     pass
 
         final_output = stdout_buffer.getvalue()[:MAX_OUTPUT_LEN]
-        final_layout = generate_visual_layout(final_clean_vars)
+        final_layout = generate_visual_layout(final_clean_vars, final_raw_vars)
 
         if steps:
             last_step = steps[-1]

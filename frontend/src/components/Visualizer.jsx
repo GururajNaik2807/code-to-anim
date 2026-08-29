@@ -141,6 +141,43 @@ export default function Visualizer({
                 </div>
               )}
 
+              {/* LINKED LIST */}
+              {layout.type === 'linked_list' && (
+                <div className={`flex gap-4 items-center p-6 overflow-x-auto max-w-full my-auto ${customScrollbar}`}>
+                  <AnimatePresence mode="popLayout">
+                    {layout.nodes.map((node, idx) => {
+                      const activePointers = layout.pointers?.filter(p => p.target_val === node.val) || [];
+                      
+                      return (
+                        <motion.div key={`ll-${idx}`} layout className="flex items-center">
+                          <div className="flex flex-col items-center">
+                            {/* Pointers (fast, slow, etc.) */}
+                            <div className="h-6 flex flex-col items-center justify-end mb-2">
+                              {activePointers.map((ptr, i) => (
+                                <span key={i} className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded shadow-md border ${metallicBorder} ${isDark ? 'bg-purple-600 text-white' : isLight ? 'bg-[#31599B] text-white' : 'bg-[#8C5A48] text-white'}`}>
+                                  {ptr.key}
+                                </span>
+                              ))}
+                            </div>
+                            
+                            {/* Node Box */}
+                            <div className={`w-14 h-10 rounded-lg border-2 flex items-center justify-center font-bold text-sm shadow-md ${isDark ? 'bg-purple-900 border-purple-500 text-white' : isLight ? 'bg-[#31599B] border-[#274B85] text-white' : 'bg-[#8C5A48] border-[#765A51] text-white'}`}>
+                              {node.val}
+                            </div>
+                          </div>
+
+                          {/* Next Pointer Arrow - FIXED ALIGNMENT WITH mt-7 and text-3xl */}
+                          {idx < layout.nodes.length - 1 && (
+                            <div className={`mx-3 text-3xl font-bold mt-7 ${isDark ? 'text-purple-400' : isLight ? 'text-[#31599B]' : 'text-[#8C5A48]'}`}>
+                              →
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              )}
               {/* TREE */}
               {layout.type === 'tree' && (() => {
                 const { treeCenterX, treeCenterY } = calculateTreeBounds(layout.nodes);
