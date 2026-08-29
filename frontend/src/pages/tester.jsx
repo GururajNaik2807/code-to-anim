@@ -16,16 +16,19 @@ export default function TesterEnrollment({ user, bgPanel, bgMain, metallicBorder
 
       try {
         setFetchError(null);
+        // Updated to .maybeSingle() to prevent single row lookup crashes for new accounts
         const { data, error } = await supabase
           .from('profiles')
           .select('is_tester')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         
         if (isMounted && data) {
           setIsEnrolled(data.is_tester === true);
+        } else if (isMounted) {
+          setIsEnrolled(false);
         }
       } catch (error) {
         console.error("🚨 Tester Fetch Error:", error.message, error.details);
