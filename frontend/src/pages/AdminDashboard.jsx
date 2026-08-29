@@ -6,6 +6,7 @@ export default function AdminDashboard({ bgPanel, bgMain, metallicBorder, accent
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const ADMIN_EMAIL = "gururajnaik2807@gmail.com"; 
 
@@ -13,7 +14,10 @@ export default function AdminDashboard({ bgPanel, bgMain, metallicBorder, accent
     fetchRequests();
   }, []);
 
-  const fetchRequests = async () => {
+  const fetchRequests = async (isManualRefresh = false) => {
+    if (isManualRefresh) setRefreshing(true);
+    else setLoading(true);
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -27,6 +31,7 @@ export default function AdminDashboard({ bgPanel, bgMain, metallicBorder, accent
       console.error("Error fetching tester requests:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -53,9 +58,28 @@ export default function AdminDashboard({ bgPanel, bgMain, metallicBorder, accent
 
   return (
     <div className="space-y-6">
-      <div className="text-center space-y-3 mb-10">
-        <h1 className={`text-4xl font-black tracking-tight ${textPrimary}`}>Tester Requests</h1>
-        <p className={`text-sm font-medium ${textSecondary}`}>Manage and approve users requesting early access to CodeToAnim.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-10">
+        <div className="text-center sm:text-left space-y-1">
+          <h1 className={`text-4xl font-black tracking-tight ${textPrimary}`}>Tester Requests</h1>
+          <p className={`text-sm font-medium ${textSecondary}`}>Manage and approve users requesting early access to CodeToAnim.</p>
+        </div>
+        
+        {/* --- REFRESH BUTTON --- */}
+        <button
+          onClick={() => fetchRequests(true)}
+          disabled={refreshing || loading}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border ${metallicBorder} ${bgPanel} ${textPrimary} text-xs font-bold shadow-sm transition-all hover:opacity-80 active:scale-95 disabled:opacity-50`}
+        >
+          <svg 
+            className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''} ${accentText}`} 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>{refreshing ? 'Refreshing...' : 'Refresh List'}</span>
+        </button>
       </div>
 
       {loading ? (
