@@ -11,8 +11,8 @@ import { trackEvent, trackPageView } from '../utils/analytics';
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import WorkspacePage from './WorkspacePage';
 // import LeetcodeProblems from './LeetcodeProblems'; // <-- TEMPORARILY DISABLED
-import TesterEnrollment from './tester'; 
-import AdminDashboard from './AdminDashboard';
+// import TesterEnrollment from './tester'; 
+// import AdminDashboard from './AdminDashboard';
 
 // --- Level System Definitions ---
 const HONORS = [
@@ -520,13 +520,13 @@ export default function ProfilePage() {
     { section: 'COMMUNITY', links: [
       { name: 'Leaderboard', action: () => handleNavClick('leaderboard'), icon: <Icons.Leaderboard />, isActive: currentView === 'leaderboard' },
       { name: 'Give Feedback', action: () => handleNavClick('feedback'), icon: <Icons.Feedback />, isActive: currentView === 'feedback' }
-    ] },
-    ...(user?.email === 'gururajnaik2807@gmail.com' ? [{
-      section: 'ADMIN',
-      links: [
-        { name: 'Tester Requests', action: () => handleNavClick('admin'), icon: <Icons.Admin />, isActive: currentView === 'admin' }
-      ]
-    }] : [])
+    ] }
+    // ...(user?.email === 'gururajnaik2807@gmail.com' ? [{
+    //   section: 'ADMIN',
+    //   links: [
+    //     { name: 'Tester Requests', action: () => handleNavClick('admin'), icon: <Icons.Admin />, isActive: currentView === 'admin' }
+    //   ]
+    // }] : [])
   ];
   
   const top3 = leaderboardData.slice(0, 3);
@@ -917,7 +917,7 @@ export default function ProfilePage() {
 
                 <div className="flex flex-col gap-6 h-full">
                   
-                  <TesterEnrollment 
+                  {/* <TesterEnrollment 
                     user={user} 
                     bgPanel={bgPanel}
                     bgMain={bgMain}
@@ -926,7 +926,7 @@ export default function ProfilePage() {
                     accentText={accentText}
                     textPrimary={textPrimary}
                     textSecondary={textSecondary}
-                  />
+                  /> */}
 
                   {/* --- Leaderboard uses solid bgPanel --- */}
                   <div className={`${bgPanel} border ${metallicBorder} p-6 rounded-3xl shadow-sm flex-1 flex flex-col`}>
