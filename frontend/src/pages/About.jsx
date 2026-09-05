@@ -79,11 +79,16 @@ const About = () => {
         }
       `}</style>
 
-      <div className="min-h-screen flex flex-col bg-(--canvas) text-(--ink) selection:bg-(--cobalt) selection:text-white font-sans overflow-x-hidden">
+      {/* Removed overflow-x-hidden from root to enable sticky positioning */}
+      <div className="min-h-screen flex flex-col bg-(--canvas) text-(--ink) selection:bg-(--cobalt) selection:text-white font-sans relative">
         
-        <LandingNav />
+        {/* Sticky Nav Wrapper */}
+        <div className="sticky top-0 z-[100] w-full bg-(--canvas)/90 backdrop-blur-md border-b border-(--ink-line) shadow-sm transition-all">
+          <LandingNav />
+        </div>
 
-        <main className="grow flex flex-col items-center w-full z-10">
+        {/* Moved overflow-x-hidden to main to prevent horizontal scroll issues */}
+        <main className="grow flex flex-col items-center w-full z-10 overflow-x-hidden">
           
           {/* HERO SECTION WITH GRID BACKGROUND */}
           <section className="relative w-full px-6 pt-24 pb-20 text-center sm:text-left flex flex-col items-center">

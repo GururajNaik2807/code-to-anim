@@ -15,6 +15,7 @@ import { Helmet } from 'react-helmet-async';
 import { trackEvent, trackPageView } from '../utils/analytics'; // Imported analytics helper
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://code-to-anim-backend.vercel.app";
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 const MAX_CODE_LENGTH = 20000;
 const MAX_SAVE_TITLE_LENGTH = 120;
 const TRACE_TIMEOUT_MS = 10000;
