@@ -53,7 +53,7 @@ export default function AlgorithmLibrary({
   };
 
   const mainContent = (
-    <div className={`max-w-7xl mx-auto ${isEmbedded ? 'pb-10' : 'px-6 py-16'}`}>
+    <div className={`max-w-7xl mx-auto ${isEmbedded ? 'pb-10' : 'px-6 py-10'}`}>
       {!isEmbedded && (
         <Helmet>
           <title>Algorithm Library | CodeToAnim Visualizer</title>
@@ -65,16 +65,20 @@ export default function AlgorithmLibrary({
         </Helmet>
       )}
 
-      <div className="text-center sm:text-left space-y-4 mb-12">
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-(--ink)">
-          Algorithm <span className="text-(--cobalt)">Library</span>
-        </h1>
-        <p className="text-lg text-(--ink-secondary) font-medium max-w-2xl">
-          Explore and visualize {ALGORITHMS_DATABASE.length} computer science algorithms step-by-step.
-        </p>
+      {/* Hero section with grid background */}
+      <div className="relative text-center sm:text-left mb-12 py-8">
+        <div className="absolute inset-0 z-0 bg-grid-pattern opacity-60 pointer-events-none"></div>
+        <div className="relative z-10 space-y-4">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-(--ink)">
+            Algorithm <span className="text-transparent bg-clip-text bg-gradient-to-r from-(--cobalt) to-(--teal)">Library</span>
+          </h1>
+          <p className="text-lg text-(--ink-secondary) font-medium max-w-2xl mx-auto sm:mx-0">
+            Explore and visualize {ALGORITHMS_DATABASE.length} computer science algorithms step-by-step.
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-6 p-6 sm:p-8 rounded-xl bg-(--canvas-paper) border border-(--ink-line-strong) shadow-sm mb-12">
+      <div className="flex flex-col gap-6 p-6 sm:p-8 rounded-xl bg-(--canvas-paper) border border-(--ink-line-strong) shadow-lg mb-12 relative z-10">
         <div className="flex flex-col lg:flex-row gap-5 items-center justify-between">
           
           <div className="relative w-full lg:w-96">
@@ -127,7 +131,7 @@ export default function AlgorithmLibrary({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 relative z-10">
         {filteredLibrary.map((algo) => {
           const isCompleted = embeddedCompleted.has(algo.id);
           const targetUrl = `/workspace?algo=${algo.id}`;
@@ -219,7 +223,7 @@ export default function AlgorithmLibrary({
       </div>
 
       {filteredLibrary.length === 0 && (
-        <div className="py-24 flex flex-col items-center justify-center text-center rounded-xl border border-(--ink-line) bg-(--canvas-paper)">
+        <div className="py-24 flex flex-col items-center justify-center text-center rounded-xl border border-(--ink-line) bg-(--canvas-paper) relative z-10">
           <span className="text-5xl mb-5 opacity-50">📭</span>
           <h3 className="text-xl font-bold mb-2 text-(--ink)">No algorithms found</h3>
           <p className="text-sm font-medium max-w-sm text-(--ink-secondary)">
@@ -258,8 +262,15 @@ export default function AlgorithmLibrary({
             --yellow: #F2C14E;
             --yellow-tint: #FEF9EB;
           }
+          .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, var(--ink-line) 1px, transparent 1px),
+                              linear-gradient(to bottom, var(--ink-line) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+            -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+          }
         `}</style>
-        <div className="embedded-lib-wrapper bg-(--canvas) font-sans text-(--ink) w-full">
+        <div className="embedded-lib-wrapper bg-(--canvas) font-sans text-(--ink) w-full relative">
           {mainContent}
         </div>
       </>
@@ -307,22 +318,30 @@ export default function AlgorithmLibrary({
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
+
+        /* Custom decorative grid added for consistency */
+        .bg-grid-pattern {
+          background-size: 40px 40px;
+          background-image: linear-gradient(to right, var(--ink-line) 1px, transparent 1px),
+                            linear-gradient(to bottom, var(--ink-line) 1px, transparent 1px);
+          mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+          -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+        }
       `}</style>
 
       <div className="min-h-screen flex flex-col bg-(--canvas) text-(--ink) selection:bg-(--cobalt) selection:text-white font-sans overflow-x-hidden">
         
         <LandingNav />
 
-        <main className="grow w-full z-10">
+        <main className="grow w-full z-10 relative">
           {mainContent}
         </main>
 
-        <footer className="w-full border-t border-(--ink-line) bg-(--canvas-paper) py-14 px-6" aria-label="Site Footer">
+        <footer className="w-full border-t border-(--ink-line) bg-(--canvas-paper) py-14 px-6 relative z-10" aria-label="Site Footer">
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-10">
             
             <div className="md:col-span-2">
               <Link to="/" className="flex items-center gap-3 mb-4">
-                <img src="/favicon.svg" alt="CodeToAnim Logo" className="w-7 h-7 object-contain" />
                 <span className="text-xl font-bold tracking-tight text-(--ink)">
                   CodeTo<span className="text-(--cobalt)">Anim</span>
                 </span>
@@ -349,15 +368,6 @@ export default function AlgorithmLibrary({
                 <li><Link to="/workspace" className="hover:text-(--cobalt) transition-colors">Linked Lists</Link></li>
                 <li><Link to="/workspace" className="hover:text-(--cobalt) transition-colors">Trees &amp; Graphs</Link></li>
                 <li><Link to="/workspace" className="hover:text-(--cobalt) transition-colors">Recursion Call Stacks</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-(--ink) font-bold mb-4 text-xs font-mono uppercase tracking-wider">Community</h4>
-              <ul className="space-y-2.5 text-(--ink-secondary) text-sm font-medium">
-                <li><a href="https://github.com/" target="_blank" rel="noopener noreferrer" className="hover:text-(--cobalt) transition-colors">GitHub Repository</a></li>
-                <li><a href="https://x.com/" target="_blank" rel="noopener noreferrer" className="hover:text-(--cobalt) transition-colors">Twitter / X</a></li>
-                <li><Link to="/about" className="text-(--cobalt) transition-colors">About the Project</Link></li>
               </ul>
             </div>
           </div>
