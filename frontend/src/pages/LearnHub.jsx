@@ -51,7 +51,6 @@ export default function LearnHub() {
   const dataStructures = lessons.filter((item) => item.category === 'Data Structures');
   const algorithms = lessons.filter((item) => item.category === 'Algorithms');
 
-  // Trigger GA4 tracking when selecting a lesson
   const handleTrackLesson = (item) => {
     trackEvent('select_lesson', {
       lesson_id: item.pathKey,
@@ -89,7 +88,6 @@ export default function LearnHub() {
           --yellow-tint: #FEF9EB;
         }
 
-        /* Custom decorative grid added for consistency */
         .bg-grid-pattern {
           background-size: 40px 40px;
           background-image: linear-gradient(to right, var(--ink-line) 1px, transparent 1px),
@@ -99,18 +97,13 @@ export default function LearnHub() {
         }
       `}</style>
 
-      {/* Removed overflow-x-hidden from root to enable sticky positioning */}
       <div className="min-h-screen bg-(--canvas) text-(--ink) font-sans flex flex-col selection:bg-(--cobalt) selection:text-white relative">
         
-        {/* Sticky Nav Wrapper */}
-        <div className="sticky top-0 z-[100] w-full bg-(--canvas)/90 backdrop-blur-md border-b border-(--ink-line) shadow-sm transition-all">
-          <LandingNav />
-        </div>
+        {/* FIX: Removed the blurry wrapper div */}
+        <LandingNav />
 
-        {/* Moved overflow-x-hidden to main to prevent horizontal scroll issues */}
         <main className="max-w-7xl mx-auto w-full px-6 py-12 grow flex flex-col gap-16 relative overflow-x-hidden">
           
-          {/* Hero Section with Grid Background and Gradient Text */}
           <section className="relative p-8 sm:p-12 rounded-xl border border-(--ink-line-strong) bg-(--canvas-paper) shadow-lg text-center max-w-4xl mx-auto flex flex-col items-center overflow-hidden w-full">
             <div className="absolute inset-0 z-0 bg-grid-pattern opacity-60 pointer-events-none"></div>
             

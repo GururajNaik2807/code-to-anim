@@ -109,15 +109,11 @@ const LandingPage = () => {
         }
       `}</style>
 
-      {/* Removed overflow-x-hidden from root container to allow sticky positioning */}
       <div className="min-h-screen flex flex-col font-sans bg-(--canvas) text-(--ink) selection:bg-(--cobalt) selection:text-white relative">
         
-        {/* Sticky Nav Wrapper */}
-        <div className="sticky top-0 z-[100] w-full bg-(--canvas)/90 backdrop-blur-md border-b border-(--ink-line) shadow-sm transition-all">
-          <LandingNav />
-        </div>
+        {/* FIX APPLIED HERE: The blurry wrapper div was removed. LandingNav handles itself. */}
+        <LandingNav />
 
-        {/* Moved overflow-x-hidden to main to prevent horizontal scroll issues */}
         <main className="grow flex flex-col items-center w-full z-10 overflow-x-hidden">
           
           {/* SECTION 1: HERO */}
@@ -172,14 +168,12 @@ const LandingPage = () => {
                 </motion.div>
               </motion.div>
 
-              {/* Enhanced Interactive Editor Display */}
               <motion.div 
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.9, delay: 0.2, ease: easeCurve }}
                 className="lg:col-span-6 relative"
               >
-                {/* Glowing backdrop */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-(--cobalt)/20 via-(--teal)/10 to-(--vermilion)/20 blur-3xl -z-10 rounded-[3rem]"></div>
                 
                 <div className="bg-(--canvas-paper) border border-(--ink-line-strong) rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(25,24,22,0.1)] flex flex-col transform hover:scale-[1.01] transition-transform duration-500">
@@ -410,7 +404,6 @@ const LandingPage = () => {
                 whileHover={{ rotate: 0, scale: 1.02 }}
                 className="relative bg-white p-10 sm:p-16 shadow-[0_20px_60px_rgba(0,0,0,0.12)] border-2 border-(--ink-line) -rotate-2 rounded-xl transition-all duration-300"
               >
-                {/* Decorative Pin */}
                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-(--vermilion) shadow-md flex items-center justify-center border-4 border-white">
                   <div className="w-4 h-4 rounded-full bg-black/20"></div>
                 </div>
@@ -477,7 +470,6 @@ const LandingPage = () => {
 
           {/* SECTION 5: FINAL CTA */}
           <section className="w-full py-32 px-6 bg-(--cobalt) text-white relative overflow-hidden">
-            {/* Dramatic background shapes */}
             <div className="absolute top-0 right-0 w-96 h-96 bg-(--teal) opacity-50 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-(--vermilion) opacity-40 blur-[100px] rounded-full -translate-x-1/2 translate-y-1/2 pointer-events-none"></div>
 

@@ -65,7 +65,6 @@ export default function AlgorithmLibrary({
         </Helmet>
       )}
 
-      {/* Hero section with grid background */}
       <div className="relative text-center sm:text-left mb-12 py-8">
         <div className="absolute inset-0 z-0 bg-grid-pattern opacity-60 pointer-events-none"></div>
         <div className="relative z-10 space-y-4">
@@ -319,7 +318,6 @@ export default function AlgorithmLibrary({
           scrollbar-width: none;
         }
 
-        /* Custom decorative grid added for consistency */
         .bg-grid-pattern {
           background-size: 40px 40px;
           background-image: linear-gradient(to right, var(--ink-line) 1px, transparent 1px),
@@ -329,15 +327,11 @@ export default function AlgorithmLibrary({
         }
       `}</style>
 
-      {/* Removed overflow-x-hidden from root container to allow sticky positioning */}
       <div className="min-h-screen flex flex-col bg-(--canvas) text-(--ink) selection:bg-(--cobalt) selection:text-white font-sans relative">
         
-        {/* Sticky Nav Wrapper */}
-        <div className="sticky top-0 z-[100] w-full bg-(--canvas)/90 backdrop-blur-md border-b border-(--ink-line) shadow-sm transition-all">
-          <LandingNav />
-        </div>
+        {/* FIX: Removed the blurry wrapper div */}
+        <LandingNav />
 
-        {/* Moved overflow-x-hidden to main to prevent horizontal scroll issues */}
         <main className="grow w-full z-10 relative overflow-x-hidden">
           {mainContent}
         </main>
