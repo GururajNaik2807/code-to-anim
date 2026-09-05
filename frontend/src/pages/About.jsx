@@ -68,51 +68,58 @@ const About = () => {
           -webkit-font-smoothing: antialiased;
           scrollbar-gutter: stable;
         }
+
+        /* Custom decorative grid added for consistency */
+        .bg-grid-pattern {
+          background-size: 40px 40px;
+          background-image: linear-gradient(to right, var(--ink-line) 1px, transparent 1px),
+                            linear-gradient(to bottom, var(--ink-line) 1px, transparent 1px);
+          mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+          -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+        }
       `}</style>
 
       <div className="min-h-screen flex flex-col bg-(--canvas) text-(--ink) selection:bg-(--cobalt) selection:text-white font-sans overflow-x-hidden">
         
-        {/* ========================================================
-            GLOBAL NAVIGATION BAR
-            ======================================================== */}
         <LandingNav />
 
         <main className="grow flex flex-col items-center w-full z-10">
           
-          {/* ========================================================
-              HERO SECTION
-              ======================================================== */}
-          <section className="w-full px-6 pt-24 pb-20 max-w-[800px] mx-auto text-center sm:text-left">
-            <motion.div 
-              initial="hidden" 
-              animate="visible" 
-              variants={staggerContainer}
-              className="flex flex-col items-center sm:items-start"
-            >
-              <motion.div variants={fadeUpVariant} className="text-xs font-mono font-semibold uppercase tracking-wider text-(--ink-muted) mb-6">
-                About The Project
+          {/* HERO SECTION WITH GRID BACKGROUND */}
+          <section className="relative w-full px-6 pt-24 pb-20 text-center sm:text-left flex flex-col items-center">
+            {/* Background pattern layer */}
+            <div className="absolute inset-0 z-0 bg-grid-pattern opacity-60 pointer-events-none"></div>
+
+            <div className="max-w-[800px] mx-auto w-full relative z-10">
+              <motion.div 
+                initial="hidden" 
+                animate="visible" 
+                variants={staggerContainer}
+                className="flex flex-col items-center sm:items-start"
+              >
+                <motion.div variants={fadeUpVariant} className="text-xs font-mono font-semibold uppercase tracking-wider text-(--ink-muted) mb-6">
+                  About The Project
+                </motion.div>
+                <motion.h1 variants={fadeUpVariant} className="text-4xl sm:text-5xl lg:text-6xl font-bold text-(--ink) mb-8 tracking-tight leading-[1.05]">
+                  Stop compiling code in <br className="hidden sm:block" />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-(--vermilion) to-(--yellow)">your head.</span>
+                </motion.h1>
+                <motion.p variants={fadeUpVariant} className="text-lg sm:text-xl text-(--ink-secondary) leading-relaxed mb-6 font-normal">
+                  Computer science is taught backwards. We give students static text files and expect them to mentally simulate dynamic, stateful machines. 
+                </motion.p>
+                <motion.p variants={fadeUpVariant} className="text-lg sm:text-xl text-(--ink-secondary) leading-relaxed font-normal">
+                  CodeToAnim was built to bridge the gap between syntax and spatial memory. It’s a tool for developers, students, and educators to finally see what their memory addresses, pointers, and recursive branches are actually doing.
+                </motion.p>
               </motion.div>
-              <motion.h1 variants={fadeUpVariant} className="text-4xl sm:text-5xl lg:text-6xl font-bold text-(--ink) mb-8 tracking-tight leading-[1.05]">
-                Stop compiling code in <br className="hidden sm:block" />
-                <span className="text-(--vermilion)">your head.</span>
-              </motion.h1>
-              <motion.p variants={fadeUpVariant} className="text-lg sm:text-xl text-(--ink-secondary) leading-relaxed mb-6 font-normal">
-                Computer science is taught backwards. We give students static text files and expect them to mentally simulate dynamic, stateful machines. 
-              </motion.p>
-              <motion.p variants={fadeUpVariant} className="text-lg sm:text-xl text-(--ink-secondary) leading-relaxed font-normal">
-                CodeToAnim was built to bridge the gap between syntax and spatial memory. It’s a tool for developers, students, and educators to finally see what their memory addresses, pointers, and recursive branches are actually doing.
-              </motion.p>
-            </motion.div>
+            </div>
           </section>
 
-          {/* ========================================================
-              THE PROBLEM / SOLUTION GRID
-              ======================================================== */}
+          {/* THE PROBLEM / SOLUTION GRID */}
           <section className="w-full py-20 bg-(--canvas-paper) border-y border-(--ink-line)">
             <div className="max-w-[1280px] mx-auto px-6 grid md:grid-cols-2 gap-8 items-stretch">
               
               {/* The Old Way */}
-              <div className="p-8 sm:p-10 rounded-xl bg-(--canvas) border border-(--ink-line) flex flex-col justify-between">
+              <div className="p-8 sm:p-10 rounded-xl bg-(--canvas) border border-(--ink-line) flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300">
                 <div>
                   <div className="font-mono text-xs font-bold text-(--ink-muted) mb-4 tracking-wider">THE OLD WAY</div>
                   <h3 className="text-2xl font-bold text-(--ink) mb-4">Print Statement Hell</h3>
@@ -128,7 +135,7 @@ const About = () => {
               </div>
 
               {/* The CodeToAnim Way */}
-              <div className="p-8 sm:p-10 rounded-xl bg-(--cobalt-tint) border border-(--cobalt) flex flex-col justify-between">
+              <div className="p-8 sm:p-10 rounded-xl bg-(--cobalt-tint) border border-(--cobalt) flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 shadow-lg">
                 <div>
                   <div className="font-mono text-xs font-bold text-(--cobalt) mb-4 tracking-wider">THE CODETOANIM WAY</div>
                   <h3 className="text-2xl font-bold text-(--ink) mb-4">Visual State Tracking</h3>
@@ -150,13 +157,11 @@ const About = () => {
             </div>
           </section>
 
-          {/* ========================================================
-              PHILOSOPHY SECTION
-              ======================================================== */}
-          <section className="w-full px-6 py-28 max-w-[800px] mx-auto text-left">
+          {/* PHILOSOPHY SECTION */}
+          <section className="w-full px-6 py-28 max-w-[800px] mx-auto text-left relative">
             <h2 className="text-3xl sm:text-4xl font-bold text-(--ink) mb-12 tracking-tight">Our Philosophy</h2>
             
-            <div className="space-y-12">
+            <div className="space-y-12 relative z-10">
               <div className="relative pl-8 sm:pl-12">
                 <span className="absolute left-0 top-1 text-(--teal) font-mono text-sm font-bold">01.</span>
                 <h4 className="text-xl font-bold text-(--ink) mb-3">
@@ -189,17 +194,19 @@ const About = () => {
             </div>
           </section>
 
-          {/* ========================================================
-              BOTTOM CTA
-              ======================================================== */}
-          <section className="w-full py-24 px-6 bg-(--cobalt) text-white text-center border-t border-(--ink-line-strong)">
-            <div className="max-w-2xl mx-auto">
+          {/* BOTTOM CTA */}
+          <section className="w-full py-24 px-6 bg-(--cobalt) text-white text-center border-t border-(--ink-line-strong) relative overflow-hidden">
+             {/* Dramatic background shapes for consistency with Landing */}
+             <div className="absolute top-0 right-0 w-96 h-96 bg-(--teal) opacity-50 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+             <div className="absolute bottom-0 left-0 w-96 h-96 bg-(--vermilion) opacity-40 blur-[100px] rounded-full -translate-x-1/2 translate-y-1/2 pointer-events-none"></div>
+
+            <div className="max-w-2xl mx-auto relative z-10">
               <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight leading-tight">Ready to see your code?</h2>
               <p className="text-white/80 text-lg sm:text-xl mb-10 font-normal">
                 Jump into the workspace, write some Python, and watch the execution unfold.
               </p>
               <Link to="/workspace">
-                <button className="bg-(--yellow) hover:bg-[#E5B540] text-(--ink) font-bold py-4 px-10 rounded-lg transition-colors text-base shadow-sm">
+                <button className="bg-(--yellow) hover:bg-[#E5B540] text-(--ink) font-bold py-4 px-10 rounded-lg transition-transform hover:-translate-y-1 text-base shadow-[0_10px_30px_rgba(242,193,78,0.3)]">
                   Open the Workspace →
                 </button>
               </Link>
@@ -208,19 +215,11 @@ const About = () => {
 
         </main>
 
-        {/* ========================================================
-            FOOTER (Can also be extracted later!)
-            ======================================================== */}
         <footer className="w-full border-t border-(--ink-line) bg-(--canvas-paper) py-14 px-6" aria-label="Site Footer">
           <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-5 gap-10">
             
             <div className="md:col-span-2">
               <Link to="/" className="flex items-center gap-3 mb-4">
-                <img 
-                  src="/favicon.svg" 
-                  alt="CodeToAnim Logo" 
-                  className="w-7 h-7 object-contain"
-                />
                 <span className="text-xl font-bold tracking-tight text-(--ink)">
                   CodeTo<span className="text-(--cobalt)">Anim</span>
                 </span>
@@ -247,15 +246,6 @@ const About = () => {
                 <li><Link to="/workspace" className="hover:text-(--cobalt) transition-colors">Linked Lists</Link></li>
                 <li><Link to="/workspace" className="hover:text-(--cobalt) transition-colors">Trees &amp; Graphs</Link></li>
                 <li><Link to="/workspace" className="hover:text-(--cobalt) transition-colors">Recursion Call Stacks</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-(--ink) font-bold mb-4 text-xs font-mono uppercase tracking-wider">Community</h4>
-              <ul className="space-y-2.5 text-(--ink-secondary) text-sm font-medium">
-                <li><a href="https://github.com/" target="_blank" rel="noopener noreferrer" className="hover:text-(--cobalt) transition-colors">GitHub Repository</a></li>
-                <li><a href="https://x.com/" target="_blank" rel="noopener noreferrer" className="hover:text-(--cobalt) transition-colors">Twitter / X</a></li>
-                <li><Link to="/about" className="text-(--cobalt) transition-colors">About the Project</Link></li>
               </ul>
             </div>
           </div>
