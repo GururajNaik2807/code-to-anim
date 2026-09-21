@@ -109,13 +109,14 @@ const LandingPage = () => {
         }
       `}</style>
 
-      <div className="min-h-screen flex flex-col font-sans bg-(--canvas) text-(--ink) selection:bg-(--cobalt) selection:text-white relative overflow-x-hidden">
+      <div className="min-h-screen flex flex-col font-sans bg-(--canvas) text-(--ink) selection:bg-(--cobalt) selection:text-white relative">
         
+        {/* FIX APPLIED HERE: The blurry wrapper div was removed. LandingNav handles itself. */}
         <LandingNav />
 
-        <main className="grow flex flex-col items-center w-full z-10">
+        <main className="grow flex flex-col items-center w-full z-10 overflow-x-hidden">
           
-          {/* SECTION 1: HERO (Redesigned for maximum impact) */}
+          {/* SECTION 1: HERO */}
           <section className="relative w-full px-6 pt-20 pb-32 flex flex-col items-center justify-center">
             {/* Background pattern layer */}
             <div className="absolute inset-0 z-0 bg-grid-pattern opacity-60"></div>
@@ -167,14 +168,12 @@ const LandingPage = () => {
                 </motion.div>
               </motion.div>
 
-              {/* Enhanced Interactive Editor Display */}
               <motion.div 
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.9, delay: 0.2, ease: easeCurve }}
                 className="lg:col-span-6 relative"
               >
-                {/* Glowing backdrop */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-(--cobalt)/20 via-(--teal)/10 to-(--vermilion)/20 blur-3xl -z-10 rounded-[3rem]"></div>
                 
                 <div className="bg-(--canvas-paper) border border-(--ink-line-strong) rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(25,24,22,0.1)] flex flex-col transform hover:scale-[1.01] transition-transform duration-500">
@@ -270,7 +269,7 @@ const LandingPage = () => {
             </div>
           </section>
 
-          {/* SECTION 2: THE PROBLEM (Redesigned with strong contrast) */}
+          {/* SECTION 2: THE PROBLEM */}
           <section className="w-full py-24 bg-(--ink) text-(--canvas) border-y border-(--ink-line-strong)">
             <div className="max-w-7xl mx-auto px-6">
               <div className="max-w-3xl mb-16">
@@ -339,7 +338,6 @@ const LandingPage = () => {
             </div>
 
             <div className="w-full bg-white border border-(--ink-line-strong) rounded-2xl shadow-2xl overflow-hidden grid lg:grid-cols-12 transform transition-all hover:shadow-[0_20px_60px_rgba(22,117,111,0.15)]">
-              {/* ... (Kept the linked list visualizer identical to your implementation[cite: 1] for structural consistency) ... */}
               <div className="lg:col-span-5 bg-(--editor-bg) p-8 font-mono text-sm text-gray-300 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-(--ink-line)">
                 <div>
                   <div className="flex items-center justify-between pb-4 mb-6 border-b border-white/10 text-xs text-gray-400 font-bold uppercase tracking-widest">
@@ -397,7 +395,7 @@ const LandingPage = () => {
             </div>
           </section>
 
-          {/* SECTION 3.5: WHY I BUILT THIS (Elevated Scrapbook Design) */}
+          {/* SECTION 3.5: WHY I BUILT THIS */}
           <section className="w-full py-32 bg-(--canvas-tint) relative overflow-hidden border-t border-(--ink-line) flex items-center justify-center">
             <div className="absolute inset-0 z-0 bg-grid-pattern opacity-40"></div>
             
@@ -406,7 +404,6 @@ const LandingPage = () => {
                 whileHover={{ rotate: 0, scale: 1.02 }}
                 className="relative bg-white p-10 sm:p-16 shadow-[0_20px_60px_rgba(0,0,0,0.12)] border-2 border-(--ink-line) -rotate-2 rounded-xl transition-all duration-300"
               >
-                {/* Decorative Pin */}
                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-(--vermilion) shadow-md flex items-center justify-center border-4 border-white">
                   <div className="w-4 h-4 rounded-full bg-black/20"></div>
                 </div>
@@ -471,9 +468,8 @@ const LandingPage = () => {
             </div>
           </section>
 
-          {/* SECTION 5: FINAL CTA (Vibrant & Authoritative) */}
+          {/* SECTION 5: FINAL CTA */}
           <section className="w-full py-32 px-6 bg-(--cobalt) text-white relative overflow-hidden">
-            {/* Dramatic background shapes */}
             <div className="absolute top-0 right-0 w-96 h-96 bg-(--teal) opacity-50 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-(--vermilion) opacity-40 blur-[100px] rounded-full -translate-x-1/2 translate-y-1/2 pointer-events-none"></div>
 
@@ -518,7 +514,6 @@ const LandingPage = () => {
 
         </main>
 
-        {/* FOOTER (Kept structurally similar but cleaned up padding)[cite: 1] */}
         <footer className="w-full border-t border-(--ink-line) bg-(--canvas-paper) py-16 px-6 relative z-10">
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-12">
             <div className="md:col-span-2">
@@ -532,7 +527,6 @@ const LandingPage = () => {
               </p>
             </div>
             
-            {/* Nav columns remain exactly as you defined them[cite: 1] */}
             <div>
               <h4 className="text-(--ink) font-bold mb-6 text-sm font-mono uppercase tracking-widest">Studio</h4>
               <ul className="space-y-4 text-(--ink-secondary) text-sm font-bold">
