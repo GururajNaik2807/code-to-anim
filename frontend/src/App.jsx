@@ -18,6 +18,7 @@ import LoginModal from './components/LoginModal';
 import ResetPassword from './pages/ResetPassword';
 import About from './pages/About';
 import PatchHistory from './pages/PatchHistory';
+import LeetcodeProblems from './pages/LeetcodeProblems';
 
 import { useLearningTracker } from './hooks/useLearningTracker'; 
 import { trackPageView } from './utils/analytics';
@@ -125,7 +126,7 @@ export default function App() {
             <Route path="/algorithms" element={<AlgorithmLibrary />} />
             <Route path="/about" element={<About />} />
             <Route path="/patch-history" element={<PatchHistory />} />
-            
+            <Route path="/leetcode" element={<LeetcodeProblems />} /> 
             <Route path="/learn/:category/:topic" element={<LessonPage />} />
             <Route path="/p/:userId" element={<PublicProfileCard />} />
             <Route path="/leaderboard" element={<Leaderboard />} />

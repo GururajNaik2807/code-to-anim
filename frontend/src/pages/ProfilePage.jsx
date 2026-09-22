@@ -10,7 +10,7 @@ import { trackEvent, trackPageView } from '../utils/analytics';
 
 import { ALGORITHMS_DATABASE } from '../data/algorithmsData';
 import WorkspacePage from './WorkspacePage';
-// import LeetcodeProblems from './LeetcodeProblems'; // <-- TEMPORARILY DISABLED
+import LeetcodeProblems from './LeetcodeProblems'; // <-- TEMPORARILY DISABLED
 // import TesterEnrollment from './tester'; 
 // import AdminDashboard from './AdminDashboard';
 
@@ -515,7 +515,7 @@ export default function ProfilePage() {
     { section: 'LEARNING', links: [
       { name: 'Algorithm Library', action: () => handleNavClick('library'), icon: <Icons.Library />, isActive: currentView === 'library' },
       // --- TEMPORARILY DISABLED LEETCODE ---
-      // { name: 'LeetCode Problems', action: () => handleNavClick('leetcode'), icon: <Icons.LeetCode />, isActive: currentView === 'leetcode' } 
+      { name: 'LeetCode Problems', action: () => handleNavClick('leetcode'), icon: <Icons.LeetCode />, isActive: currentView === 'leetcode' } 
     ] },
     { section: 'COMMUNITY', links: [
       { name: 'Leaderboard', action: () => handleNavClick('leaderboard'), icon: <Icons.Leaderboard />, isActive: currentView === 'leaderboard' },
@@ -1041,7 +1041,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* --- DISABLED LEETCODE FOR NOW ---
+         
           {currentView === 'leetcode' && (
             <LeetcodeProblems 
               isEmbedded={true}
@@ -1049,7 +1049,7 @@ export default function ProfilePage() {
               onEmbeddedOpen={handleOpenInTracer} 
             />
           )}
-          */}
+         
 
           {currentView === 'library' && (
             <div className="max-w-7xl mx-auto pb-10">

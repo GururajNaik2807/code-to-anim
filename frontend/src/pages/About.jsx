@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import LandingNav from '../components/LandingNav';
 
-// Refined editorial motion variants
 const easeCurve = [0.19, 1, 0.22, 1];
 
 const fadeUpVariant = {
@@ -69,7 +68,6 @@ const About = () => {
           scrollbar-gutter: stable;
         }
 
-        /* Custom decorative grid added for consistency */
         .bg-grid-pattern {
           background-size: 40px 40px;
           background-image: linear-gradient(to right, var(--ink-line) 1px, transparent 1px),
@@ -79,15 +77,14 @@ const About = () => {
         }
       `}</style>
 
-      <div className="min-h-screen flex flex-col bg-(--canvas) text-(--ink) selection:bg-(--cobalt) selection:text-white font-sans overflow-x-hidden">
+      <div className="min-h-screen flex flex-col bg-(--canvas) text-(--ink) selection:bg-(--cobalt) selection:text-white font-sans relative">
         
+        {/* FIX: Removed the blurry wrapper div */}
         <LandingNav />
 
-        <main className="grow flex flex-col items-center w-full z-10">
+        <main className="grow flex flex-col items-center w-full z-10 overflow-x-hidden">
           
-          {/* HERO SECTION WITH GRID BACKGROUND */}
           <section className="relative w-full px-6 pt-24 pb-20 text-center sm:text-left flex flex-col items-center">
-            {/* Background pattern layer */}
             <div className="absolute inset-0 z-0 bg-grid-pattern opacity-60 pointer-events-none"></div>
 
             <div className="max-w-[800px] mx-auto w-full relative z-10">
@@ -114,11 +111,9 @@ const About = () => {
             </div>
           </section>
 
-          {/* THE PROBLEM / SOLUTION GRID */}
           <section className="w-full py-20 bg-(--canvas-paper) border-y border-(--ink-line)">
             <div className="max-w-[1280px] mx-auto px-6 grid md:grid-cols-2 gap-8 items-stretch">
               
-              {/* The Old Way */}
               <div className="p-8 sm:p-10 rounded-xl bg-(--canvas) border border-(--ink-line) flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300">
                 <div>
                   <div className="font-mono text-xs font-bold text-(--ink-muted) mb-4 tracking-wider">THE OLD WAY</div>
@@ -134,7 +129,6 @@ const About = () => {
                 </div>
               </div>
 
-              {/* The CodeToAnim Way */}
               <div className="p-8 sm:p-10 rounded-xl bg-(--cobalt-tint) border border-(--cobalt) flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 shadow-lg">
                 <div>
                   <div className="font-mono text-xs font-bold text-(--cobalt) mb-4 tracking-wider">THE CODETOANIM WAY</div>
@@ -157,7 +151,6 @@ const About = () => {
             </div>
           </section>
 
-          {/* PHILOSOPHY SECTION */}
           <section className="w-full px-6 py-28 max-w-[800px] mx-auto text-left relative">
             <h2 className="text-3xl sm:text-4xl font-bold text-(--ink) mb-12 tracking-tight">Our Philosophy</h2>
             
@@ -194,9 +187,7 @@ const About = () => {
             </div>
           </section>
 
-          {/* BOTTOM CTA */}
           <section className="w-full py-24 px-6 bg-(--cobalt) text-white text-center border-t border-(--ink-line-strong) relative overflow-hidden">
-             {/* Dramatic background shapes for consistency with Landing */}
              <div className="absolute top-0 right-0 w-96 h-96 bg-(--teal) opacity-50 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
              <div className="absolute bottom-0 left-0 w-96 h-96 bg-(--vermilion) opacity-40 blur-[100px] rounded-full -translate-x-1/2 translate-y-1/2 pointer-events-none"></div>
 

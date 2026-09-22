@@ -45,7 +45,7 @@ const FloatingParticles = ({ isMobile }) => {
   );
 };
 
-// --- Level System Definitions ---
+// --- Level & Time System Definitions ---
 const HONORS = [
   "Novice", "Beginner", "Apprentice", "Coder", "Scripter", 
   "Programmer", "Developer", "Engineer", "Architect", "Master", 
@@ -53,18 +53,32 @@ const HONORS = [
   "System Sage", "Kernel Knight", "Tech Titan", "Silicon Deity", "CodeAnim Legend"
 ];
 
-const calculateLevelInfo = (totalXP) => {
+// Helper to format seconds into hours and minutes
+const formatTime = (totalSeconds) => {
+  if (!totalSeconds || totalSeconds <= 0) return '0m';
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = Math.floor(totalMinutes % 60);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+};
+
+// Calculates level based on total learning time in seconds
+const calculateLevelInfo = (learningTimeSeconds) => {
   let level = 1;
   const maxLevel = 20;
+  const totalMinutes = Math.floor(learningTimeSeconds / 60);
+  
+  // Scales requirement: 0, 120, 360, 720 minutes, etc.
   for (let i = 1; i <= maxLevel; i++) {
-    const reqXP = (i - 1) * i * 250;
-    if (totalXP >= reqXP) level = i;
+    const reqTimeMinutes = (i - 1) * i * 60; 
+    if (totalMinutes >= reqTimeMinutes) level = i;
     else break;
   }
   return {
     level,
     honor: HONORS[level - 1] || "Legend",
-    totalXP
+    totalSeconds: learningTimeSeconds
   };
 };
 
@@ -103,11 +117,11 @@ export default function Leaderboard() {
     if (session) setUser(session.user);
 
     try {
-      // Fetch Top 50 Users ordered by XP
+      // Fetch Top 50 Users strictly ordered by learning_time_seconds
       const { data } = await supabase
         .from('profiles')
-        .select('id, display_name, current_xp, created_at')
-        .order('current_xp', { ascending: false })
+        .select('id, display_name, learning_time_seconds, created_at')
+        .order('learning_time_seconds', { ascending: false, nullsFirst: false })
         .limit(50);
       
       setLeaderboard(data || []);
@@ -174,17 +188,14 @@ export default function Leaderboard() {
     );
   }
 
-  // Extract Top 3 for Podium
   const top3 = leaderboard.slice(0, 3);
   const restOfLeaderboard = leaderboard.slice(3);
 
-  // Helper to render podium cards
   const renderPodiumCard = (player, rank) => {
     if (!player) return null;
-    const { level, honor, totalXP } = calculateLevelInfo(player.current_xp || 0);
+    const { level, honor, totalSeconds } = calculateLevelInfo(player.learning_time_seconds || 0);
     const initial = (player.display_name || 'U').charAt(0).toUpperCase();
     
-    // Podium Styling based on rank
     let rankColors = '';
     let glow = '';
     let badge = '';
@@ -219,7 +230,7 @@ export default function Leaderboard() {
         
         <div className={`w-full py-2 px-3 rounded-xl ${metallicBorder} ${isDark ? 'bg-slate-900/60' : 'bg-slate-50'} flex justify-between items-center shadow-inner`}>
           <span className={`text-xs font-bold ${textSecondary}`}>Lv. {level}</span>
-          <span className="text-sm font-black text-indigo-500">{totalXP.toLocaleString()} XP</span>
+          <span className="text-sm font-black text-indigo-500">{formatTime(totalSeconds)}</span>
         </div>
       </div>
     );
@@ -227,43 +238,15 @@ export default function Leaderboard() {
 
   return (
     <div className={`flex h-screen w-screen font-sans ${bgMain} ${textPrimary} overflow-hidden relative`}>
-      
-      {/* Dynamic Background Particles */}
       <FloatingParticles isMobile={isMobile} />
 
-      {/* MOBILE-ONLY CSS OVERRIDES: Guarantees PC View Remains Untouched */}
       <style>{`
         @media (max-width: 768px) {
-          .sidebar-container {
-            position: absolute !important;
-            height: 100% !important;
-            z-index: 50 !important;
-            box-shadow: 5px 0 20px rgba(0,0,0,0.5) !important;
-          }
-          
-          .mobile-header {
-            height: auto !important;
-            padding: 12px 16px !important;
-          }
-          
-          .podium-container {
-            flex-direction: column !important;
-            gap: 20px !important;
-            align-items: center !important;
-            padding-bottom: 24px !important;
-          }
-          
-          .podium-card {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin-top: 0 !important;
-            transform: none !important;
-          }
-
-          .table-container {
-            padding: 12px !important;
-            border-radius: 16px !important;
-          }
+          .sidebar-container { position: absolute !important; height: 100% !important; z-index: 50 !important; box-shadow: 5px 0 20px rgba(0,0,0,0.5) !important; }
+          .mobile-header { height: auto !important; padding: 12px 16px !important; }
+          .podium-container { flex-direction: column !important; gap: 20px !important; align-items: center !important; padding-bottom: 24px !important; }
+          .podium-card { width: 100% !important; max-width: 100% !important; margin-top: 0 !important; transform: none !important; }
+          .table-container { padding: 12px !important; border-radius: 16px !important; }
         }
       `}</style>
 
@@ -280,7 +263,7 @@ export default function Leaderboard() {
         </div>
       )}
 
-      {/* Sidebar (Matches ProfilePage) */}
+      {/* Sidebar */}
       <div className={`sidebar-container transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden relative z-20 ${isSidebarOpen ? 'w-64' : 'w-0'}`}>
         <aside className={`w-64 h-full ${metallicBorder} border-y-0 border-l-0 ${bgPanel}/95 backdrop-blur-md flex flex-col justify-between overflow-y-auto ${scrollbarStyles}`}>
           <div>
@@ -328,8 +311,6 @@ export default function Leaderboard() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
-        
-        {/* Top Header */}
         <header className={`h-16 flex-shrink-0 ${metallicBorder} border-x-0 border-t-0 ${bgPanel}/80 backdrop-blur-md flex items-center justify-between px-8 z-10 transition-all mobile-header`}>
           <div className="flex items-center gap-4">
             <button 
@@ -360,31 +341,22 @@ export default function Leaderboard() {
           </div>
         </header>
 
-        {/* Dashboard Content */}
         <main className={`flex-1 overflow-y-auto p-4 md:p-8 ${scrollbarStyles}`}>
           <div className="max-w-5xl mx-auto space-y-12 pb-10">
             
-            {/* Header Title */}
             <div className="text-center space-y-3 mt-4">
               <h1 className="text-4xl font-black tracking-tight drop-shadow-md">Global Rankings</h1>
-              <p className={`text-sm font-medium ${textSecondary}`}>Top 50 developers by total XP across CodeToAnim.</p>
+              <p className={`text-sm font-medium ${textSecondary}`}>Top 50 developers by total learning time across CodeToAnim.</p>
             </div>
 
-            {/* Podium Section (Top 3) */}
             {top3.length > 0 && (
               <div className="podium-container flex flex-col md:flex-row justify-center items-end gap-6 pt-4 pb-8">
-                {/* 2nd Place */}
                 {top3.length > 1 && renderPodiumCard(top3[1], 2)}
-                
-                {/* 1st Place */}
                 {renderPodiumCard(top3[0], 1)}
-                
-                {/* 3rd Place */}
                 {top3.length > 2 && renderPodiumCard(top3[2], 3)}
               </div>
             )}
 
-            {/* Leaderboard List (Rank 4+) */}
             {restOfLeaderboard.length > 0 && (
               <div className={`table-container ${bgPanel}/90 backdrop-blur-md ${metallicBorder} rounded-3xl p-6 shadow-sm`}>
                 <div className="overflow-x-auto scrollbar-thin">
@@ -394,13 +366,13 @@ export default function Leaderboard() {
                         <th className={`py-4 px-6 text-[10px] font-black uppercase tracking-widest ${textSecondary}`}>Rank</th>
                         <th className={`py-4 px-6 text-[10px] font-black uppercase tracking-widest ${textSecondary}`}>Developer</th>
                         <th className={`py-4 px-6 text-[10px] font-black uppercase tracking-widest ${textSecondary}`}>Level</th>
-                        <th className={`py-4 px-6 text-[10px] font-black uppercase tracking-widest ${textSecondary} text-right`}>Total XP</th>
+                        <th className={`py-4 px-6 text-[10px] font-black uppercase tracking-widest ${textSecondary} text-right`}>Learning Time</th>
                       </tr>
                     </thead>
                     <tbody>
                       {restOfLeaderboard.map((player, index) => {
                         const rank = index + 4;
-                        const { level, honor, totalXP } = calculateLevelInfo(player.current_xp || 0);
+                        const { level, honor, totalSeconds } = calculateLevelInfo(player.learning_time_seconds || 0);
                         const isCurrentUser = user && player.id === user.id;
 
                         return (
@@ -437,7 +409,7 @@ export default function Leaderboard() {
                               </span>
                             </td>
                             <td className="py-4 px-6 text-right">
-                              <span className="text-sm font-black text-indigo-500">{totalXP.toLocaleString()} XP</span>
+                              <span className="text-sm font-black text-indigo-500">{formatTime(totalSeconds)}</span>
                             </td>
                           </tr>
                         );
@@ -447,7 +419,6 @@ export default function Leaderboard() {
                 </div>
               </div>
             )}
-
           </div>
         </main>
       </div>
