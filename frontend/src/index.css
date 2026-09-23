@@ -59,3 +59,72 @@ html::-webkit-scrollbar-thumb:hover,
   background: rgba(150, 150, 150, 0.7);
   background-clip: content-box;
 }
+/* =========================================================
+   PRACTICE HUB THEME SYSTEM
+   ========================================================= */
+
+/* 1. LIGHT THEME (Clean, modern, layered) */
+:root, [data-theme="light"] {
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-complementary: #f1f5f9;
+  --surface-hover: #f1f5f9;
+  --surface-active: #e2e8f0;
+  
+  /* Strictly opaque dropdown background */
+  --dropdown-bg: #ffffff;
+  
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border: #e2e8f0;
+  
+  --accent: #2563eb;       /* Cobalt equivalent */
+  --success: #0d9488;      /* Teal equivalent */
+  --warning: #d97706;      /* Medium difficulty */
+  --danger: #e11d48;       /* Vermilion equivalent */
+}
+
+/* 2. COFFEE THEME (Warm, cohesive, elevated surfaces) */
+[data-theme="coffee"] {
+  --background: #efebe6;
+  --surface: #f7f5f2;
+  --surface-complementary: #e6dfd7;
+  --surface-hover: #e8e1d8;
+  --surface-active: #dcd3c8;
+  
+  /* Strictly opaque dropdown background */
+  --dropdown-bg: #f7f5f2;
+  
+  --text-primary: #4a3c31;
+  --text-secondary: #7a6859;
+  --text-muted: #a39588;
+  --border: #dcd3c8;
+  
+  --accent: #b47c11;
+  --success: #2b7a78;
+  --warning: #b47c11;
+  --danger: #b94a48;
+}
+
+/* 3. DARK THEME (Sophisticated, low eye-strain) */
+[data-theme="dark"] {
+  --background: #0f172a;
+  --surface: #1e293b;
+  --surface-complementary: #0f172a;
+  --surface-hover: #334155;
+  --surface-active: #475569;
+  
+  /* Strictly opaque dropdown background */
+  --dropdown-bg: #1e293b;
+  
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border: #334155;
+  
+  --accent: #38bdf8;
+  --success: #2dd4bf;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+}
