@@ -7,7 +7,7 @@ const highlightPythonCode = (line, activeThemeName) => {
   const isLight = activeThemeName === 'light';
 
   if (line.trim().startsWith('#')) {
-    return <span className={isDark ? "text-slate-500 italic" : isLight ? "text-[#817D74] italic" : "text-slate-400 italic"}>{line}</span>;
+    return <span className={isDark ? "text-[#647484] italic" : isLight ? "text-[#817D74] italic" : "text-slate-400 italic"}>{line}</span>;
   }
 
   const keywords = /\b(def|return|if|else|elif|break|continue|import|from|as|while|class|try|except)\b/g;
@@ -22,17 +22,17 @@ const highlightPythonCode = (line, activeThemeName) => {
       {line.split(/(\s+|["'].*?["']|\b(?:def|return|for|in|range|len|if|else|elif|break|continue|print|import|from|as|while|class)\b|\b\d+\b|[()\[\]{}:,.=+\-*/<>])/).map((part, i) => {
         if (!part) return null;
         if (part.match(keywords) || part.match(controlFlow)) {
-          return <span key={i} className={isDark ? "text-purple-400 font-semibold" : isLight ? "text-[#C8533C] font-semibold" : "text-purple-700 font-semibold"}>{part}</span>;
+          return <span key={i} className={isDark ? "text-[#3FB6A8] font-semibold" : isLight ? "text-[#C8533C] font-semibold" : "text-purple-700 font-semibold"}>{part}</span>;
         } else if (part.match(builtins)) {
-          return <span key={i} className={isDark ? "text-blue-400" : isLight ? "text-[#31599B]" : "text-blue-600"}>{part}</span>;
+          return <span key={i} className={isDark ? "text-[#52C7B8]" : isLight ? "text-[#31599B]" : "text-blue-600"}>{part}</span>;
         } else if (part.match(strings)) {
-          return <span key={i} className={isDark ? "text-emerald-300" : isLight ? "text-[#2E7D32]" : "text-emerald-700"}>{part}</span>;
+          return <span key={i} className={isDark ? "text-[#55B878]" : isLight ? "text-[#2E7D32]" : "text-emerald-700"}>{part}</span>;
         } else if (part.match(numbers)) {
-          return <span key={i} className={isDark ? "text-amber-300" : isLight ? "text-[#B45F06]" : "text-amber-600"}>{part}</span>;
+          return <span key={i} className={isDark ? "text-[#D6A64F]" : isLight ? "text-[#B45F06]" : "text-amber-600"}>{part}</span>;
         } else if (part.match(operators)) {
-          return <span key={i} className={isDark ? "text-slate-300" : isLight ? "text-[#5E5B55]" : "text-slate-800"}>{part}</span>;
+          return <span key={i} className={isDark ? "text-[#8B9AA8]" : isLight ? "text-[#5E5B55]" : "text-slate-800"}>{part}</span>;
         }
-        return <span key={i} className={isDark ? "text-slate-200" : isLight ? "text-[#202124]" : "text-slate-900"}>{part}</span>;
+        return <span key={i} className={isDark ? "text-[#E6EDF3]" : isLight ? "text-[#202124]" : "text-slate-900"}>{part}</span>;
       })}
     </span>
   );
@@ -155,66 +155,35 @@ export default function Editor({
     }
   };
 
-  // Dynamic Scrollbar & Theme Map
   const themeStyles = {
     dark: { 
-        bgPanel: 'bg-[#111A22]', 
-        bgCodeArea: 'bg-[#0A1118]', 
-        bgLineNumbers: 'bg-[#0A1118]',
-        textPrimary: 'text-[#E2E8F0]', 
-        textSecondary: 'text-[#94A3B8]', 
-        metallicBorder: 'border-[#1E293B]',
-        editorBorder: 'border-[#1E293B]',
-        tabActiveBg: 'bg-[#0A1118]',
-        tabActiveText: 'text-white',
-        tabTopBorder: 'border-purple-600',
-        btnBg: 'bg-slate-900 text-white hover:bg-slate-800',
-        activeLineNum: 'text-[#38B2AC]',
-        activeLineBg: 'bg-[#38B2AC]/10 border-l-2 border-[#38B2AC] text-[#E2E8F0] shadow-sm',
-        inactiveLineHover: 'hover:bg-slate-900/40 text-slate-300',
-        caret: 'caret-[#38B2AC]',
-        selectionBg: 'selection:bg-purple-900/40',
-        scrollTrack: '[&::-webkit-scrollbar-track]:!bg-[#0A1118]', 
-        scrollThumb: '[&::-webkit-scrollbar-thumb]:bg-[#1E293B] hover:[&::-webkit-scrollbar-thumb]:bg-[#38B2AC]'
+        bgPanel: 'bg-[#0B1117]', bgCodeArea: 'bg-[#0A1016]', bgLineNumbers: 'bg-[#0A1016]',
+        textPrimary: 'text-[#E6EDF3]', textSecondary: 'text-[#8B9AA8]', metallicBorder: 'border-[#26323D]',
+        editorBorder: 'border-[#26323D]', tabActiveBg: 'bg-[#0A1016]', tabActiveText: 'text-[#E6EDF3]',
+        tabTopBorder: 'border-[#3FB6A8]', btnBg: 'bg-[#121B24] border border-[#26323D] text-[#E6EDF3] hover:bg-[#26323D]',
+        activeLineNum: 'text-[#E6EDF3]', activeLineBg: 'bg-[#121B24] border-l-2 border-[#3FB6A8] text-[#E6EDF3]',
+        inactiveLineHover: 'hover:bg-[#121B24] text-[#E6EDF3]', caret: 'caret-[#3FB6A8]',
+        selectionBg: 'selection:bg-[#3FB6A8]/20', scrollTrack: '[&::-webkit-scrollbar-track]:!bg-[#0A1016]', 
+        scrollThumb: '[&::-webkit-scrollbar-thumb]:bg-[#26323D] hover:[&::-webkit-scrollbar-thumb]:bg-[#8B9AA8]'
     },
     coffee: { 
-        bgPanel: 'bg-[#EFE8DE]', 
-        bgCodeArea: 'bg-[#F5EBE1]', 
-        bgLineNumbers: 'bg-[#F5EBE1]',
-        textPrimary: 'text-[#3E2723]', 
-        textSecondary: 'text-[#765A51]', 
-        metallicBorder: 'border-[#D7CCC8]',
-        editorBorder: 'border-[#D7CCC8]',
-        tabActiveBg: 'bg-[#F5EBE1]',
-        tabActiveText: 'text-[#3E2723]',
-        tabTopBorder: 'border-[#8C5A48]',
-        btnBg: 'bg-[#8C5A48] text-white hover:opacity-80',
-        activeLineNum: 'text-[#8C5A48]',
-        activeLineBg: 'bg-[#8C5A48]/10 border-l-2 border-[#8C5A48] text-[#3E2723] shadow-sm',
-        inactiveLineHover: 'hover:bg-[#8C5A48]/5 text-[#3E2723]',
-        caret: 'caret-[#8C5A48]',
-        selectionBg: 'selection:bg-[#8C5A48]/30',
-        scrollTrack: '[&::-webkit-scrollbar-track]:!bg-[#F5EBE1]', 
+        bgPanel: 'bg-[#EFE8DE]', bgCodeArea: 'bg-[#F5EBE1]', bgLineNumbers: 'bg-[#F5EBE1]',
+        textPrimary: 'text-[#3E2723]', textSecondary: 'text-[#765A51]', metallicBorder: 'border-[#D7CCC8]',
+        editorBorder: 'border-[#D7CCC8]', tabActiveBg: 'bg-[#F5EBE1]', tabActiveText: 'text-[#3E2723]',
+        tabTopBorder: 'border-[#8C5A48]', btnBg: 'bg-[#8C5A48] text-white hover:opacity-80',
+        activeLineNum: 'text-[#8C5A48]', activeLineBg: 'bg-[#8C5A48]/10 border-l-2 border-[#8C5A48] text-[#3E2723]',
+        inactiveLineHover: 'hover:bg-[#8C5A48]/5 text-[#3E2723]', caret: 'caret-[#8C5A48]',
+        selectionBg: 'selection:bg-[#8C5A48]/30', scrollTrack: '[&::-webkit-scrollbar-track]:!bg-[#F5EBE1]', 
         scrollThumb: '[&::-webkit-scrollbar-thumb]:bg-[#D7CCC8] hover:[&::-webkit-scrollbar-thumb]:bg-[#8C5A48]'
     },
     light: { 
-        bgPanel: 'bg-[#FFFEFA]',      // Bright white for top/bottom bars
-        bgCodeArea: 'bg-[#FFFEFA]',   // White for the coding area
-        bgLineNumbers: 'bg-[#F8F5EE]',// Soft cream for the line number gutter
-        textPrimary: 'text-[#202124]', // Dark, clear text
-        textSecondary: 'text-[#817D74]', // Muted text
-        metallicBorder: 'border-[#E8E3D8]', // Subtle warm border
-        editorBorder: 'border-[#E8E3D8]',
-        tabActiveBg: 'bg-[#FFFEFA]',  // Matches code area white
-        tabActiveText: 'text-[#31599B]', // Interaction blue
-        tabTopBorder: 'border-[#31599B]', // Interaction blue
-        btnBg: 'bg-[#F8F5EE] border border-[#D9D1C4] text-[#202124] hover:bg-[#F1EEE7]',
-        activeLineNum: 'text-[#31599B]',
-        activeLineBg: 'bg-[#EAF0FA] border-l-2 border-[#31599B] text-[#202124] shadow-sm',
-        inactiveLineHover: 'hover:bg-[#F8F5EE] text-[#202124]',
-        caret: 'caret-[#31599B]',
-        selectionBg: 'selection:bg-[#31599B]/20',
-        scrollTrack: '[&::-webkit-scrollbar-track]:!bg-[#FFFEFA]', 
+        bgPanel: 'bg-[#FFFEFA]', bgCodeArea: 'bg-[#FFFEFA]', bgLineNumbers: 'bg-[#F8F5EE]',
+        textPrimary: 'text-[#202124]', textSecondary: 'text-[#817D74]', metallicBorder: 'border-[#E8E3D8]',
+        editorBorder: 'border-[#E8E3D8]', tabActiveBg: 'bg-[#FFFEFA]', tabActiveText: 'text-[#31599B]',
+        tabTopBorder: 'border-[#31599B]', btnBg: 'bg-[#F8F5EE] border border-[#D9D1C4] text-[#202124] hover:bg-[#F1EEE7]',
+        activeLineNum: 'text-[#31599B]', activeLineBg: 'bg-[#EAF0FA] border-l-2 border-[#31599B] text-[#202124]',
+        inactiveLineHover: 'hover:bg-[#F8F5EE] text-[#202124]', caret: 'caret-[#31599B]',
+        selectionBg: 'selection:bg-[#31599B]/20', scrollTrack: '[&::-webkit-scrollbar-track]:!bg-[#FFFEFA]', 
         scrollThumb: '[&::-webkit-scrollbar-thumb]:bg-[#D9D1C4] hover:[&::-webkit-scrollbar-thumb]:bg-[#817D74]'
     }
   };
@@ -229,8 +198,8 @@ export default function Editor({
   const editorScrollbar = `
     [&::-webkit-scrollbar]:w-1
     ${scrollTrack}
-    [&::-webkit-scrollbar-track]:rounded-full
-    [&::-webkit-scrollbar-thumb]:rounded-full 
+    [&::-webkit-scrollbar-track]:rounded-none
+    [&::-webkit-scrollbar-thumb]:rounded-none 
     [&::-webkit-scrollbar-thumb]:border-2 
     [&::-webkit-scrollbar-thumb]:border-transparent 
     [&::-webkit-scrollbar-thumb]:bg-clip-content
@@ -242,30 +211,24 @@ export default function Editor({
       
       <div className={`h-10 border-b ${metallicBorder} flex items-center justify-between px-4 text-xs font-mono z-10 ${bgPanel}`}>
         <div className="flex items-center gap-2 h-full pt-1">
-          <div className={`px-3 h-full border-t-2 ${tabTopBorder} font-bold flex items-center gap-2 border-x ${editorBorder} border-b-0 ${tabActiveBg} ${tabActiveText} relative top-[1px]`}>
-            <span>🐍 main.py</span>
-            {user && (
-              <span className="text-[10px] text-emerald-500 font-mono ml-1 font-semibold">
-                {isEditing ? '● Editing Mode' : '● Click to Edit'}
-              </span>
-            )}
+          <div className={`px-4 h-full border-t-2 ${tabTopBorder} font-bold flex items-center gap-2 border-x ${editorBorder} border-b-0 ${tabActiveBg} ${tabActiveText} relative top-[1px]`}>
+            <span>main.py</span>
           </div>
         </div>
 
         <div className={`flex items-center gap-2 text-[11px] font-semibold ${textSecondary}`}>
-          {!user && <span className="text-amber-600 font-medium text-[10px]">🔒 Log in to edit</span>}
           {user && isEditing && (
             <button 
               onClick={() => setIsEditing(false)} 
-              className={`px-2.5 py-1 rounded text-[10px] shadow transition-colors font-bold ${btnBg}`}
+              className={`px-3 py-1 rounded text-[10px] transition-colors font-bold ${btnBg}`}
             >
-              Done Editing
+              Done
             </button>
           )}
         </div>
       </div>
 
-      <div className={`flex-1 flex overflow-hidden font-mono text-sm leading-6 ${bgCodeArea} cursor-text relative`}>
+      <div className={`flex-1 flex overflow-hidden font-mono text-[13px] leading-relaxed ${bgCodeArea} cursor-text relative`}>
         
         <div 
           ref={lineNumbersRef}
@@ -275,8 +238,8 @@ export default function Editor({
             const lineNum = idx + 1;
             const isActive = lineNum === activeLineNumber;
             return (
-              <div key={idx} className={`h-6 flex items-center justify-end gap-1 ${isActive ? `${activeLineNum} font-bold` : ""}`}>
-                {isActive && <span className="text-[10px]">▶</span>}
+              <div key={idx} className={`h-6 flex items-center justify-end gap-2 ${isActive ? `${activeLineNum} font-bold` : ""}`}>
+                {isActive && <span className="text-[9px]">▶</span>}
                 <span>{lineNum}</span>
               </div>
             );
@@ -292,7 +255,7 @@ export default function Editor({
               onKeyDown={handleKeyDown}
               onScroll={handleScroll}
               spellCheck={false}
-              className={`absolute inset-0 w-full h-full pb-24 pt-4 px-3 overflow-auto bg-transparent font-mono text-sm leading-6 resize-none outline-none ${textPrimary} ${caret} ${selectionBg} whitespace-pre ${editorScrollbar}`}
+              className={`absolute inset-0 w-full h-full pb-24 pt-4 px-4 overflow-auto bg-transparent font-mono text-[13px] leading-relaxed resize-none outline-none ${textPrimary} ${caret} ${selectionBg} whitespace-pre ${editorScrollbar}`}
             />
           </div>
         ) : (
@@ -300,7 +263,7 @@ export default function Editor({
             ref={scrollContainerRef}
             onScroll={handleScroll}
             onClick={handleEditorClick}
-            className={`flex-1 pb-24 pt-4 px-3 overflow-auto h-full ${editorScrollbar}`}
+            className={`flex-1 pb-24 pt-4 px-2 overflow-auto h-full ${editorScrollbar}`}
           >
             {codeLines.map((lineStr, idx) => {
               const lineNum = idx + 1;
@@ -309,7 +272,7 @@ export default function Editor({
                 <div
                   key={idx}
                   ref={isActive ? activeLineRef : null}
-                  className={`h-6 px-2 rounded flex items-center whitespace-pre transition-colors font-bold ${
+                  className={`h-6 px-2 flex items-center whitespace-pre transition-colors font-semibold ${
                     isActive ? activeLineBg : inactiveLineHover
                   }`}
                 >
@@ -325,9 +288,9 @@ export default function Editor({
         <div>
           Ln {activeLineNumber || 1}, Col 1 &nbsp; Spaces: 4 &nbsp; UTF-8 &nbsp; Python 3.10
         </div>
-        <div className="flex items-center gap-1 font-semibold">
-          <span className="w-2 h-2 rounded-full bg-[#7FB77E] shadow-sm shadow-[#7FB77E]/50"></span>
-          <span>{user ? (isEditing ? 'Active Edit Mode' : 'Ready (Click code to edit)') : 'Read-Only Mode'}</span>
+        <div className="flex items-center gap-1.5 font-semibold">
+          <span className={`w-2 h-2 rounded-full ${user ? (isEditing ? 'bg-[#D6A64F]' : 'bg-[#55B878]') : 'bg-[#647484]'}`}></span>
+          <span>{user ? (isEditing ? 'Editing' : 'Ready') : 'Read-Only'}</span>
         </div>
       </div>
 

@@ -7,10 +7,9 @@ import { trackEvent } from '../utils/analytics';
 
 /* =========================================================
    CUSTOM SELECT
-   - Fully opaque dropdown
-   - Theme aware via CSS variables
-   - Fixed clipping on the right edge with `align` prop
-   - Forces solid background to prevent bleeding
+   - Fully opaque dropdown with a hardcoded solid background
+   - Not theme-dependent to guarantee it never becomes transparent
+   - Matches website border-radius and typography
    ========================================================= */
 
 function CustomSelect({ value, options, onChange, widthClass, align = 'left' }) {
@@ -47,31 +46,30 @@ function CustomSelect({ value, options, onChange, widthClass, align = 'left' }) 
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className="
+        className={`
           w-full
           h-10
           flex
           items-center
           justify-between
           gap-2
-          px-3
-          rounded-lg
+          px-4
+          rounded-xl
           border
           text-sm
-          font-medium
-          text-(--ink)
+          font-semibold
           shadow-sm
           transition-all
           duration-150
-          hover:border-(--ink-muted)
           focus:outline-none
           focus:ring-2
-          focus:ring-(--cobalt)/20
-        "
-        style={{
-          backgroundColor: 'var(--dropdown-trigger-bg, var(--canvas-paper))',
-          borderColor: 'var(--dropdown-border, var(--canvas-tint))',
-        }}
+          focus:ring-[#3FB6A8]/40
+          bg-[#0F172A] 
+          border-[#1E293B] 
+          text-[#F8FAFC] 
+          hover:border-[#334155]
+          hover:bg-[#152033]
+        `}
       >
         <span className="truncate">
           {value}
@@ -82,7 +80,7 @@ function CustomSelect({ value, options, onChange, widthClass, align = 'left' }) 
             w-4
             h-4
             flex-shrink-0
-            text-(--ink-muted)
+            text-[#94A3B8]
             transition-transform
             duration-200
             ${isOpen ? 'rotate-180' : ''}
@@ -107,31 +105,21 @@ function CustomSelect({ value, options, onChange, widthClass, align = 'left' }) 
           role="listbox"
           className={`
             absolute
-            top-[calc(100%+6px)]
+            top-[calc(100%+8px)]
             ${align === 'right' ? 'right-0' : 'left-0'}
             w-full
             min-w-[160px]
             max-h-[280px]
             overflow-y-auto
-            rounded-lg
+            rounded-xl
             border
-            py-1.5
-            shadow-[0_14px_40px_-12px_rgba(0,0,0,0.5)]
+            border-[#1E293B]
+            bg-[#0F172A]
+            py-2
+            shadow-xl
+            shadow-black/40
             z-[99999]
           `}
-          style={{
-            /*
-              IMPORTANT:
-              Solid background prevents the problem list underneath
-              from showing through. We also explicitly disable backdrop filters.
-            */
-            backgroundColor: 'var(--dropdown-bg, var(--canvas-paper))',
-            borderColor: 'var(--dropdown-border, var(--canvas-tint))',
-            opacity: 1,
-            isolation: 'isolate',
-            backdropFilter: 'none',
-            WebkitBackdropFilter: 'none',
-          }}
         >
           {options.map((opt) => {
             const isSelected = value === opt;
@@ -153,22 +141,18 @@ function CustomSelect({ value, options, onChange, widthClass, align = 'left' }) 
                   items-center
                   justify-between
                   gap-3
-                  px-3.5
+                  px-4
                   py-2.5
                   text-left
                   text-sm
+                  font-medium
                   transition-colors
                   duration-100
-                  ${!isSelected ? 'hover:bg-[var(--dropdown-hover,var(--canvas-tint))]' : ''}
+                  ${isSelected 
+                    ? 'bg-[#1E293B] text-[#38BDF8]' 
+                    : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-[#F8FAFC]'
+                  }
                 `}
-                style={{
-                  backgroundColor: isSelected
-                    ? 'var(--dropdown-hover, var(--canvas-tint))'
-                    : 'transparent',
-                  color: isSelected
-                    ? 'var(--dropdown-selected-text, var(--cobalt))'
-                    : 'var(--dropdown-text, var(--ink))',
-                }}
               >
                 <span className="truncate">
                   {opt}
@@ -176,7 +160,7 @@ function CustomSelect({ value, options, onChange, widthClass, align = 'left' }) 
 
                 {isSelected && (
                   <svg
-                    className="w-4 h-4 flex-shrink-0"
+                    className="w-4 h-4 flex-shrink-0 text-[#38BDF8]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -457,15 +441,14 @@ export default function LeetcodeProblems({
         flex
         flex-col
         lg:flex-row
-        gap-6
-        lg:gap-8
+        gap-8
         relative
         flex-grow
         min-h-0
         ${
           isEmbedded
             ? 'pb-8'
-            : 'px-5 sm:px-6 pt-5 pb-5 lg:h-full lg:overflow-hidden'
+            : 'px-5 sm:px-6 pt-6 pb-6 lg:h-full lg:overflow-hidden'
         }
       `}
     >
@@ -487,7 +470,7 @@ export default function LeetcodeProblems({
           lg:h-fit
         "
       >
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-6">
           {/* Practice Hub Header */}
 
           <div className="flex flex-col gap-2 px-1">
@@ -521,10 +504,9 @@ export default function LeetcodeProblems({
 
           <div
             className="
-              rounded-xl
+              rounded-2xl
               border
-              p-5
-              sm:p-6
+              p-6
               flex
               flex-col
               gap-6
@@ -538,7 +520,7 @@ export default function LeetcodeProblems({
             {/* Progress Header */}
 
             <div className="flex justify-between items-center">
-              <h3 className="text-sm font-semibold text-(--ink)">
+              <h3 className="text-sm font-bold text-(--ink)">
                 Your Progress
               </h3>
 
@@ -546,9 +528,9 @@ export default function LeetcodeProblems({
                 type="button"
                 aria-label="Refresh progress"
                 className="
-                  w-7
-                  h-7
-                  rounded-md
+                  w-8
+                  h-8
+                  rounded-lg
                   flex
                   items-center
                   justify-center
@@ -559,7 +541,7 @@ export default function LeetcodeProblems({
                 "
               >
                 <svg
-                  className="w-3.5 h-3.5"
+                  className="w-4 h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -715,7 +697,7 @@ export default function LeetcodeProblems({
           flex-grow
           flex
           flex-col
-          gap-4
+          gap-5
           min-w-0
           min-h-0
           relative
@@ -744,7 +726,7 @@ export default function LeetcodeProblems({
             <span
               className="
                 absolute
-                left-3
+                left-4
                 top-1/2
                 -translate-y-1/2
                 text-(--ink-muted)
@@ -752,7 +734,7 @@ export default function LeetcodeProblems({
               "
             >
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -760,7 +742,7 @@ export default function LeetcodeProblems({
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
@@ -776,23 +758,22 @@ export default function LeetcodeProblems({
               className="
                 w-full
                 h-10
-                text-(--ink)
-                placeholder-(--ink-muted)
-                rounded-lg
+                rounded-xl
                 border
                 shadow-sm
-                pl-10
+                pl-11
                 pr-4
                 text-sm
-                font-medium
+                font-semibold
                 focus:outline-none
                 focus:ring-2
-                focus:ring-(--cobalt)/20
+                focus:ring-(--cobalt)/30
                 transition-all
               "
               style={{
                 backgroundColor: 'var(--canvas-paper)',
                 borderColor: 'var(--canvas-tint)',
+                color: 'var(--ink)'
               }}
             />
           </div>
@@ -855,7 +836,7 @@ export default function LeetcodeProblems({
             min-h-0
             overflow-y-auto
             border
-            rounded-xl
+            rounded-2xl
             shadow-sm
             relative
             z-0
@@ -900,9 +881,8 @@ export default function LeetcodeProblems({
                       items-center
                       justify-between
                       w-full
-                      px-4
-                      sm:px-5
-                      py-3.5
+                      px-5
+                      py-4
                       border-b
                       last:border-b-0
                       transition-colors
@@ -928,26 +908,25 @@ export default function LeetcodeProblems({
                       className="
                         flex
                         items-center
-                        gap-3
-                        sm:gap-3.5
+                        gap-3.5
+                        sm:gap-4
                         flex-grow
                         min-w-0
-                        mr-3
-                        sm:mr-4
+                        mr-4
                       "
                     >
                       {/* Completion indicator */}
 
                       <div
                         className={`
-                          w-[22px]
-                          h-[22px]
+                          w-6
+                          h-6
                           flex-shrink-0
                           flex
                           items-center
                           justify-center
                           rounded-full
-                          border-[1.5px]
+                          border-2
                           transition-all
                           duration-150
                           ${
@@ -980,7 +959,7 @@ export default function LeetcodeProblems({
                           <svg
                             viewBox="0 0 20 20"
                             fill="currentColor"
-                            className="w-3.5 h-3.5"
+                            className="w-4 h-4"
                             aria-hidden="true"
                           >
                             <path
@@ -998,7 +977,7 @@ export default function LeetcodeProblems({
                         className="
                           flex
                           items-baseline
-                          gap-2.5
+                          gap-3
                           min-w-0
                         "
                       >
@@ -1006,7 +985,7 @@ export default function LeetcodeProblems({
                           className={`
                             text-sm
                             font-bold
-                            w-[22px]
+                            w-6
                             text-right
                             flex-shrink-0
                             ${
@@ -1021,7 +1000,7 @@ export default function LeetcodeProblems({
 
                         <h3
                           className={`
-                            font-semibold
+                            font-bold
                             text-sm
                             transition-colors
                             truncate
@@ -1049,8 +1028,8 @@ export default function LeetcodeProblems({
                       className="
                         flex
                         items-center
-                        gap-3
-                        sm:gap-5
+                        gap-4
+                        sm:gap-6
                         flex-shrink-0
                       "
                     >
@@ -1061,9 +1040,9 @@ export default function LeetcodeProblems({
                           hidden
                           md:inline-block
                           text-xs
-                          font-medium
+                          font-bold
                           text-(--ink-secondary)
-                          w-28
+                          w-32
                           truncate
                           text-right
                         "
@@ -1076,9 +1055,8 @@ export default function LeetcodeProblems({
                       <span
                         className="
                           text-xs
-                          font-semibold
-                          w-14
-                          sm:w-16
+                          font-bold
+                          w-16
                           text-right
                         "
                         style={{
@@ -1238,7 +1216,7 @@ export default function LeetcodeProblems({
                   font-semibold
                   transition-colors
                   bg-(--cobalt)
-                  hover:bg-(--cobalt)/90
+                  hover:bg-(--cobalt-dark)
                   text-white
                 "
               >
