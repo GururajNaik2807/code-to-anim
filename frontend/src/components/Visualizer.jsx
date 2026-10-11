@@ -26,7 +26,7 @@ export default function Visualizer({
     });
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [activeTab]); // ADDED activeTab TO DEPENDENCY ARRAY
 
   const currentStep = steps[currentStepIndex];
   const variables = currentStep?.variables || {};
