@@ -3,6 +3,7 @@ import copy
 import io
 import time
 import re
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -12,6 +13,15 @@ import heapq
 import builtins
 
 _original_import = builtins.__import__
+MAX_CODE_LENGTH = 20000
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "CODETOANIM_ALLOWED_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173,https://code-to-anim.vercel.app",
+    ).split(",")
+    if origin.strip()
+]
 
 app = FastAPI(
     title="CodeToAnim Trace Engine",
@@ -21,7 +31,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -320,6 +330,12 @@ def read_root():
 def execute_code_trace(request: CodeExecutionRequest):
     if not request.code.strip():
         return TraceResponse(success=False, steps=[], error="Code string cannot be empty.")
+    if len(request.code) > MAX_CODE_LENGTH:
+        return TraceResponse(
+            success=False,
+            steps=[],
+            error=f"Code is too large. Please keep it under {MAX_CODE_LENGTH} characters.",
+        )
     try:
         result = run_trace_worker(request.code)
     except Exception as e:

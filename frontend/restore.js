@@ -10,7 +10,6 @@ const activeDir = path.join(__dirname, 'src', 'components');
 
 if (fs.existsSync(backupDir)) {
   console.log('♻️ Restoring clean files for local development...');
-  fs.copyFileSync(path.join(backupDir, 'Visualizer.jsx'), path.join(activeDir, 'Visualizer.jsx'));
   fs.copyFileSync(path.join(backupDir, 'layoutEngine.js'), path.join(activeDir, 'layoutEngine.js'));
   console.log('✅ Clean code restored successfully!');
 } else {

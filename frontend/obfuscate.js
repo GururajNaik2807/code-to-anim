@@ -15,13 +15,7 @@ const sourceDir = hasBackup ? backupDir : activeDir;
 
 console.log(`🔒 Starting obfuscation process (Source: ${hasBackup ? 'Visualizer-main' : 'src/components'})...`);
 
-// 1. Visualizer.jsx
-if (hasBackup) {
-  fs.copyFileSync(path.join(sourceDir, 'Visualizer.jsx'), path.join(activeDir, 'Visualizer.jsx'));
-  console.log('✅ Visualizer.jsx copied');
-}
-
-// 2. Medium Obfuscation for layoutEngine.js
+// Obfuscate only the layout engine; builds must not overwrite tracked source files.
 const logicPath = path.join(sourceDir, 'layoutEngine.js');
 const logicCode = fs.readFileSync(logicPath, 'utf8');
 

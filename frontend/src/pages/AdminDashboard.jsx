@@ -8,7 +8,7 @@ export default function AdminDashboard({ bgPanel, bgMain, metallicBorder, accent
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const ADMIN_EMAIL = "gururajnaik2807@gmail.com"; 
+  const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || '';
 
   useEffect(() => {
     fetchRequests();

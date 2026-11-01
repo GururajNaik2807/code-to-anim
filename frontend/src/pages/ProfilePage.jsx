@@ -363,7 +363,7 @@ export default function ProfilePage() {
     const shareUrl = `${window.location.origin}/p/${user.id}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
       setShareText('Link Copied! 🔗');
-      trackEvent('share_profile', { user_id: user.id });
+      trackEvent('share_profile');
       setTimeout(() => setShareText('Share Profile'), 2000);
     });
   };
