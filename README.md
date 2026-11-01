@@ -4,6 +4,12 @@ CodeToAnim is an open-source learning platform for exploring data structures and
 
 Created and maintained by **Gururaj Naik**.
 
+## Documentation
+
+- [How CodeToAnim Works](WORKING.md): application flow, architecture diagrams, execution lifecycle, and contributor guide
+- [Contributing](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+
 ## Important Security Limitation
 
 This project is shared as an educational starting point. The backend executes user-submitted Python code and is **not production-secure**. It may be vulnerable to abuse, resource exhaustion, or sandbox escape if exposed carelessly. If you use CodeToAnim in a product, you are responsible for replacing or hardening the execution layer with proper Docker or container isolation, resource limits, authentication, rate limiting, and monitoring before accepting untrusted users.
